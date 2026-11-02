@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TaskStack</title>
-<meta name="theme-color" content="#15171c">
+<meta name="theme-color" content="#f3f4f1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="TaskStack">
 <link rel="manifest" href="manifest.webmanifest">
@@ -13,308 +13,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  /* Layout: app shell (header, scrolling view, bottom tabs); the matrix is a 2x2 grid that fills the screen like TickTick */
-  --bg: #f2f3ef;
-  --surface: #ffffff;
-  --ink: #15171c;
-  --muted: #646972;
-  --line: #dcded8;
-  --q1: #d63c3c;
-  --q2: #2f5fe0;
-  --q3: #a87204;
-  --q4: #7a7f88;
-  --focus: #e0482f;
-  --break: #1d8f62;
-  --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
-  --body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e1014; --surface: #171a20; --ink: #eceef2; --muted: #9ba1ab; --line: #2a2e36;
-    --q1: #ff6f6f; --q2: #7598ff; --q3: #efb340; --q4: #8f959f; --focus: #ff6e55; --break: #43c98f;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0e1014; --surface: #171a20; --ink: #eceef2; --muted: #9ba1ab; --line: #2a2e36;
-  --q1: #ff6f6f; --q2: #7598ff; --q3: #efb340; --q4: #8f959f; --focus: #ff6e55; --break: #43c98f;
-  color-scheme: dark;
-}
-
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-body {
-  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.4;
-  display: flex; flex-direction: column; -webkit-tap-highlight-color: transparent;
-}
-button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--q2); outline-offset: 2px; }
-h1, h2, h3 { text-wrap: balance; }
-
-/* Header */
-.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px 8px; max-width: 1100px; width: 100%; margin: 0 auto; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.logo { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 26px; height: 26px; }
-.logo i { border-radius: 3px; }
-.logo i:nth-child(1) { background: var(--q1); }
-.logo i:nth-child(2) { background: var(--q2); }
-.logo i:nth-child(3) { background: var(--q3); }
-.logo i:nth-child(4) { background: var(--q4); }
-h1 { font-family: var(--display); font-size: 20px; margin: 0; letter-spacing: -0.01em; line-height: 1.1; }
-.top p { margin: 0; color: var(--muted); font-size: 13px; }
-.icon-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; padding: 0; }
-.icon-btn svg { width: 20px; height: 20px; }
-.note { margin: 0 16px 8px; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--q3) 14%, var(--surface)); font-size: 13px; }
-
-main { flex: 1; min-height: 0; overflow: auto; }
-.view { padding: 4px 16px 16px; max-width: 1100px; margin: 0 auto; width: 100%; }
-.view[hidden] { display: none; }
-
-/* Shared controls */
-.add { display: flex; flex-direction: column; gap: 8px; }
-.add-row { display: flex; gap: 8px; }
-.add-row input, .text-input {
-  flex: 1; min-width: 0; width: 100%; height: 44px; padding: 0 14px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--surface);
-}
-.btn { height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; }
-.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.btn.danger { color: var(--q1); }
-.q1 { --qc: var(--q1); } .q2 { --qc: var(--q2); } .q3 { --qc: var(--q3); } .q4 { --qc: var(--q4); }
-
-/* Matrix */
-#view-matrix:not([hidden]) { height: 100%; display: flex; flex-direction: column; gap: 10px; }
-.qpick { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
-.qchip {
-  flex: 0 0 auto; height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line);
-  background: var(--surface); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;
-}
-.qchip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--qc); }
-.qchip.on { border-color: var(--qc); background: color-mix(in srgb, var(--qc) 14%, var(--surface)); }
-.matrix { flex: 1; min-height: 440px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; }
-.quad {
-  min-height: 0; min-width: 0; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden;
-  background: color-mix(in srgb, var(--qc) 6%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--qc) 24%, var(--line));
-}
-.quad-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; padding: 10px 8px 6px 10px; }
-.quad h2 { font-family: var(--display); font-size: 15px; margin: 0; color: var(--qc); line-height: 1.15; }
-.quad .sub { display: block; font-size: 11px; color: var(--muted); }
-.quad-tools { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
-.count { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.quad-add {
-  width: 28px; height: 28px; border-radius: 8px; border: none; padding: 0; font-size: 18px; line-height: 1;
-  background: color-mix(in srgb, var(--qc) 15%, transparent); color: var(--qc);
-}
-.tasks { list-style: none; margin: 0; padding: 0 6px 8px; overflow-y: auto; flex: 1; }
-.task { display: flex; align-items: flex-start; gap: 8px; padding: 6px 4px; border-radius: 8px; }
-.check {
-  flex: 0 0 auto; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%;
-  border: 2px solid var(--qc); background: transparent; padding: 0; display: grid; place-items: center;
-}
-.task.done .check { background: var(--qc); }
-.task.done .check::after {
-  content: ""; width: 5px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0;
-  transform: translate(0, -1px) rotate(45deg);
-}
-.ttl { flex: 1; min-width: 0; text-align: left; background: none; border: none; padding: 0; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
-.task.done .ttl { text-decoration: line-through; color: var(--muted); }
-.meta { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
-.eg { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
-.empty { margin: 2px 10px; color: var(--muted); font-size: 13px; }
-
-/* Focus */
-.mode-focus { --mc: var(--focus); }
-.mode-break { --mc: var(--break); }
-.focus { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; padding-top: 8px; }
-.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
-.mode { height: 36px; border: none; border-radius: 9px; background: none; font-size: 14px; font-weight: 500; color: var(--muted); }
-.mode.on { background: var(--ink); color: var(--bg); }
-.dial { position: relative; width: min(70vw, 270px); aspect-ratio: 1; margin: 0 auto; }
-.dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.track { fill: none; stroke: var(--line); stroke-width: 8; }
-.prog { fill: none; stroke: var(--mc); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.3s linear; }
-.dial-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.clock { font-family: var(--mono); font-size: clamp(44px, 14vw, 60px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
-.dial-label { color: var(--mc); font-weight: 600; font-size: 14px; }
-.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-select { width: 100%; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 0 12px; }
-.controls { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 8px; }
-.btn.go { background: var(--mc); border-color: var(--mc); color: #fff; }
-.stats { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
-.stat b { font-family: var(--mono); font-size: 22px; display: block; font-variant-numeric: tabular-nums; font-weight: 500; }
-.stat span { font-size: 12px; color: var(--muted); }
-.dots { display: flex; gap: 6px; align-items: center; }
-.dots i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--focus); }
-.dots i.on { background: var(--focus); }
-h3.section { font-family: var(--display); font-size: 16px; margin: 4px 0 0; }
-.log { list-style: none; padding: 0; margin: 0; }
-.log li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
-.log time { font-family: var(--mono); color: var(--muted); font-size: 12px; white-space: nowrap; }
-
-/* Habits */
-.habits-wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
-.hgrid { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 2px 10px; }
-.hrow { display: grid; grid-template-columns: minmax(0, 1fr) repeat(7, 30px); gap: 4px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.hrow:last-child { border-bottom: none; }
-.hhead { font-size: 11px; color: var(--muted); text-align: center; }
-.hhead .d { display: block; font-family: var(--mono); font-size: 12px; color: var(--ink); }
-.hhead.today .d { color: var(--break); }
-.hname { background: none; border: none; padding: 0; text-align: left; min-width: 0; }
-.hname strong { display: block; font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
-.hname small { font-size: 12px; color: var(--muted); font-family: var(--mono); }
-.cell { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid var(--line); background: none; padding: 0; }
-.cell.today { border-color: var(--muted); }
-.cell.on { background: var(--break); border-color: var(--break); }
-
-/* ColorTracker */
-.btn.small { height: 36px; padding: 0 12px; font-size: 13px; }
-.btn:disabled, .icon-btn:disabled { opacity: 0.4; cursor: default; }
-.ct { display: grid; gap: 14px; padding-top: 4px; }
-.ct-main, .ct-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.ct-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.seg { display: inline-grid; grid-auto-flow: column; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
-.seg button { height: 32px; padding: 0 12px; border: none; border-radius: 9px; background: none; font-size: 13px; font-weight: 500; color: var(--muted); }
-.seg button.on { background: var(--ink); color: var(--bg); }
-.toolbar { display: flex; gap: 6px; }
-.ct-nav { display: flex; align-items: center; gap: 8px; }
-.ct-nav .icon-btn { width: 36px; height: 36px; flex: 0 0 auto; }
-.ct-day { flex: 1; min-width: 0; }
-.ct-day h2 { font-family: var(--display); font-size: 19px; margin: 0; line-height: 1.2; }
-.ct-day p { margin: 0; font-size: 12px; color: var(--muted); font-family: var(--mono); }
-.brushes { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
-.brush { flex: 0 0 auto; height: 36px; padding: 0 12px 0 9px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; }
-.brush i { width: 16px; height: 16px; border-radius: 50%; background: var(--bc); flex: 0 0 auto; }
-.brush.on { border-color: var(--bc); background: color-mix(in srgb, var(--bc) 18%, var(--surface)); }
-.brush.eraser i { background: repeating-linear-gradient(45deg, var(--muted) 0 2px, transparent 2px 5px); }
-.brush .key { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-@media (hover: none) { .brush .key { display: none; } }
-#ctWarn { margin: 0; }
-.ct-live { margin: 0; min-height: 20px; font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.ct-live b { color: var(--ink); font-weight: 500; }
-.ct-tools {
-  position: sticky; top: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px;
-  margin: 0 -16px; padding: 8px 16px; background: color-mix(in srgb, var(--bg) 94%, transparent);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
-}
-.tools-row { display: flex; gap: 8px; }
-.pen, .tool {
-  height: 48px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface);
-  display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 15px; padding: 0 14px;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-}
-.pen { flex: 1; border-color: var(--bc); }
-.pen svg, .tool svg { width: 20px; height: 20px; flex: 0 0 auto; }
-.pen .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--bc); vertical-align: -1px; margin-right: 8px; }
-#ctPenLabel { white-space: nowrap; }
-.pen.on { background: color-mix(in srgb, var(--bc) 24%, var(--surface)); border-width: 3px; }
-.tool.on { border-color: var(--ink); background: color-mix(in srgb, var(--muted) 18%, var(--surface)); }
-.pen:active, .tool:active { transform: scale(0.97); }
-.ct-grid {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; border-radius: 10px;
-  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  outline: 2px solid transparent; outline-offset: 4px; transition: outline-color 0.15s ease;
-}
-.ct-grid.armed { touch-action: none; cursor: crosshair; outline-color: var(--arm); }
-.tools-row[hidden] { display: none; }
-.tool.danger { color: var(--q1); }
-.tool.done { flex: 1; background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.tool.on { border-color: var(--ink); }
-.fill.sel { box-shadow: inset 0 0 0 2px var(--ink); z-index: 1; }
-.fill.dim { opacity: 0.35; }
-.handle { position: absolute; top: 0; bottom: 0; width: 28px; z-index: 4; touch-action: none; cursor: ew-resize; display: flex; align-items: center; }
-.handle.hs { justify-content: flex-start; }
-.handle.he { margin-left: -28px; justify-content: flex-end; }
-.handle i { width: 8px; height: 30px; border-radius: 4px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
-.lockmark { position: absolute; bottom: 4px; z-index: 3; width: 14px; height: 14px; margin-left: 4px; color: #fff; pointer-events: none; filter: drop-shadow(0 0 1px rgba(0,0,0,0.6)); }
-.lockmark svg { width: 14px; height: 14px; display: block; }
-.entries .what { background: none; border: none; padding: 0; text-align: left; }
-.entries span.x { display: grid; place-items: center; }
-.entries span.x svg { width: 16px; height: 16px; }
-.tool span { white-space: nowrap; }
-.blk { position: relative; height: 66px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
-.fill { position: absolute; top: 0; bottom: 0; }
-.fill.preview { opacity: 0.8; }
-.fill.erase { background: repeating-linear-gradient(45deg, var(--muted) 0 2px, transparent 2px 7px); opacity: 0.6; }
-.shade { position: absolute; top: 0; bottom: 0; pointer-events: none; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 3px, transparent 3px 8px); }
-.nowline { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); pointer-events: none; }
-.hr { position: absolute; top: 3px; right: 3px; z-index: 2; font-family: var(--mono); font-size: 10px; line-height: 14px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--muted); pointer-events: none; }
-.ct-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.ct-card h3 { font-family: var(--display); font-size: 15px; margin: 0; }
-.ct-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); }
-.ct-bar span { height: 100%; }
-.ct-totals, .entries { list-style: none; margin: 0; padding: 0; }
-.ct-totals { display: grid; gap: 6px; }
-.ct-totals li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
-.ct-totals b { margin-left: auto; font-family: var(--mono); font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; }
-.entries li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-.entries li:last-child { border-bottom: none; }
-.entries .what { flex: 1; min-width: 0; }
-.entries .what span { display: block; }
-.entries time { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.entries .x { flex: 0 0 auto; border: none; background: none; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; font-size: 18px; }
-.act-row { display: flex; gap: 8px; align-items: center; }
-.act-row input[type="color"] { width: 44px; height: 44px; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); flex: 0 0 auto; }
-.act-row .btn { flex: 0 0 auto; }
-.toast {
-  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 30; max-width: calc(100% - 32px);
-  background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 16px; font-size: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
-}
-.toast[hidden] { display: none; }
-@media (min-width: 900px) {
-  .ct { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
-  .ct-side { position: sticky; top: 8px; }
-  .brushes { flex-wrap: wrap; overflow: visible; }
-  .blk { height: 88px; }
-  .hr { font-size: 11px; }
-}
-
-/* Bottom tabs */
-.tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 8px 8px; }
-.tab { border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; border-radius: 10px; font-size: 12px; color: var(--muted); font-weight: 500; }
-.tab svg { width: 22px; height: 22px; }
-.tab.on { color: var(--ink); }
-.tab .live { font-family: var(--mono); color: var(--focus); }
-
-/* Bottom sheet */
-.sheet-wrap { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
-.sheet-wrap[hidden] { display: none; }
-.scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.42); }
-.sheet {
-  position: relative; width: 100%; max-width: 520px; max-height: 88%; overflow: auto; background: var(--surface);
-  border-radius: 18px 18px 0 0; padding: 18px 16px 22px; display: flex; flex-direction: column; gap: 14px;
-}
-.sheet h3 { font-family: var(--display); font-size: 18px; margin: 0; }
-.sheet .row { display: flex; gap: 8px; flex-wrap: wrap; }
-.sheet .row .btn { flex: 1; }
-.qmove { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.qmove button { height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 8px; padding: 0 12px; font-weight: 500; font-size: 14px; }
-.qmove button::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--qc); }
-.qmove button.on { border-color: var(--qc); background: color-mix(in srgb, var(--qc) 14%, var(--surface)); }
-.small { font-size: 13px; color: var(--muted); margin: 0; }
-.label { font-size: 12px; color: var(--muted); margin: 0 0 -8px; }
-.status { font-size: 13px; color: var(--break); min-height: 18px; margin: 0; }
-.dur { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.dur label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
-.dur input { width: 100%; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); padding: 0 10px; font-family: var(--mono); }
-textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); padding: 10px; font-family: var(--mono); font-size: 12px; }
-
-@media (min-width: 700px) {
-  .sheet-wrap { align-items: center; }
-  .sheet { border-radius: 18px; }
-  .matrix { gap: 12px; }
-  .quad h2 { font-size: 17px; }
-}
-@media (prefers-reduced-motion: reduce) { .prog { transition: none; } }
-</style>
+<link rel="stylesheet" href="css/app.css">
 </head>
-<body>
+<body data-section="matrix">
 
 <header class="top">
   <div class="brand">
@@ -324,32 +25,39 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
       <p id="today"></p>
     </div>
   </div>
-  <button class="icon-btn" data-action="settings" aria-label="Settings and backup">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-  </button>
+  <div class="top-actions">
+    <button class="icon-btn" data-action="palette" aria-label="Search and commands (Ctrl+K)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="icon-btn" data-action="settings" aria-label="Settings and backup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
 </header>
 <p id="storeNote" class="note" hidden>This browser isn't saving data. Open Settings and copy a backup before you close the page.</p>
 
-<main>
+<main id="main">
   <!-- MATRIX -->
   <section id="view-matrix" class="view">
-    <form id="addForm" class="add">
+    <form id="addForm" class="add" autocomplete="off">
       <div class="add-row">
-        <input id="addInput" autocomplete="off" placeholder="Add a task" aria-label="New task">
+        <input id="addInput" placeholder="Add a task" aria-label="New task" enterkeyhint="done">
         <button class="btn primary" type="submit">Add</button>
       </div>
+      <div class="parse" id="parsePreview" aria-live="polite"></div>
       <div class="qpick" id="qpick"></div>
     </form>
-    <div class="matrix" id="matrix"></div>
+    <div class="matrix" id="matrixGrid"></div>
+    <p class="small">Tip: type <b>tomorrow 5pm !1 #college</b> to set the date, quadrant and tag in one go. Swipe a task right to finish it, left to delete it. Hold a task, then drag it to another box.</p>
   </section>
 
-  <!-- FOCUS / POMODORO -->
-  <section id="view-focus" class="view mode-focus" hidden>
+  <!-- FOCUS -->
+  <section id="view-focus" class="view" hidden>
     <div class="focus">
-      <div class="modes" id="modes">
-        <button class="mode" data-action="mode" data-mode="focus">Focus</button>
-        <button class="mode" data-action="mode" data-mode="short">Short break</button>
-        <button class="mode" data-action="mode" data-mode="long">Long break</button>
+      <div class="seg" id="modes">
+        <button data-action="mode" data-mode="focus">Focus</button>
+        <button data-action="mode" data-mode="short">Short break</button>
+        <button data-action="mode" data-mode="long">Long break</button>
       </div>
       <div class="dial">
         <svg viewBox="0 0 200 200" aria-hidden="true">
@@ -357,40 +65,68 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
           <circle class="prog" id="prog" cx="100" cy="100" r="90" stroke-dasharray="565.49" stroke-dashoffset="0"/>
         </svg>
         <div class="dial-center">
+          <svg class="plant" id="plant" viewBox="0 0 64 56" aria-hidden="true">
+            <path d="M14 52h36" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+            <g class="part" id="pStem" style="transform-origin: 50% 100%"><path d="M32 52V24" stroke="var(--c-habits)" stroke-width="3" stroke-linecap="round" fill="none"/></g>
+            <g class="part" id="pLeafL" style="transform-origin: 100% 100%"><path d="M32 40c-8 0-13-5-14-11 7-1 13 3 14 11z" fill="var(--c-habits)"/></g>
+            <g class="part" id="pLeafR" style="transform-origin: 0% 100%"><path d="M32 33c1-8 7-12 14-11-1 7-6 11-14 11z" fill="var(--c-habits)"/></g>
+            <g class="part" id="pBloom" style="transform-origin: 50% 50%"><circle cx="32" cy="18" r="7" fill="var(--accent)"/><circle cx="32" cy="18" r="3" fill="var(--surface)"/></g>
+            <circle id="pSeed" cx="32" cy="50" r="3.5" fill="var(--c-habits)"/>
+          </svg>
           <div class="clock" id="clock" role="timer">25:00</div>
           <div class="dial-label" id="dialLabel">Focus</div>
         </div>
       </div>
-      <div class="field">
-        <label for="taskSelect">Working on</label>
-        <select id="taskSelect"></select>
+      <div class="field" id="intentField">
+        <label for="intentInput">What will you get done?</label>
+        <input class="text-input" id="intentInput" placeholder="e.g. Finish lab record section 3" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="taskSelect">Task</label>
+          <select id="taskSelect"></select>
+        </div>
+        <div class="field">
+          <label for="soundSelect">Background sound</label>
+          <select id="soundSelect">
+            <option value="off">Off</option>
+            <option value="brown">Brown noise</option>
+            <option value="rain">Rain</option>
+            <option value="waves">Waves</option>
+          </select>
+        </div>
       </div>
       <div class="controls">
         <button class="btn" data-action="reset">Reset</button>
         <button class="btn go" id="startBtn" data-action="startpause">Start</button>
         <button class="btn" data-action="skip">Skip</button>
       </div>
-      <div class="stats">
-        <div class="stat"><b id="statCount">0</b><span>sessions today</span></div>
-        <div class="stat"><b id="statMin">0</b><span>minutes focused</span></div>
-        <div class="dots" id="dots" aria-label="Progress to long break"></div>
+      <div class="card">
+        <div class="stats">
+          <div class="stat"><b id="statCount">0</b><span>sessions today</span></div>
+          <div class="stat"><b id="statMin">0</b><span>minutes focused</span></div>
+          <div class="dots" id="dots" aria-label="Progress to long break"></div>
+        </div>
+        <div class="chart" id="focusChart"></div>
       </div>
-      <h3 class="section">Today's sessions</h3>
-      <ul class="log" id="sessionLog"></ul>
+      <div class="card">
+        <h3>Today's sessions</h3>
+        <ul class="log" id="sessionLog"></ul>
+      </div>
     </div>
   </section>
 
   <!-- HABITS -->
   <section id="view-habits" class="view" hidden>
     <div class="habits-wrap">
-      <form id="habitForm" class="add">
+      <form id="habitForm" class="add" autocomplete="off">
         <div class="add-row">
-          <input id="habitInput" autocomplete="off" placeholder="New habit, e.g. Drink 3 L water" aria-label="New habit">
+          <input id="habitInput" placeholder="New habit, e.g. Drink 3 L water" aria-label="New habit">
           <button class="btn primary" type="submit">Add</button>
         </div>
       </form>
       <div class="hgrid" id="habitGrid"></div>
-      <p class="small">Tap a square to mark a day. Tap a habit's name to rename or delete it.</p>
+      <p class="small">Tap a square to tick a day. Tap a habit for its colour, year heatmap and stats. Strength rises with every tick and falls slowly when you miss, so one bad day never wipes you out.</p>
     </div>
   </section>
 
@@ -403,9 +139,7 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
             <button data-action="ctview" data-v="sleep">Sleep to sleep</button>
             <button data-action="ctview" data-v="clock">24-hour</button>
           </div>
-          <div class="toolbar">
-            <button class="btn small" data-action="ctacts">Edit activities</button>
-          </div>
+          <button class="btn small" data-action="ctacts">Edit activities</button>
         </div>
         <div class="ct-nav">
           <button class="icon-btn" id="ctPrev" data-action="ctprev" aria-label="Previous day">
@@ -424,7 +158,7 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               <span id="ctPenLabel">Pen</span>
             </button>
-            <button class="tool" id="ctUndo" data-action="ctundo" aria-label="Undo last change">
+            <button class="tool" id="ctUndo" data-action="undo" aria-label="Undo last change">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
               <span>Undo</span>
             </button>
@@ -441,15 +175,15 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
           <p class="ct-live" id="ctLive" aria-live="polite"></p>
         </div>
         <div class="ct-grid" id="ctGrid" aria-label="Hours of the day. Turn on the pen, then drag to paint."></div>
-        <p class="small">Each block is one hour, and time runs left to right. Pick a colour, tap <strong>Pen</strong>, then drag; the pen turns itself off when you lift your finger. A tap with the pen on fills the empty part of that hour. New paint never covers what's already logged. With the pen off, tap a coloured block to stretch, lock or delete it.</p>
+        <p class="small">Each block is one hour; time runs left to right. Pick a colour, tap <b>Pen</b>, then drag. The pen turns off when you lift your finger, and new paint never covers what's already logged. With the pen off, tap a coloured block to stretch, lock, recolour or delete it.</p>
       </div>
       <div class="ct-side">
-        <div class="ct-card">
+        <div class="card">
           <h3>Where the time went</h3>
           <div class="ct-bar" id="ctBar"></div>
           <ul class="ct-totals" id="ctTotals"></ul>
         </div>
-        <div class="ct-card">
+        <div class="card">
           <h3>Entries</h3>
           <ul class="entries" id="ctEntries"></ul>
         </div>
@@ -476,1230 +210,27 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
     <span>ColorTracker</span>
   </button>
 </nav>
-<div class="toast" id="toast" role="status" hidden></div>
 
 <div class="sheet-wrap" id="sheetWrap" hidden>
   <div class="scrim" data-action="close"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
 </div>
 
-<script>
-/*
-  DATA SHAPE (kept simple so Google Drive sync can be added later)
-  - Every task / habit / session has an id and an updatedAt timestamp.
-  - Deleting only marks deleted: true, so other devices learn about the delete.
-  - mergeState(local, incoming) combines two copies: the newer edit of each item wins.
-    The same function will merge this device's data with the copy stored in Google Drive.
-*/
-const STORE_KEY = 'taskstack.v1';
-const QUADS = [
-  { q: 1, name: 'Do now',   sub: 'Urgent · Important' },
-  { q: 2, name: 'Schedule', sub: 'Not urgent · Important' },
-  { q: 3, name: 'Delegate', sub: 'Urgent · Not important' },
-  { q: 4, name: 'Drop',     sub: 'Not urgent · Not important' }
-];
-const RING = 565.49; // circumference of the timer circle (2 * PI * 90)
+<div class="palette-wrap" id="paletteWrap" hidden>
+  <div class="scrim" data-action="closepalette"></div>
+  <div class="palette" role="dialog" aria-label="Search and commands">
+    <input id="paletteInput" placeholder="Search, add a task, or jump anywhere…" autocomplete="off" aria-label="Search and commands">
+    <ul id="paletteList"></ul>
+  </div>
+</div>
 
-// ---------- helpers ----------
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-function now() { return Date.now(); }
-function dayKey(date) {
-  const d = date || new Date();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return d.getFullYear() + '-' + m + '-' + day;
-}
-function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d; }
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
-}
-function fmtClock(ms) {
-  const total = Math.ceil(ms / 1000);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
-function fmtTime(ts) { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-function $(id) { return document.getElementById(id); }
+<div class="toast" id="toast" role="status" hidden></div>
 
-// ---------- state ----------
-function exampleState() {
-  const t = now();
-  function task(title, q, done) {
-    return { id: uid(), title: title, q: q, done: !!done, createdAt: t, updatedAt: t, deleted: false, example: true };
-  }
-  function habit(name, doneDaysAgo) {
-    const h = { id: uid(), name: name, done: {}, createdAt: t, updatedAt: t, deleted: false, example: true };
-    doneDaysAgo.forEach(function (n) { h.done[dayKey(daysAgo(n))] = { on: true, at: t }; });
-    return h;
-  }
-  return {
-    version: 1,
-    tasks: [
-      task('Submit lab record', 1),
-      task('Revise for tomorrow\'s quiz', 1),
-      task('Build habit tracker screen', 2),
-      task('Plan next week', 2),
-      task('Read one research paper', 2, true),
-      task('Reply to group chat', 3),
-      task('Book train tickets', 3),
-      task('Reorganise desktop icons', 4)
-    ],
-    habits: [
-      habit('Workout 30 min', [1, 2, 3, 5]),
-      habit('Read 10 pages', [0, 1, 2, 3, 4, 6]),
-      habit('No phone after 11 pm', [2, 3])
-    ],
-    sessions: [],
-    settings: { focus: 25, short: 5, long: 15, updatedAt: t },
-    timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * 60000, taskId: null, count: 0 },
-    categories: defaultCategories(),
-    ranges: [],
-    ui: { ctView: 'sleep' }
-  };
-}
-
-function normalize(s) {
-  const base = exampleState();
-  s.tasks = Array.isArray(s.tasks) ? s.tasks : [];
-  s.habits = Array.isArray(s.habits) ? s.habits : [];
-  s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
-  s.settings = s.settings || base.settings;
-  s.timer = s.timer || base.timer;
-  s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
-  s.ranges = Array.isArray(s.ranges) ? s.ranges : [];
-  s.ui = s.ui || base.ui;
-  return s;
-}
-
-let storageOk = true;
-function load() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) return normalize(JSON.parse(raw));
-  } catch (e) { storageOk = false; }
-  return exampleState();
-}
-function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-  catch (e) { storageOk = false; $('storeNote').hidden = false; }
-}
-
-let state = load();
-let view = 'matrix';
-let addQ = 1;
-let sheet = null; // { type: 'task' | 'habit' | 'settings', id }
-
-function liveTasks() { return state.tasks.filter(function (t) { return !t.deleted; }); }
-function liveHabits() { return state.habits.filter(function (h) { return !h.deleted; }); }
-function findTask(id) { return state.tasks.find(function (t) { return t.id === id; }); }
-function findHabit(id) { return state.habits.find(function (h) { return h.id === id; }); }
-function pomCount(taskId) { return state.sessions.filter(function (s) { return s.taskId === taskId; }).length; }
-
-// ---------- merge (used by Import now, Google Drive sync later) ----------
-function mergeById(local, incoming) {
-  const map = {};
-  local.forEach(function (x) { map[x.id] = x; });
-  incoming.forEach(function (x) {
-    const mine = map[x.id];
-    if (!mine || (x.updatedAt || 0) > (mine.updatedAt || 0)) map[x.id] = x;
-  });
-  return Object.values(map);
-}
-function mergeHabits(local, incoming) {
-  const result = mergeById(local, incoming);
-  result.forEach(function (h) {
-    const a = local.find(function (x) { return x.id === h.id; });
-    const b = incoming.find(function (x) { return x.id === h.id; });
-    if (a && b) {
-      // merge day by day, so ticks made on two devices are both kept
-      const done = {};
-      [a.done || {}, b.done || {}].forEach(function (m) {
-        for (const k in m) { if (!done[k] || m[k].at > done[k].at) done[k] = m[k]; }
-      });
-      h.done = done;
-    }
-  });
-  return result;
-}
-function mergeState(local, incoming) {
-  return {
-    version: 1,
-    tasks: mergeById(local.tasks, incoming.tasks || []),
-    habits: mergeHabits(local.habits, incoming.habits || []),
-    sessions: mergeById(local.sessions, incoming.sessions || []),
-    settings: (incoming.settings && incoming.settings.updatedAt > local.settings.updatedAt) ? incoming.settings : local.settings,
-    timer: local.timer, // the running timer belongs to this device only
-    categories: mergeById(local.categories, incoming.categories || []),
-    ranges: mergeById(local.ranges, incoming.ranges || []),
-    ui: local.ui // view choices belong to this device only
-  };
-}
-
-// ---------- render: matrix ----------
-function renderQpick() {
-  $('qpick').innerHTML = QUADS.map(function (q) {
-    const on = q.q === addQ;
-    return '<button type="button" class="qchip q' + q.q + (on ? ' on' : '') + '" data-action="pickq" data-q="' + q.q + '" aria-pressed="' + on + '">' + q.name + '</button>';
-  }).join('');
-  $('addInput').placeholder = 'Add a task to ' + QUADS[addQ - 1].name;
-}
-
-function renderMatrix() {
-  const tasks = liveTasks();
-  $('matrix').innerHTML = QUADS.map(function (q) {
-    const list = tasks.filter(function (t) { return t.q === q.q; });
-    list.sort(function (a, b) { return (a.done - b.done) || (a.createdAt - b.createdAt); });
-    const open = list.filter(function (t) { return !t.done; }).length;
-    const items = list.map(function (t) {
-      const poms = pomCount(t.id);
-      return '<li class="task' + (t.done ? ' done' : '') + '">' +
-        '<button class="check" data-action="toggle" data-id="' + t.id + '" aria-label="' + (t.done ? 'Mark not done' : 'Mark done') + '"></button>' +
-        '<button class="ttl" data-action="open" data-id="' + t.id + '">' + esc(t.title) +
-        (t.example ? '<span class="eg">example</span>' : '') +
-        (poms ? ' <span class="meta">· ' + poms + ' pom</span>' : '') +
-        '</button></li>';
-    }).join('');
-    return '<div class="quad q' + q.q + '">' +
-      '<div class="quad-head"><div><h2>' + q.name + '</h2><span class="sub">' + q.sub + '</span></div>' +
-      '<div class="quad-tools"><span class="count">' + open + '</span>' +
-      '<button class="quad-add" data-action="addhere" data-q="' + q.q + '" aria-label="Add task to ' + q.name + '">+</button></div></div>' +
-      (items ? '<ul class="tasks">' + items + '</ul>' : '<p class="empty">Nothing here.</p>') +
-      '</div>';
-  }).join('');
-}
-
-// ---------- render: focus ----------
-function modeMinutes(mode) {
-  if (mode === 'focus') return state.settings.focus;
-  if (mode === 'short') return state.settings.short;
-  return state.settings.long;
-}
-function timeLeft() {
-  const tm = state.timer;
-  return tm.running ? Math.max(0, tm.endsAt - now()) : tm.remaining;
-}
-
-function renderTaskSelect() {
-  const tm = state.timer;
-  const open = liveTasks().filter(function (t) { return !t.done; });
-  if (tm.taskId && !open.some(function (t) { return t.id === tm.taskId; })) tm.taskId = null;
-  let html = '<option value="">No task, just focus</option>';
-  QUADS.forEach(function (q) {
-    const list = open.filter(function (t) { return t.q === q.q; });
-    if (!list.length) return;
-    html += '<optgroup label="' + q.name + '">' + list.map(function (t) {
-      return '<option value="' + t.id + '"' + (t.id === tm.taskId ? ' selected' : '') + '>' + esc(t.title) + '</option>';
-    }).join('') + '</optgroup>';
-  });
-  $('taskSelect').innerHTML = html;
-}
-
-function renderFocus() {
-  const tm = state.timer;
-  const section = $('view-focus');
-  section.classList.toggle('mode-focus', tm.mode === 'focus');
-  section.classList.toggle('mode-break', tm.mode !== 'focus');
-  document.querySelectorAll('.mode').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === tm.mode); });
-  $('dialLabel').textContent = tm.mode === 'focus' ? 'Focus' : (tm.mode === 'short' ? 'Short break' : 'Long break');
-  $('startBtn').textContent = tm.running ? 'Pause' : (tm.remaining < modeMinutes(tm.mode) * 60000 ? 'Resume' : 'Start');
-  renderTaskSelect();
-
-  const today = state.sessions.filter(function (s) { return s.day === dayKey(); });
-  $('statCount').textContent = today.length;
-  $('statMin').textContent = today.reduce(function (sum, s) { return sum + s.minutes; }, 0);
-  let filled = (tm.count || 0) % 4;
-  if (tm.mode === 'long') filled = 4;
-  let dots = '';
-  for (let i = 0; i < 4; i++) dots += '<i class="' + (i < filled ? 'on' : '') + '"></i>';
-  $('dots').innerHTML = dots;
-
-  $('sessionLog').innerHTML = today.length
-    ? today.slice().reverse().map(function (s) {
-        const t = s.taskId ? findTask(s.taskId) : null;
-        return '<li><span>' + (t ? esc(t.title) : 'Untitled focus') + ' · ' + s.minutes + ' min</span><time>' + fmtTime(s.endedAt) + '</time></li>';
-      }).join('')
-    : '<li><span class="small">No sessions yet. Pick a task and press Start.</span></li>';
-  tickDisplay();
-}
-
-function tickDisplay() {
-  const tm = state.timer;
-  const left = timeLeft();
-  const total = modeMinutes(tm.mode) * 60000;
-  $('clock').textContent = fmtClock(left);
-  $('prog').style.strokeDashoffset = String(RING * (1 - left / total));
-  $('focusTabLabel').innerHTML = tm.running ? '<span class="live">' + fmtClock(left) + '</span>' : 'Focus';
-  document.title = tm.running ? fmtClock(left) + ' · TaskStack' : 'TaskStack';
-}
-
-// ---------- timer actions ----------
-function setMode(mode) {
-  const tm = state.timer;
-  tm.mode = mode;
-  tm.running = false;
-  tm.remaining = modeMinutes(mode) * 60000;
-  save();
-  renderFocus();
-}
-function startPause() {
-  unlockAudio();
-  const tm = state.timer;
-  if (tm.running) {
-    tm.remaining = Math.max(0, tm.endsAt - now());
-    tm.running = false;
-  } else {
-    tm.endsAt = now() + tm.remaining; // store the end time, so the timer stays right even if the tab sleeps
-    tm.running = true;
-  }
-  save();
-  renderFocus();
-}
-function finish(skipped) {
-  const tm = state.timer;
-  let next = 'focus';
-  if (tm.mode === 'focus') {
-    if (!skipped) {
-      const t = now();
-      state.sessions.push({ id: uid(), taskId: tm.taskId, minutes: state.settings.focus, endedAt: t, day: dayKey(), updatedAt: t });
-      tm.count = (tm.count || 0) + 1;
-    }
-    next = (tm.count > 0 && tm.count % 4 === 0 && !skipped) ? 'long' : 'short';
-  }
-  if (!skipped) chime();
-  setMode(next);
-  renderMatrix();
-}
-
-let audioCtx = null;
-function unlockAudio() {
-  try {
-    if (!audioCtx) { const AC = window.AudioContext || window.webkitAudioContext; audioCtx = new AC(); }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-  } catch (e) {}
-}
-function chime() {
-  try {
-    if (audioCtx) {
-      [660, 880, 990].forEach(function (freq, i) {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.frequency.value = freq;
-        o.connect(g); g.connect(audioCtx.destination);
-        const t = audioCtx.currentTime + i * 0.25;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-        o.start(t); o.stop(t + 0.25);
-      });
-    }
-  } catch (e) {}
-  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-}
-
-setInterval(function () {
-  if (!state.timer.running) return;
-  if (timeLeft() <= 0) finish(false);
-  else if (view === 'focus') tickDisplay();
-  else {
-    $('focusTabLabel').innerHTML = '<span class="live">' + fmtClock(timeLeft()) + '</span>';
-    document.title = fmtClock(timeLeft()) + ' · TaskStack';
-  }
-}, 250);
-
-// ---------- render: habits ----------
-function isOn(h, key) { const e = h.done[key]; return !!(e && e.on); }
-function streak(h) {
-  const d = new Date();
-  let n = 0;
-  if (!isOn(h, dayKey(d))) d.setDate(d.getDate() - 1); // today not ticked yet doesn't break the streak
-  while (isOn(h, dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
-  return n;
-}
-function renderHabits() {
-  const days = [];
-  for (let i = 6; i >= 0; i--) days.push(daysAgo(i));
-  const todayKey = dayKey();
-  let html = '<div class="hrow"><span class="hhead" style="text-align:left">Last 7 days</span>' +
-    days.map(function (d) {
-      return '<span class="hhead' + (dayKey(d) === todayKey ? ' today' : '') + '">' +
-        d.toLocaleDateString([], { weekday: 'narrow' }) + '<span class="d">' + d.getDate() + '</span></span>';
-    }).join('') + '</div>';
-  const habits = liveHabits();
-  if (!habits.length) html += '<div class="hrow"><span class="small">No habits yet. Add one above.</span></div>';
-  habits.forEach(function (h) {
-    const s = streak(h);
-    html += '<div class="hrow"><button class="hname" data-action="openhabit" data-id="' + h.id + '"><strong>' + esc(h.name) +
-      (h.example ? '<span class="eg">example</span>' : '') + '</strong><small>' + (s ? s + '-day streak' : 'No streak yet') + '</small></button>' +
-      days.map(function (d) {
-        const k = dayKey(d);
-        const on = isOn(h, k);
-        return '<button class="cell' + (on ? ' on' : '') + (k === todayKey ? ' today' : '') + '" data-action="tick" data-id="' + h.id + '" data-day="' + k +
-          '" aria-pressed="' + on + '" aria-label="' + esc(h.name) + ' on ' + d.toDateString() + '"></button>';
-      }).join('') + '</div>';
-  });
-  $('habitGrid').innerHTML = html;
-}
-
-// ---------- sheets ----------
-function openSheet(s) {
-  sheet = s;
-  let html = '';
-  if (s.type === 'task') {
-    const t = findTask(s.id);
-    html = '<h3>Edit task</h3>' +
-      '<input class="text-input" id="renameTask" value="' + esc(t.title) + '" aria-label="Task name">' +
-      '<p class="label">Move to</p><div class="qmove">' + QUADS.map(function (q) {
-        return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="move" data-q="' + q.q + '">' + q.name + '</button>';
-      }).join('') + '</div>' +
-      '<div class="row"><button class="btn primary" data-action="focustask">Focus on this task</button></div>' +
-      '<div class="row"><button class="btn danger" data-action="deltask">Delete task</button><button class="btn" data-action="close">Done</button></div>';
-  } else if (s.type === 'habit') {
-    const h = findHabit(s.id);
-    html = '<h3>Edit habit</h3>' +
-      '<input class="text-input" id="renameHabit" value="' + esc(h.name) + '" aria-label="Habit name">' +
-      '<p class="small">Current streak: ' + streak(h) + ' days</p>' +
-      '<div class="row"><button class="btn danger" data-action="delhabit">Delete habit</button><button class="btn" data-action="close">Done</button></div>';
-  } else if (s.type === 'settings') {
-    const st = state.settings;
-    html = '<h3>Settings</h3>' +
-      '<p class="label">Timer lengths (minutes)</p><div class="dur">' +
-      '<div><label for="setFocus">Focus</label><input id="setFocus" type="number" min="1" max="120" value="' + st.focus + '"></div>' +
-      '<div><label for="setShort">Short break</label><input id="setShort" type="number" min="1" max="60" value="' + st.short + '"></div>' +
-      '<div><label for="setLong">Long break</label><input id="setLong" type="number" min="1" max="90" value="' + st.long + '"></div></div>' +
-      '<p class="label">Backup</p>' +
-      '<p class="small">Data is saved in this browser only, until Google Drive sync is added. Copy a backup and paste it on another device to merge.</p>' +
-      '<div class="row"><button class="btn" data-action="copybackup">Copy backup</button><button class="btn" data-action="clearexamples">Remove examples</button></div>' +
-      '<textarea id="backupBox" aria-label="Backup data" placeholder="Paste a backup here, then press Merge"></textarea>' +
-      '<div class="row"><button class="btn primary" data-action="importbackup">Merge pasted backup</button></div>' +
-      '<p class="status" id="settingsStatus" role="status"></p>' +
-      '<div class="row"><button class="btn" data-action="close">Close</button></div>';
-  }
-  if (s.type === 'activities') {
-    html = '<h3>Activities</h3>' +
-      '<p class="small">Each activity is a paint colour. Sleep is special: a sleep of 3 hours or more starts a new day in the sleep-to-sleep view.</p>' +
-      liveCats().map(function (c) {
-        return '<div class="act-row">' +
-          '<input type="color" value="' + c.color + '" data-cat="' + c.id + '" data-field="color" aria-label="Colour for ' + esc(c.name) + '">' +
-          '<input class="text-input" value="' + esc(c.name) + '" data-cat="' + c.id + '" data-field="name" aria-label="Activity name">' +
-          (c.sleep ? '<span class="small">Sleep</span>' : '<button class="btn danger" data-action="delcat" data-id="' + c.id + '">Delete</button>') +
-          '</div>';
-      }).join('') +
-      '<div class="row"><button class="btn" data-action="addcat">Add activity</button><button class="btn primary" data-action="close">Done</button></div>';
-  }
-  $('sheet').innerHTML = html;
-  $('sheetWrap').hidden = false;
-}
-function closeSheet() {
-  sheet = null;
-  $('sheetWrap').hidden = true;
-}
-function setStatus(msg, bad) {
-  const el = $('settingsStatus');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = bad ? 'var(--q1)' : 'var(--break)';
-}
-
-// ---------- navigation ----------
-const VIEWS = ['matrix', 'focus', 'habits', 'colortracker'];
-function showView(v) {
-  if (VIEWS.indexOf(v) === -1) v = 'matrix';
-  view = v;
-  VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== v; });
-  document.querySelectorAll('.tab').forEach(function (b) {
-    const on = b.dataset.view === v;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-current', on ? 'page' : 'false');
-  });
-  renderAll();
-}
-function renderAll() {
-  renderQpick();
-  renderMatrix();
-  renderFocus();
-  renderHabits();
-  renderColor();
-}
-
-// ---------- events ----------
-document.addEventListener('click', function (e) {
-  const el = e.target.closest('[data-action]');
-  if (!el) return;
-  const a = el.dataset.action;
-  const id = el.dataset.id;
-  const t = now();
-
-  if (a === 'tab') { try { location.hash = el.dataset.view; } catch (err) {} showView(el.dataset.view); }
-  else if (a === 'pickq') { addQ = Number(el.dataset.q); renderQpick(); }
-  else if (a === 'addhere') { addQ = Number(el.dataset.q); renderQpick(); $('addInput').focus(); }
-  else if (a === 'toggle') {
-    const task = findTask(id); task.done = !task.done; task.updatedAt = t;
-    save(); renderMatrix(); renderTaskSelect();
-  }
-  else if (a === 'open') openSheet({ type: 'task', id: id });
-  else if (a === 'move') {
-    const task = findTask(sheet.id); task.q = Number(el.dataset.q); task.updatedAt = t;
-    save(); closeSheet(); renderMatrix();
-  }
-  else if (a === 'focustask') {
-    state.timer.taskId = sheet.id; save(); closeSheet();
-    try { location.hash = 'focus'; } catch (err) {}
-    showView('focus');
-  }
-  else if (a === 'deltask') {
-    const task = findTask(sheet.id); task.deleted = true; task.updatedAt = t;
-    save(); closeSheet(); renderAll();
-  }
-  else if (a === 'openhabit') openSheet({ type: 'habit', id: id });
-  else if (a === 'tick') {
-    const h = findHabit(id); const k = el.dataset.day;
-    h.done[k] = { on: !isOn(h, k), at: t }; h.updatedAt = t;
-    save(); renderHabits();
-  }
-  else if (a === 'delhabit') {
-    const h = findHabit(sheet.id); h.deleted = true; h.updatedAt = t;
-    save(); closeSheet(); renderHabits();
-  }
-  else if (a === 'mode') setMode(el.dataset.mode);
-  else if (a === 'startpause') startPause();
-  else if (a === 'reset') setMode(state.timer.mode);
-  else if (a === 'skip') finish(true);
-  else if (a === 'ctview') ctSwitchView(el.dataset.v);
-  else if (a === 'ctprev') ctStep(-1);
-  else if (a === 'ctnext') ctStep(1);
-  else if (a === 'cttoday') { ctAnchor = null; ctSel = null; renderColor(); }
-  else if (a === 'ctundo') ctUndo();
-  else if (a === 'brush') { if (selRange()) ctChangeCat(el.dataset.id); else { ctBrush = el.dataset.id; renderTools(); } }
-  else if (a === 'ctpen') { ctSel = null; ctMode = ctMode === 'paint' ? null : 'paint'; renderColor(); }
-  else if (a === 'ctdel') ctDelete(id);
-  else if (a === 'ctdelsel') ctDelete(ctSel);
-  else if (a === 'ctlock') ctToggleLock();
-  else if (a === 'ctdone') { ctSel = null; renderColor(); }
-  else if (a === 'ctselect') { ctSel = id; ctMode = null; renderColor(); $('ctTools').scrollIntoView({ block: 'nearest' }); }
-  else if (a === 'ctacts') openSheet({ type: 'activities' });
-  else if (a === 'addcat') {
-    const used = liveCats().length;
-    state.categories.push({ id: uid(), name: 'New activity', color: CT_SPARE_COLORS[used % CT_SPARE_COLORS.length], updatedAt: t, deleted: false });
-    save(); renderColor(); openSheet({ type: 'activities' });
-  }
-  else if (a === 'delcat') {
-    const c = findCat(id); c.deleted = true; c.updatedAt = t;
-    if (ctBrush === id) ctBrush = liveCats()[0].id;
-    save(); renderColor(); openSheet({ type: 'activities' });
-  }
-  else if (a === 'settings') openSheet({ type: 'settings' });
-  else if (a === 'close') closeSheet();
-  else if (a === 'copybackup') {
-    const data = JSON.stringify(state);
-    $('backupBox').value = data;
-    $('backupBox').select();
-    try {
-      navigator.clipboard.writeText(data)
-        .then(function () { setStatus('Backup copied. Paste it into Settings on your other device.'); })
-        .catch(function () { setStatus('Copy the selected text in the box above.'); });
-    } catch (err) { setStatus('Copy the selected text in the box above.'); }
-  }
-  else if (a === 'importbackup') {
-    try {
-      const incoming = JSON.parse($('backupBox').value);
-      if (!incoming || !Array.isArray(incoming.tasks)) throw new Error('bad');
-      state = mergeState(state, normalize(incoming));
-      save(); renderAll();
-      setStatus('Merged. Newer edits from both copies were kept.');
-    } catch (err) {
-      setStatus('That text isn\'t a TaskStack backup. Paste the whole backup and try again.', true);
-    }
-  }
-  else if (a === 'clearexamples') {
-    state.tasks.concat(state.habits).forEach(function (x) {
-      if (x.example && !x.deleted) { x.deleted = true; x.updatedAt = t; }
-    });
-    save(); renderAll();
-    setStatus('Example tasks and habits removed.');
-  }
-});
-
-$('addForm').addEventListener('submit', function (e) {
-  e.preventDefault();
-  const title = $('addInput').value.trim();
-  if (!title) return;
-  const t = now();
-  state.tasks.push({ id: uid(), title: title, q: addQ, done: false, createdAt: t, updatedAt: t, deleted: false });
-  $('addInput').value = '';
-  save(); renderMatrix(); renderTaskSelect();
-});
-
-$('habitForm').addEventListener('submit', function (e) {
-  e.preventDefault();
-  const name = $('habitInput').value.trim();
-  if (!name) return;
-  const t = now();
-  state.habits.push({ id: uid(), name: name, done: {}, createdAt: t, updatedAt: t, deleted: false });
-  $('habitInput').value = '';
-  save(); renderHabits();
-});
-
-$('taskSelect').addEventListener('change', function () {
-  state.timer.taskId = this.value || null;
-  save();
-});
-
-// rename + settings inputs inside the sheet
-document.addEventListener('change', function (e) {
-  const t = now();
-  if (e.target.dataset && e.target.dataset.cat) {
-    const c = findCat(e.target.dataset.cat);
-    const v = e.target.value.trim();
-    if (c && v) { c[e.target.dataset.field] = v; c.updatedAt = t; save(); renderColor(); }
-    return;
-  }
-  if (e.target.id === 'renameTask' && sheet) {
-    const v = e.target.value.trim();
-    if (v) { const task = findTask(sheet.id); task.title = v; task.updatedAt = t; save(); renderMatrix(); renderTaskSelect(); }
-  }
-  if (e.target.id === 'renameHabit' && sheet) {
-    const v = e.target.value.trim();
-    if (v) { const h = findHabit(sheet.id); h.name = v; h.updatedAt = t; save(); renderHabits(); }
-  }
-  if (['setFocus', 'setShort', 'setLong'].indexOf(e.target.id) !== -1) {
-    const n = Math.round(Number(e.target.value));
-    if (!(n >= 1 && n <= 120)) { setStatus('Use a whole number of minutes from 1 to 120.', true); return; }
-    const key = { setFocus: 'focus', setShort: 'short', setLong: 'long' }[e.target.id];
-    state.settings[key] = n;
-    state.settings.updatedAt = t;
-    if (!state.timer.running) state.timer.remaining = modeMinutes(state.timer.mode) * 60000;
-    save(); renderFocus();
-    setStatus('Saved.');
-  }
-});
-
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && sheet) { closeSheet(); return; }
-  if (e.key === 'Escape' && ctSel) { ctSel = null; renderColor(); return; }
-  if (view !== 'colortracker' || sheet) return;
-  const tag = (e.target.tagName || '').toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-  // laptop shortcuts: 1-9 pick an activity, E eraser, arrows change day, Ctrl+Z undo
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); ctUndo(); return; }
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
-  const n = Number(e.key);
-  if (n >= 1 && n <= 9 && liveCats()[n - 1]) { ctBrush = liveCats()[n - 1].id; renderTools(); }
-  else if (e.key.toLowerCase() === 'p') { ctSel = null; ctMode = ctMode === 'paint' ? null : 'paint'; renderColor(); }
-  else if (e.key.toLowerCase() === 'l') ctToggleLock();
-  else if ((e.key === 'Delete' || e.key === 'Backspace') && ctSel) ctDelete(ctSel);
-  else if (e.key === 'ArrowLeft') ctStep(-1);
-  else if (e.key === 'ArrowRight') ctStep(1);
-});
-window.addEventListener('hashchange', function () { showView(location.hash.slice(1)); });
-
-// ---------- ColorTracker ----------
-/*
-  HOW IT IS STORED
-  - Every painted stroke is saved as a range: { start, end, cat } with exact times
-    (milliseconds since 1970, rounded to the nearest minute). No 5/10-minute snapping.
-  - There is ONE continuous timeline. "Days" are never stored, they are worked out:
-      24-hour view       -> cut the timeline at midnight
-      Sleep-to-sleep     -> cut the timeline where each main sleep starts
-    So the same data always converts to both views, and editing the past never breaks anything.
-*/
-const HOUR = 3600000;
-const MIN = 60000;
-const MAIN_SLEEP = 3 * HOUR;      // a sleep this long (or longer) starts a new day; shorter = nap
-const SLEEP_MERGE_GAP = HOUR;     // two sleeps closer than this count as one sleep
-const LONG_DAY = 36 * HOUR;       // a day longer than this probably means sleep wasn't logged
-const CT_SPARE_COLORS = ['#7c3aed', '#f97316', '#0ea5e9', '#14b8a6', '#a16207', '#be185d', '#4f46e5', '#65a30d'];
-
-function defaultCategories() {
-  const t = now();
-  return [
-    { id: 'sleep', name: 'Sleep', color: '#6b6b6b', sleep: true },
-    { id: 'study', name: 'College Study', color: '#6cbf3a' },
-    { id: 'college', name: 'College', color: '#0f766e' },
-    { id: 'extra', name: 'Extra-curricular', color: '#ec4899' },
-    { id: 'essentials', name: 'Essentials', color: '#facc15' },
-    { id: 'planned', name: 'Planned', color: '#7c3a12' },
-    { id: 'waste', name: 'Waste', color: '#dc2626' }
-  ].map(function (c) { c.updatedAt = t; c.deleted = false; return c; });
-}
-
-let ctBrush = 'study';   // selected colour (activity id)
-let ctMode = null;       // null = pen off (grid scrolls, taps select) | 'paint'. Turns off after one stroke.
-let ctSel = null;        // id of the selected block
-let ctAnchor = null;     // a moment inside the day on screen; null = today
-let ctDay = null;         // the day on screen
-let ctUndoStack = [];
-let ctDrag = null;
-let ctRects = [];
-let ctRaf = 0;
-
-function liveCats() { return state.categories.filter(function (c) { return !c.deleted; }); }
-function findCat(id) { return state.categories.find(function (c) { return c.id === id; }); }
-function catColor(id) { const c = findCat(id); return c && !c.deleted ? c.color : '#9ca3af'; }
-function catName(id) { const c = findCat(id); return c && !c.deleted ? c.name : 'Deleted activity'; }
-function isSleepCat(id) { const c = findCat(id); return !!(c && c.sleep); }
-function liveRanges() { return state.ranges.filter(function (r) { return !r.deleted; }); }
-
-function floorHour(t) { const d = new Date(t); d.setMinutes(0, 0, 0); return d.getTime(); }
-function ceilHour(t) { const f = floorHour(t); return f === t ? t : f + HOUR; }
-function midnight(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
-function addDays(t, n) { const d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); }
-function firstMidnightFrom(t) { const m = midnight(t); return m >= t ? m : addDays(m, 1); }
-function roundMin(t) { return Math.round(t / MIN) * MIN; }
-function pct(ms) { return (ms / HOUR * 100).toFixed(3); }
-function ctTime(t) { return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
-function ctDayTime(t) { return new Date(t).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }); }
-function ctDate(t) { return new Date(t).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }); }
-function ctDur(ms) {
-  const m = Math.round(ms / MIN);
-  const h = Math.floor(m / 60);
-  return h ? h + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm';
-}
-function hourLabel(t) { const h = new Date(t).getHours(); return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); }
-
-// Non-overlapping pieces of the timeline inside [from, to).
-// If two devices painted the same minutes, the newer edit wins.
-function segmentsIn(from, to) {
-  const list = liveRanges().filter(function (r) { return r.start < to && r.end > from; });
-  const points = [from, to];
-  list.forEach(function (r) {
-    if (r.start > from && r.start < to) points.push(r.start);
-    if (r.end > from && r.end < to) points.push(r.end);
-  });
-  points.sort(function (a, b) { return a - b; });
-  const out = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1];
-    if (b <= a) continue;
-    let best = null;
-    list.forEach(function (r) {
-      if (r.start <= a && r.end >= b && (!best || r.updatedAt > best.updatedAt)) best = r;
-    });
-    if (!best) continue;
-    const last = out[out.length - 1];
-    if (last && last.id === best.id && last.end === a) last.end = b;
-    else out.push({ start: a, end: b, cat: best.cat, id: best.id });
-  }
-  return out;
-}
-
-// Main sleeps = sleep ranges (joined when close together) that last 3 hours or more.
-function mainSleeps() {
-  const sleeps = liveRanges().filter(function (r) { return isSleepCat(r.cat); });
-  sleeps.sort(function (a, b) { return a.start - b.start; });
-  const merged = [];
-  sleeps.forEach(function (r) {
-    const last = merged[merged.length - 1];
-    if (last && r.start - last.end < SLEEP_MERGE_GAP) last.end = Math.max(last.end, r.end);
-    else merged.push({ start: r.start, end: r.end });
-  });
-  return merged.filter(function (s) { return s.end - s.start >= MAIN_SLEEP; });
-}
-
-// Sleep-to-sleep days: each day starts when a main sleep starts and ends when the next one starts.
-function sleepDays() {
-  const t = now();
-  const ranges = liveRanges();
-  const sleeps = mainSleeps();
-  const firstStart = ranges.length ? Math.min.apply(null, ranges.map(function (r) { return r.start; })) : t;
-  const days = [];
-  if (!sleeps.length) {
-    days.push({ start: midnight(Math.min(firstStart, t)), end: null, wake: null, estimated: true });
-  } else {
-    if (firstStart < sleeps[0].start) days.push({ start: midnight(firstStart), end: sleeps[0].start, wake: null, estimated: true });
-    sleeps.forEach(function (s, i) {
-      days.push({ start: s.start, end: i + 1 < sleeps.length ? sleeps[i + 1].start : null, wake: s.end, estimated: false });
-    });
-  }
-  // A very long day usually means a sleep wasn't logged: split it at midnight and mark it estimated.
-  const result = [];
-  days.forEach(function (d) {
-    const end = d.end || Math.max(t, d.start);
-    if (end - d.start <= LONG_DAY) { result.push(d); return; }
-    let pieceStart = d.start, first = true;
-    let cut = firstMidnightFrom(d.start + 18 * HOUR);
-    while (cut < end - 6 * HOUR) {
-      result.push({ start: pieceStart, end: cut, wake: first ? d.wake : null, estimated: !first || d.estimated });
-      pieceStart = cut; first = false;
-      cut = addDays(cut, 1);
-    }
-    result.push({ start: pieceStart, end: d.end, wake: first ? d.wake : null, estimated: !first || d.estimated });
-  });
-  return result;
-}
-
-function ctCurrentDay() {
-  const t = now();
-  if (state.ui.ctView === 'clock') {
-    const s = midnight(ctAnchor || t);
-    return { start: s, end: addDays(s, 1), label: s, clock: true, hasPrev: true, hasNext: s < midnight(t) };
-  }
-  const days = sleepDays();
-  let idx = days.length - 1;
-  if (ctAnchor !== null) {
-    const found = days.findIndex(function (d) { return ctAnchor >= d.start && ctAnchor < (d.end || Infinity); });
-    if (found !== -1) idx = found;
-    else if (ctAnchor < days[0].start) idx = 0;
-  }
-  const d = days[idx];
-  return {
-    start: d.start, end: d.end, wake: d.wake, estimated: d.estimated, label: d.wake || d.start,
-    clock: false, index: idx, days: days, hasPrev: idx > 0, hasNext: idx < days.length - 1
-  };
-}
-
-function ctStep(dir) {
-  ctSel = null;
-  const d = ctCurrentDay();
-  if (dir < 0 && !d.hasPrev) return;
-  if (dir > 0 && !d.hasNext) return;
-  if (d.clock) {
-    const s = addDays(d.start, dir);
-    ctAnchor = s === midnight(now()) ? null : s;
-  } else {
-    const next = d.days[d.index + dir];
-    ctAnchor = d.index + dir === d.days.length - 1 ? null : next.start;
-  }
-  renderColor();
-}
-
-// Switch between the two views and keep showing the same day.
-function ctSwitchView(v) {
-  if (v === state.ui.ctView) return;
-  ctSel = null;
-  const d = ctCurrentDay();
-  const t = now();
-  const anchor = v === 'clock' ? (d.wake || d.start) : d.start + 12 * HOUR;
-  state.ui.ctView = v;
-  ctAnchor = (ctAnchor === null || midnight(anchor) === midnight(t)) ? null : anchor;
-  save();
-  renderColor();
-}
-
-// Free (not yet logged) stretches inside [a, b).
-function gapsIn(a, b) {
-  const gaps = [];
-  let cur = a;
-  segmentsIn(a, b).forEach(function (s) {
-    if (s.start > cur) gaps.push({ start: cur, end: s.start });
-    cur = Math.max(cur, s.end);
-  });
-  if (cur < b) gaps.push({ start: cur, end: b });
-  return gaps.filter(function (g) { return g.end - g.start >= MIN; });
-}
-
-function pushUndo() {
-  ctUndoStack.push(JSON.stringify(state.ranges));
-  if (ctUndoStack.length > 30) ctUndoStack.shift();
-}
-function findRange(id) { return state.ranges.find(function (r) { return r.id === id; }); }
-function selRange() { const r = ctSel ? findRange(ctSel) : null; return r && !r.deleted ? r : null; }
-
-// Paint [a, b) with an activity. It never paints over what is already logged:
-// only the empty parts of the stroke are filled, so a stroke snaps to the edges of existing blocks.
-function ctPaint(a, b, cat) {
-  const t = now();
-  b = Math.min(b, Math.floor(t / MIN) * MIN);
-  if (b - a < MIN) {
-    renderColor();
-    if (a >= t - MIN) showToast('That time hasn\'t happened yet.');
-    return;
-  }
-  const gaps = gapsIn(a, b);
-  if (!gaps.length) { renderColor(); showToast('Already logged. Tap the block to edit it.'); return; }
-  pushUndo();
-  const daysBefore = sleepDays().length;
-  gaps.forEach(function (g) {
-    const piece = { id: uid(), start: g.start, end: g.end, cat: cat, updatedAt: t, deleted: false, locked: false };
-    state.ranges.forEach(function (r) {                // join a touching block of the same activity (not if it's locked)
-      if (r.deleted || r.locked || r.cat !== cat) return;
-      if (r.end === piece.start) { piece.start = r.start; r.deleted = true; r.updatedAt = t; }
-      else if (r.start === piece.end) { piece.end = r.end; r.deleted = true; r.updatedAt = t; }
-    });
-    state.ranges.push(piece);
-  });
-  save();
-  if (state.ui.ctView === 'sleep' && isSleepCat(cat) && sleepDays().length > daysBefore) {
-    const latest = mainSleeps().pop();
-    showToast('New day starts at ' + ctDayTime(latest.start));
-  }
-  renderColor();
-}
-
-function ctDelete(id) {
-  const r = findRange(id);
-  if (!r || r.deleted) return;
-  if (r.locked) { showToast('This block is locked. Unlock it first.'); return; }
-  pushUndo();
-  r.deleted = true;
-  r.updatedAt = now();
-  if (ctSel === id) ctSel = null;
-  save();
-  renderColor();
-  showToast(catName(r.cat) + ' block deleted');
-}
-function ctToggleLock() {
-  const r = selRange();
-  if (!r) return;
-  pushUndo();
-  r.locked = !r.locked;
-  r.updatedAt = now();
-  save();
-  renderColor();
-  showToast(r.locked ? 'Locked: it can\'t be moved, changed or deleted' : 'Unlocked');
-}
-function ctChangeCat(cat) {
-  const r = selRange();
-  if (!r || r.cat === cat) return;
-  if (r.locked) { showToast('This block is locked. Unlock it first.'); return; }
-  pushUndo();
-  r.cat = cat;
-  r.updatedAt = now();
-  save();
-  renderColor();
-}
-
-function ctUndo() {
-  const snap = ctUndoStack.pop();
-  if (!snap) return;
-  const t = now();
-  const old = JSON.parse(snap);
-  const ids = {};
-  old.forEach(function (r) { ids[r.id] = true; r.updatedAt = t; });
-  state.ranges.forEach(function (r) {
-    if (!ids[r.id]) old.push(Object.assign({}, r, { deleted: true, updatedAt: t }));
-  });
-  state.ranges = old;
-  save();
-  renderColor();
-  showToast('Undone');
-}
-
-let toastTimer = 0;
-function showToast(msg) {
-  const el = $('toast');
-  el.textContent = msg;
-  el.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function () { el.hidden = true; }, 2600);
-}
-
-// ----- drawing -----
-const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-const UNLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.8-1.2"/></svg>';
-
-function renderTools() {
-  if (!liveCats().some(function (c) { return c.id === ctBrush; })) ctBrush = liveCats()[0].id;
-  const sel = selRange();
-  const active = sel ? sel.cat : ctBrush;
-  const color = catColor(ctBrush);
-  $('ctBrushes').innerHTML = liveCats().map(function (c, i) {
-    return '<button class="brush' + (active === c.id ? ' on' : '') + '" style="--bc:' + c.color + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (active === c.id) + '"><i></i>' +
-      esc(c.name) + (i < 9 ? '<span class="key">' + (i + 1) + '</span>' : '') + '</button>';
-  }).join('');
-  const activeChip = $('ctBrushes').querySelector('.brush.on');
-  const box = $('ctBrushes');
-  if (activeChip && (activeChip.offsetLeft < box.scrollLeft || activeChip.offsetLeft + activeChip.offsetWidth > box.scrollLeft + box.clientWidth)) {
-    box.scrollLeft = activeChip.offsetLeft - 16;
-  }
-  $('ctToolsPaint').hidden = !!sel;
-  $('ctToolsSel').hidden = !sel;
-  const pen = $('ctPen');
-  pen.style.setProperty('--bc', color);
-  pen.classList.toggle('on', ctMode === 'paint');
-  pen.setAttribute('aria-pressed', ctMode === 'paint');
-  $('ctPenLabel').innerHTML = '<span class="swatch"></span>' + (ctMode === 'paint' ? 'Pen on' : 'Pen');
-  $('ctUndo').disabled = !ctUndoStack.length;
-  if (sel) {
-    $('ctLock').innerHTML = (sel.locked ? UNLOCK_SVG + '<span>Unlock</span>' : LOCK_SVG + '<span>Lock</span>');
-    $('ctLock').classList.toggle('on', !!sel.locked);
-    $('ctDelete').disabled = !!sel.locked;
-  }
-  const grid = $('ctGrid');
-  grid.classList.toggle('armed', ctMode === 'paint');
-  grid.style.setProperty('--arm', color);
-  if (!ctDrag) {
-    if (sel) {
-      $('ctLive').innerHTML = '<span class="dot" style="background:' + catColor(sel.cat) + ';display:inline-block;margin-right:6px"></span>' + esc(catName(sel.cat)) +
-        ' <b>' + ctTime(sel.start) + ' – ' + ctTime(sel.end) + '</b> · ' + ctDur(sel.end - sel.start) +
-        (sel.locked ? ' · locked' : '<br>Drag the handles to stretch it. Tap a colour to change it.');
-    } else {
-      $('ctLive').textContent = ctMode === 'paint' ? 'Drag across the blocks. Lift your finger to finish.' : 'Pick a colour, tap Pen, then drag. Tap a coloured block to edit it.';
-    }
-  }
-}
-function renderBrushes() { renderTools(); }
-
-function fillSpan(a, b, blockStart, color, cls) {
-  return '<span class="fill ' + cls + '" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%;' + (color ? 'background:' + color : '') + '"></span>';
-}
-function shadeSpan(a, b, blockStart) {
-  return '<span class="shade" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%"></span>';
-}
-
-function renderCtGrid(preview) {
-  const d = ctDay;
-  const t = now();
-  const sel = selRange();
-  const gridStart = floorHour(d.start);
-  const shownEnd = d.end || Math.max(t, d.start + MIN);
-  const gridEnd = Math.max(ceilHour(shownEnd), gridStart + HOUR);
-  const segs = segmentsIn(gridStart, gridEnd);
-  const dayEnd = d.end || Infinity;
-  let html = '';
-  for (let b = gridStart; b < gridEnd; b += HOUR) {
-    const be = b + HOUR;
-    let inner = '';
-    segs.forEach(function (s) {
-      if (s.end <= b || s.start >= be) return;
-      const cls = sel ? (s.id === sel.id ? 'sel' : 'dim') : '';
-      inner += fillSpan(Math.max(s.start, b), Math.min(s.end, be), b, catColor(s.cat), cls);
-      const r = findRange(s.id);
-      if (r && r.locked && s.start >= b) inner += '<span class="lockmark" style="left:' + pct(s.start - b) + '%">' + LOCK_SVG + '</span>';
-    });
-    if (preview) {
-      preview.pieces.forEach(function (p) {
-        if (p.end > b && p.start < be) inner += fillSpan(Math.max(p.start, b), Math.min(p.end, be), b, catColor(preview.cat), 'preview');
-      });
-    }
-    if (d.start > b) inner += shadeSpan(b, Math.min(d.start, be), b);          // belongs to the previous day
-    if (dayEnd < be) inner += shadeSpan(Math.max(dayEnd, b), be, b);           // belongs to the next day
-    if (t < be) {
-      inner += shadeSpan(Math.max(t, b), be, b);                                // future
-      if (t >= b) inner += '<span class="nowline" style="left:' + pct(t - b) + '%"></span>';
-    }
-    if (sel && !sel.locked) {                                                    // stretch handles
-      if (sel.start >= b && sel.start < be) inner += '<span class="handle hs" data-handle="start" style="left:' + pct(sel.start - b) + '%" aria-label="Drag to change the start"><i></i></span>';
-      if (sel.end > b && sel.end <= be) inner += '<span class="handle he" data-handle="end" style="left:' + pct(sel.end - b) + '%" aria-label="Drag to change the end"><i></i></span>';
-    }
-    html += '<div class="blk" data-start="' + b + '">' + inner + '<span class="hr">' + hourLabel(b) + '</span></div>';
-  }
-  $('ctGrid').innerHTML = html;
-}
-
-function renderCtSummary() {
-  const d = ctDay;
-  const t = now();
-  const from = d.start;
-  const to = Math.min(d.end || t, t);
-  const segs = to > from ? segmentsIn(from, to) : [];
-  const span = Math.max(0, to - from);
-  const totals = {};
-  let tracked = 0;
-  segs.forEach(function (s) { totals[s.cat] = (totals[s.cat] || 0) + (s.end - s.start); tracked += s.end - s.start; });
-  const ids = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; });
-  $('ctBar').innerHTML = span ? ids.map(function (id) {
-    return '<span style="width:' + (totals[id] / span * 100).toFixed(2) + '%;background:' + catColor(id) + '"></span>';
-  }).join('') : '';
-  let list = ids.map(function (id) {
-    return '<li><span class="dot" style="background:' + catColor(id) + '"></span>' + esc(catName(id)) + '<b>' + ctDur(totals[id]) + '</b></li>';
-  }).join('');
-  if (span - tracked >= MIN) list += '<li><span class="dot" style="background:var(--line)"></span>Not tracked<b>' + ctDur(span - tracked) + '</b></li>';
-  $('ctTotals').innerHTML = list || '<li class="small">Nothing yet.</li>';
-  $('ctEntries').innerHTML = segs.length ? segs.map(function (s) {
-    const r = findRange(s.id);
-    const locked = r && r.locked;
-    return '<li><span class="dot" style="background:' + catColor(s.cat) + '"></span>' +
-      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(catName(s.cat)) + '</span><time>' + ctTime(s.start) + ' – ' + ctTime(s.end) + ' · ' + ctDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
-      (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
-  }).join('') : '<li class="small">Paint some blocks and they show up here with exact times.</li>';
-}
-
-function renderColor() {
-  ctDay = ctCurrentDay();
-  const d = ctDay;
-  const t = now();
-  document.querySelectorAll('[data-action="ctview"]').forEach(function (b) {
-    b.classList.toggle('on', b.dataset.v === state.ui.ctView);
-    b.setAttribute('aria-pressed', b.dataset.v === state.ui.ctView);
-  });
-  $('ctTitle').textContent = ctDate(d.label);
-  if (d.clock) {
-    $('ctSub').textContent = 'Midnight to midnight';
-  } else {
-    const end = d.end || t;
-    $('ctSub').textContent = ctDayTime(d.start) + ' → ' + (d.end ? ctDayTime(d.end) : 'now') + ' · ' + ctDur(end - d.start) + (d.estimated && liveRanges().length ? ' · estimated' : '');
-  }
-  $('ctPrev').disabled = !d.hasPrev;
-  $('ctNext').disabled = !d.hasNext;
-  $('ctToday').disabled = ctAnchor === null;
-
-  let warn = '';
-  if (!liveRanges().length) warn = 'Start with last night: pick Sleep, then paint from when you fell asleep to when you woke up.';
-  else if (!d.clock && !d.end && t - d.start > 30 * HOUR) warn = 'No sleep logged since ' + ctDayTime(d.start) + '. Paint your sleep and a new day will start there.';
-  else if (!d.clock && d.estimated) warn = 'No sleep is logged around here, so this day is cut at midnight. Paint the sleep to fix it.';
-  $('ctWarn').textContent = warn;
-  $('ctWarn').hidden = !warn;
-
-  renderTools();
-  renderCtGrid();
-  renderCtSummary();
-}
-
-// ----- painting with finger / mouse / pencil -----
-function cacheRects() {
-  ctRects = Array.prototype.map.call(document.querySelectorAll('#ctGrid .blk'), function (el) {
-    const r = el.getBoundingClientRect();
-    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, start: Number(el.dataset.start) };
-  });
-}
-
-// Turn a screen point into an exact time (to the minute).
-function timeAt(x, y) {
-  if (!ctRects.length) return null;
-  const tops = [];
-  ctRects.forEach(function (r) { if (!tops.some(function (tp) { return Math.abs(tp - r.top) < 2; })) tops.push(r.top); });
-  let rowTop = tops[0], best = Infinity;
-  tops.forEach(function (tp) {
-    const r0 = ctRects.find(function (r) { return Math.abs(r.top - tp) < 2; });
-    const dist = Math.abs((r0.top + r0.bottom) / 2 - y);
-    if (dist < best) { best = dist; rowTop = tp; }
-  });
-  const row = ctRects.filter(function (r) { return Math.abs(r.top - rowTop) < 2; });
-  const last = row[row.length - 1];
-  if (x <= row[0].left) return row[0].start;
-  if (x >= last.right) return last.start + HOUR;
-  for (let i = 0; i < row.length; i++) {
-    const r = row[i];
-    if (x >= r.left && x <= r.right) return roundMin(r.start + (x - r.left) / (r.right - r.left) * HOUR);
-    if (x < r.left) return r.start; // in the small gap before this block
-  }
-  return last.start + HOUR;
-}
-
-function blockAt(x, y) {
-  const r = ctRects.find(function (b) { return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom; });
-  return r ? r.start : null;
-}
-
-function showLive(cat, a, b, note) {
-  $('ctLive').innerHTML = esc(catName(cat)) + ' <b>' + ctTime(a) + ' – ' + ctTime(b) + '</b> · ' + ctDur(Math.max(0, b - a)) + (note ? ' · ' + note : '');
-}
-
-function schedulePreview() {
-  if (ctRaf) return;
-  ctRaf = requestAnimationFrame(function () {
-    ctRaf = 0;
-    if (!ctDrag) return;
-    if (ctDrag.type === 'handle') {
-      const sel = selRange();
-      renderCtGrid();
-      if (sel) showLive(sel.cat, sel.start, sel.end);
-      return;
-    }
-    const a = Math.min(ctDrag.t0, ctDrag.t1);
-    const b = Math.min(Math.max(ctDrag.t0, ctDrag.t1), now());
-    const pieces = b > a ? gapsIn(a, b) : [];
-    renderCtGrid({ pieces: pieces, cat: ctBrush });
-    if (pieces.length) {
-      const total = pieces.reduce(function (sum, p) { return sum + p.end - p.start; }, 0);
-      const skipped = (b - a) - total >= MIN;
-      $('ctLive').innerHTML = esc(catName(ctBrush)) + ' <b>' + ctTime(pieces[0].start) + ' – ' + ctTime(pieces[pieces.length - 1].end) + '</b> · ' + ctDur(total) + (skipped ? ' · skipping what\'s already logged' : '');
-    } else {
-      $('ctLive').textContent = 'Already logged here. Keep dragging into empty time.';
-    }
-  });
-}
-
-let ctTap = null;
-const ctGridEl = $('ctGrid');
-ctGridEl.addEventListener('pointerdown', function (e) {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  const handle = e.target.closest('[data-handle]');
-  const sel = selRange();
-  if (handle && sel && !sel.locked) {               // stretch the selected block
-    e.preventDefault();
-    cacheRects();
-    let lo = -Infinity, hi = Math.floor(now() / MIN) * MIN;
-    liveRanges().forEach(function (r) {
-      if (r.id === sel.id) return;
-      if (r.end <= sel.start) lo = Math.max(lo, r.end);
-      if (r.start >= sel.end) hi = Math.min(hi, r.start);
-    });
-    ctDrag = { type: 'handle', which: handle.dataset.handle, id: e.pointerId, lo: lo, hi: hi, snap: JSON.stringify(state.ranges), start: sel.start, end: sel.end };
-    try { ctGridEl.setPointerCapture(e.pointerId); } catch (err) {}
-    return;
-  }
-  if (!ctMode) {                                     // pen off: page scrolls; a tap selects a block
-    cacheRects();
-    ctTap = { id: e.pointerId, x: e.clientX, y: e.clientY };
-    return;
-  }
-  e.preventDefault();
-  cacheRects();
-  const t0 = timeAt(e.clientX, e.clientY);
-  if (t0 === null) return;
-  ctDrag = { type: 'paint', id: e.pointerId, t0: t0, t1: t0, x: e.clientX, y: e.clientY, moved: false, block: blockAt(e.clientX, e.clientY) };
-  try { ctGridEl.setPointerCapture(e.pointerId); } catch (err) {}
-});
-ctGridEl.addEventListener('pointermove', function (e) {
-  if (ctTap && e.pointerId === ctTap.id && Math.abs(e.clientX - ctTap.x) + Math.abs(e.clientY - ctTap.y) > 8) ctTap = null;
-  if (!ctDrag || e.pointerId !== ctDrag.id) return;
-  if (ctDrag.type === 'handle') {
-    const sel = selRange();
-    const tm = timeAt(e.clientX, e.clientY);
-    if (!sel || tm === null) return;
-    if (ctDrag.which === 'start') sel.start = Math.max(ctDrag.lo, Math.min(tm, sel.end - MIN));
-    else sel.end = Math.min(ctDrag.hi, Math.max(tm, sel.start + MIN));
-    schedulePreview();
-    return;
-  }
-  if (Math.abs(e.clientX - ctDrag.x) + Math.abs(e.clientY - ctDrag.y) > 6) ctDrag.moved = true;
-  if (!ctDrag.moved) return;
-  ctDrag.t1 = timeAt(e.clientX, e.clientY);
-  schedulePreview();
-});
-function endDrag(e, cancelled) {
-  if (ctTap && e.pointerId === ctTap.id) {
-    const tap = ctTap;
-    ctTap = null;
-    if (cancelled) return;
-    const tm = timeAt(tap.x, tap.y);
-    const hit = tm === null ? null : liveRanges().find(function (r) { return r.start <= tm && tm < r.end; });
-    ctSel = hit ? hit.id : null;
-    renderColor();
-    return;
-  }
-  if (!ctDrag || e.pointerId !== ctDrag.id) return;
-  const d = ctDrag;
-  ctDrag = null;
-  if (d.type === 'handle') {
-    const sel = selRange();
-    if (sel && (cancelled || (sel.start === d.start && sel.end === d.end))) { sel.start = d.start; sel.end = d.end; renderColor(); return; }
-    if (sel) {
-      ctUndoStack.push(d.snap);
-      if (ctUndoStack.length > 30) ctUndoStack.shift();
-      sel.updatedAt = now();
-      save();
-    }
-    renderColor();
-    return;
-  }
-  if (cancelled) { renderColor(); return; }
-  ctMode = null;                             // one stroke, then the pen switches itself off
-  if (d.moved) ctPaint(Math.min(d.t0, d.t1), Math.max(d.t0, d.t1), ctBrush);
-  else if (d.block !== null) ctPaint(d.block, d.block + HOUR, ctBrush);   // a tap fills the empty part of that hour
-  else renderColor();
-}
-ctGridEl.addEventListener('pointerup', function (e) { endDrag(e, false); });
-ctGridEl.addEventListener('pointercancel', function (e) { endDrag(e, true); });
-
-// keep "now" moving while the tracker is open
-setInterval(function () { if (view === 'colortracker' && !ctDrag && !sheet) renderColor(); }, 60000);
-
-// ---------- start ----------
-$('today').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
-if (!storageOk) $('storeNote').hidden = false;
-if (state.timer.running && timeLeft() <= 0) finish(false); // a session ended while the app was closed
-showView(location.hash.slice(1) || 'matrix');
-save();
-
-// offline support + "Install app" (works on GitHub Pages, ignored where not allowed)
-if ('serviceWorker' in navigator) {
-  try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {}
-}
-</script>
+<script src="js/core.js"></script>
+<script src="js/matrix.js"></script>
+<script src="js/focus.js"></script>
+<script src="js/habits.js"></script>
+<script src="js/colortracker.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

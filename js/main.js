@@ -1,0 +1,257 @@
+/* =========================================================
+   main: switching sections, settings, the Ctrl+K command bar,
+   keyboard shortcuts, and starting the app.
+   ========================================================= */
+
+const VIEWS = ['matrix', 'focus', 'habits', 'colortracker'];
+let view = 'matrix';
+
+function renderAll() {
+  renderQpick();
+  renderParse();
+  renderMatrix();
+  renderFocus();
+  renderHabits();
+  renderColor();
+}
+
+function applyTheme() {
+  const t = state.ui.theme || 'system';
+  if (t === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = t;
+  setTimeout(function () {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = getComputedStyle(document.body).backgroundColor;
+  }, 320);
+}
+
+function showView(v) {
+  if (VIEWS.indexOf(v) === -1) v = 'matrix';
+  const changed = v !== view;
+  view = v;
+  VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== v; });
+  document.body.dataset.section = v;
+  document.querySelectorAll('.tab').forEach(function (b) {
+    const on = b.dataset.view === v;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-current', on ? 'page' : 'false');
+  });
+  if (changed) {
+    const el = $('view-' + v);
+    el.classList.remove('enter');
+    void el.offsetWidth;
+    el.classList.add('enter');
+    $('main').scrollTop = 0;
+  }
+  try { history.replaceState(null, '', '#' + v); } catch (e) {}
+  if (v === 'focus') renderFocus();
+  if (v === 'colortracker') renderColor();
+  applyTheme();
+}
+
+// ---------- click routing ----------
+document.addEventListener('click', function (e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const fn = actions[el.dataset.action];
+  if (fn) fn(el, e);
+});
+actions.tab = function (el) { haptic(5); showView(el.dataset.view); };
+actions.close = function () { closeSheet(); };
+actions.undo = function () { undo(); };
+actions.palette = function () { openPalette(); };
+actions.closepalette = function () { closePalette(); };
+
+// ---------- settings ----------
+function settingsHTML() {
+  const st = state.settings;
+  const theme = state.ui.theme || 'system';
+  function sw(key, label) {
+    return '<div class="toggle"><span>' + label + '</span><button class="switch" role="switch" aria-checked="' + !!state.ui[key] + '" data-action="pref" data-k="' + key + '" aria-label="' + label + '"></button></div>';
+  }
+  return '<h3>Settings</h3>' +
+    sw('sound', 'Sounds') + sw('haptics', 'Vibration') +
+    '<p class="label">Appearance</p>' +
+    '<div class="seg">' + ['system', 'light', 'dark'].map(function (t) {
+      return '<button class="' + (theme === t ? 'on' : '') + '" data-action="theme" data-t="' + t + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
+    }).join('') + '</div>' +
+    '<p class="label">Timer lengths (minutes)</p><div class="dur">' +
+      '<div><label for="setFocus">Focus</label><input id="setFocus" type="number" min="1" max="120" value="' + st.focus + '"></div>' +
+      '<div><label for="setShort">Short break</label><input id="setShort" type="number" min="1" max="60" value="' + st.short + '"></div>' +
+      '<div><label for="setLong">Long break</label><input id="setLong" type="number" min="1" max="90" value="' + st.long + '"></div></div>' +
+    '<p class="label">Backup</p>' +
+    '<p class="small">Your data lives in this browser until Google Drive sync arrives. Copy a backup, paste it on another device and press Merge.</p>' +
+    '<div class="row"><button class="btn" data-action="copybackup">Copy backup</button><button class="btn" data-action="clearexamples">Remove examples</button></div>' +
+    '<textarea class="mono" id="backupBox" aria-label="Backup data" placeholder="Paste a backup here, then press Merge"></textarea>' +
+    '<div class="row"><button class="btn primary" data-action="importbackup">Merge pasted backup</button></div>' +
+    '<p class="status" id="settingsStatus" role="status"></p>' +
+    '<p class="small kbd-help"><span class="kbd">N</span> new task · <span class="kbd">Ctrl K</span> search · <span class="kbd">Ctrl Z</span> undo · ColorTracker: <span class="kbd">P</span> pen, <span class="kbd">1–9</span> colours, <span class="kbd">L</span> lock</p>' +
+    '<div class="row"><button class="btn" data-action="close">Close</button></div>';
+}
+function setStatus(msg, bad) {
+  const el = $('settingsStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = bad ? 'var(--danger)' : 'var(--good)';
+}
+actions.settings = function () { openSheet({ type: 'settings' }, settingsHTML()); };
+actions.pref = function (el) {
+  const k = el.dataset.k;
+  state.ui[k] = !state.ui[k];
+  save();
+  el.setAttribute('aria-checked', state.ui[k]);
+  if (k === 'sound' && state.ui.sound) sound('tick');
+  if (k === 'haptics' && state.ui.haptics) haptic(15);
+};
+actions.theme = function (el) {
+  state.ui.theme = el.dataset.t;
+  save();
+  applyTheme();
+  refreshSheet(settingsHTML());
+};
+actions.copybackup = function () {
+  const data = JSON.stringify(state);
+  $('backupBox').value = data;
+  $('backupBox').select();
+  try {
+    navigator.clipboard.writeText(data)
+      .then(function () { setStatus('Backup copied. Paste it into Settings on your other device.'); })
+      .catch(function () { setStatus('Copy the selected text in the box above.'); });
+  } catch (err) { setStatus('Copy the selected text in the box above.'); }
+};
+actions.importbackup = function () {
+  try {
+    const incoming = JSON.parse($('backupBox').value);
+    if (!incoming || !Array.isArray(incoming.tasks)) throw new Error('bad');
+    snapshot('Merged backup');
+    state = normalize(mergeState(state, normalize(incoming)));
+    save();
+    renderAll();
+    setStatus('Merged. The newer edit of every item was kept.');
+  } catch (err) {
+    setStatus('That text isn\'t a TaskStack backup. Paste the whole backup and try again.', true);
+  }
+};
+actions.clearexamples = function () {
+  const t = now();
+  snapshot('Removed examples');
+  state.tasks.concat(state.habits).forEach(function (x) { if (x.example && !x.deleted) { x.deleted = true; x.updatedAt = t; } });
+  save();
+  renderAll();
+  setStatus('Example tasks and habits removed.');
+};
+$('sheet').addEventListener('change', function (e) {
+  if (['setFocus', 'setShort', 'setLong'].indexOf(e.target.id) === -1) return;
+  const n = Math.round(Number(e.target.value));
+  if (!(n >= 1 && n <= 120)) { setStatus('Use a whole number of minutes from 1 to 120.', true); return; }
+  const key = { setFocus: 'focus', setShort: 'short', setLong: 'long' }[e.target.id];
+  state.settings[key] = n;
+  state.settings.updatedAt = now();
+  if (!state.timer.running) state.timer.remaining = modeMinutes(state.timer.mode) * MIN;
+  save();
+  renderFocus();
+  setStatus('Saved.');
+});
+
+// ---------- command bar (Ctrl+K) ----------
+let palItems = [];
+let palIndex = 0;
+function paletteItems(q) {
+  const ql = q.trim().toLowerCase();
+  const items = [];
+  function match(s) { return !ql || s.toLowerCase().indexOf(ql) !== -1; }
+  if (ql) {
+    const p = parseQuickAdd(q.trim());
+    items.push({ label: 'Add task: ' + (p.title || q.trim()), hint: quickAddChips(p).join(' · ') || QUADS[addQ - 1].name, run: function () { showView('matrix'); $('addInput').value = q.trim(); addTaskFromInput(); } });
+  }
+  [['Matrix', 'matrix'], ['Focus', 'focus'], ['Habits', 'habits'], ['ColorTracker', 'colortracker']].forEach(function (n) {
+    if (match('go to ' + n[0])) items.push({ label: 'Go to ' + n[0], hint: 'Section', run: function () { showView(n[1]); } });
+  });
+  const cmds = [
+    { label: state.timer.running ? 'Pause timer' : 'Start a focus session', hint: 'Focus', run: function () { showView('focus'); if (!state.timer.running && state.timer.mode !== 'focus') setMode('focus'); startPause(); } },
+    { label: 'Paint in ColorTracker', hint: 'Pen on', run: function () { showView('colortracker'); ctSel = null; ctMode = 'paint'; renderColor(); } },
+    { label: 'Undo last change', hint: 'Ctrl Z', run: undo },
+    { label: 'Settings', hint: 'Sounds, theme, backup', run: function () { actions.settings(); } }
+  ];
+  cmds.forEach(function (c) { if (match(c.label)) items.push(c); });
+  if (ql) {
+    liveTasks().filter(function (t) { return t.title.toLowerCase().indexOf(ql) !== -1 || t.tags.join(' ').indexOf(ql) !== -1; }).slice(0, 6).forEach(function (t) {
+      items.push({ label: t.title, hint: (t.done ? 'Done · ' : '') + QUADS[t.q - 1].name, run: function () { showView('matrix'); openTask(t.id); } });
+    });
+    liveHabits().filter(function (h) { return h.name.toLowerCase().indexOf(ql) !== -1; }).slice(0, 4).forEach(function (h) {
+      const done = isOn(h, dayKey());
+      items.push({ label: (done ? 'Untick today: ' : 'Tick today: ') + h.name, hint: 'Habit', run: function () { showView('habits'); tickHabit(h.id, dayKey()); } });
+    });
+  }
+  return items.slice(0, 12);
+}
+function renderPalette() {
+  palItems = paletteItems($('paletteInput').value);
+  if (palIndex >= palItems.length) palIndex = 0;
+  $('paletteList').innerHTML = palItems.map(function (it, i) {
+    return '<li class="' + (i === palIndex ? 'on' : '') + '"><button data-action="palrun" data-i="' + i + '"><span>' + esc(it.label) + '</span><span class="hint">' + esc(it.hint || '') + '</span></button></li>';
+  }).join('') || '<li class="small" style="padding:12px">Nothing found.</li>';
+}
+function openPalette() {
+  $('paletteWrap').hidden = false;
+  $('paletteInput').value = '';
+  palIndex = 0;
+  renderPalette();
+  setTimeout(function () { $('paletteInput').focus(); }, 30);
+}
+function closePalette() { $('paletteWrap').hidden = true; }
+function runPalette(i) { const it = palItems[i]; closePalette(); if (it) it.run(); }
+actions.palrun = function (el) { runPalette(Number(el.dataset.i)); };
+$('paletteInput').addEventListener('input', function () { palIndex = 0; renderPalette(); });
+$('paletteInput').addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowDown') { e.preventDefault(); palIndex = Math.min(palItems.length - 1, palIndex + 1); renderPalette(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); palIndex = Math.max(0, palIndex - 1); renderPalette(); }
+  else if (e.key === 'Enter') { e.preventDefault(); runPalette(palIndex); }
+  else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+});
+
+// ---------- keyboard ----------
+document.addEventListener('keydown', function (e) {
+  const tag = (e.target.tagName || '').toLowerCase();
+  const typing = tag === 'input' || tag === 'textarea' || tag === 'select';
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); if ($('paletteWrap').hidden) openPalette(); else closePalette(); return; }
+  if (e.key === 'Escape') {
+    if (!$('paletteWrap').hidden) { closePalette(); return; }
+    if (sheetCtx) { closeSheet(); return; }
+    if (view === 'colortracker' && (ctSel || ctMode)) { ctSel = null; ctMode = null; renderColor(); return; }
+  }
+  if (typing || sheetCtx || !$('paletteWrap').hidden) return;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+  if (mod || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === '/') { e.preventDefault(); openPalette(); return; }
+  if (k === 'n') { e.preventDefault(); showView('matrix'); $('addInput').focus(); return; }
+  if (view === 'colortracker') {
+    const n = Number(e.key);
+    if (n >= 1 && n <= 9 && liveCats()[n - 1]) actions.brush({ dataset: { id: liveCats()[n - 1].id } });
+    else if (k === 'p') actions.ctpen();
+    else if (k === 'l') ctToggleLock();
+    else if ((e.key === 'Delete' || e.key === 'Backspace') && ctSel) ctDelete(ctSel);
+    else if (e.key === 'ArrowLeft') ctStep(-1);
+    else if (e.key === 'ArrowRight') ctStep(1);
+  }
+});
+
+// unlock audio on the first touch (browsers need a tap before they play sound)
+document.addEventListener('pointerdown', function unlock() { audio(); document.removeEventListener('pointerdown', unlock); });
+window.addEventListener('hashchange', function () { showView(location.hash.slice(1)); });
+
+// ---------- start ----------
+$('today').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+if (!storageOk) $('storeNote').hidden = false;
+if (state.timer.running && timeLeft() <= 0) finishTimer(false);   // a session ended while the app was closed
+renderAll();
+view = '';
+showView(location.hash.slice(1) || 'matrix');
+save();
+
+// offline support + "Install app"
+if ('serviceWorker' in navigator) {
+  try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {}
+}

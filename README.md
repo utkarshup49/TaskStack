@@ -4,12 +4,14 @@ An Eisenhower matrix, pomodoro timer and habit tracker in one app. It runs on Wi
 
 **Live app:** https://utkarshup49.github.io/TaskStack/
 
-## Features (v0.1)
+## Features (v0.2)
 
-- **Matrix**: four quadrants (Do now, Schedule, Delegate, Drop). Tap a task to move, rename, delete or focus on it.
-- **Focus**: pomodoro timer (25 / 5 / 15 min, editable) linked to a task, with a session log and pomodoro count per task.
-- **Habits**: 7-day grid with streaks.
-- **ColorTracker**: paint your day hour by hour with activity colours. Drag across blocks; partial blocks are fine and are stored to the exact minute. Two views of the same data: **Sleep to sleep** (a day runs from one main sleep to the next) and **24-hour** (midnight to midnight).
+- **Look and feel**: a signature colour per section (Matrix indigo, Focus orange, Habits green, ColorTracker violet), tuned dark mode, spring animations, sounds and vibration (both switchable in Settings), Undo on every toast.
+- **Matrix**: tick animation, swipe right = done, swipe left = delete, hold a task and drag it to another box, quick add that understands `tomorrow 5pm !1 #college`, due dates, checklists, notes, tags, collapsed "Done" list per box.
+- **Focus**: say what you'll do before, note what you did after, a plant that grows while you focus, background sounds (brown noise, rain, waves), 7-day chart, screen stays awake.
+- **Habits**: colour per habit, strength score (forgives a missed day), 17-week heatmap, best streak, milestone celebrations.
+- **ColorTracker**: paint your day hour by hour; strokes never cover logged time; tap a block to stretch, lock, recolour or delete it; sleep-to-sleep and 24-hour views of the same data; warning when two activity colours look alike.
+- **Command bar**: `Ctrl+K` (or the search button) to add tasks, jump to sections, tick habits, start focus.
 - **Backup**: Settings → Copy backup, then paste on another device to merge.
 
 ## Install it like an app
@@ -49,7 +51,14 @@ Sync rule (`mergeState` in `index.html`): for each item, the copy with the newer
 ## Project files
 
 ```
-index.html             the whole app (HTML + CSS + JS, no build step)
+index.html             page layout
+css/app.css            design system: colours, dark mode, animations
+js/core.js             saved data, undo, toasts, sounds, sheets, quick-add parser
+js/matrix.js           Eisenhower matrix, swipes, drag between boxes, task details
+js/focus.js            pomodoro, plant, background sounds, chart, reflection
+js/habits.js           habits, strength score, heatmap, milestones
+js/colortracker.js     ColorTracker
+js/main.js             section switching, settings, Ctrl+K command bar, shortcuts
 manifest.webmanifest   app name and icons for "Install app"
 sw.js                  service worker: opens offline; bump CACHE_NAME after changes
 icons/                 app icons
