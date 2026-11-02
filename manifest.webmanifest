@@ -1,0 +1,15 @@
+{
+  "name": "TaskStack",
+  "short_name": "TaskStack",
+  "description": "Eisenhower matrix, pomodoro timer and habit tracker in one app.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f3ef",
+  "theme_color": "#15171c",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
