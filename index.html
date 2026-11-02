@@ -221,6 +221,22 @@ h3.section { font-family: var(--display); font-size: 16px; margin: 4px 0 0; }
   outline: 2px solid transparent; outline-offset: 4px; transition: outline-color 0.15s ease;
 }
 .ct-grid.armed { touch-action: none; cursor: crosshair; outline-color: var(--arm); }
+.tools-row[hidden] { display: none; }
+.tool.danger { color: var(--q1); }
+.tool.done { flex: 1; background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tool.on { border-color: var(--ink); }
+.fill.sel { box-shadow: inset 0 0 0 2px var(--ink); z-index: 1; }
+.fill.dim { opacity: 0.35; }
+.handle { position: absolute; top: 0; bottom: 0; width: 28px; z-index: 4; touch-action: none; cursor: ew-resize; display: flex; align-items: center; }
+.handle.hs { justify-content: flex-start; }
+.handle.he { margin-left: -28px; justify-content: flex-end; }
+.handle i { width: 8px; height: 30px; border-radius: 4px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.lockmark { position: absolute; bottom: 4px; z-index: 3; width: 14px; height: 14px; margin-left: 4px; color: #fff; pointer-events: none; filter: drop-shadow(0 0 1px rgba(0,0,0,0.6)); }
+.lockmark svg { width: 14px; height: 14px; display: block; }
+.entries .what { background: none; border: none; padding: 0; text-align: left; }
+.entries span.x { display: grid; place-items: center; }
+.entries span.x svg { width: 16px; height: 16px; }
+.tool span { white-space: nowrap; }
 .blk { position: relative; height: 66px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
 .fill { position: absolute; top: 0; bottom: 0; }
 .fill.preview { opacity: 0.8; }
@@ -403,25 +419,29 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
         </div>
         <p class="note" id="ctWarn" hidden></p>
         <div class="ct-tools" id="ctTools">
-          <div class="tools-row">
+          <div class="tools-row" id="ctToolsPaint">
             <button class="pen" id="ctPen" data-action="ctpen" aria-pressed="false">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               <span id="ctPenLabel">Pen</span>
-            </button>
-            <button class="tool" id="ctEraser" data-action="cterase" aria-pressed="false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H8.5L3.6 15.1a2 2 0 0 1 0-2.8L13 2.9a2 2 0 0 1 2.8 0l4.3 4.3a2 2 0 0 1 0 2.8L11 19"/><path d="M8 10l6 6"/></svg>
-              <span>Erase</span>
             </button>
             <button class="tool" id="ctUndo" data-action="ctundo" aria-label="Undo last change">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
               <span>Undo</span>
             </button>
           </div>
+          <div class="tools-row" id="ctToolsSel" hidden>
+            <button class="tool" id="ctLock" data-action="ctlock"></button>
+            <button class="tool danger" id="ctDelete" data-action="ctdelsel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              <span>Delete</span>
+            </button>
+            <button class="tool done" data-action="ctdone">Done</button>
+          </div>
           <div class="brushes" id="ctBrushes"></div>
           <p class="ct-live" id="ctLive" aria-live="polite"></p>
         </div>
         <div class="ct-grid" id="ctGrid" aria-label="Hours of the day. Turn on the pen, then drag to paint."></div>
-        <p class="small">Each block is one hour, and time runs left to right. Pick a colour, tap <strong>Pen</strong>, then drag; the pen turns itself off when you lift your finger. A tap with the pen on fills the whole hour.</p>
+        <p class="small">Each block is one hour, and time runs left to right. Pick a colour, tap <strong>Pen</strong>, then drag; the pen turns itself off when you lift your finger. A tap with the pen on fills the empty part of that hour. New paint never covers what's already logged. With the pen off, tap a coloured block to stretch, lock or delete it.</p>
       </div>
       <div class="ct-side">
         <div class="ct-card">
@@ -950,12 +970,15 @@ document.addEventListener('click', function (e) {
   else if (a === 'ctview') ctSwitchView(el.dataset.v);
   else if (a === 'ctprev') ctStep(-1);
   else if (a === 'ctnext') ctStep(1);
-  else if (a === 'cttoday') { ctAnchor = null; renderColor(); }
+  else if (a === 'cttoday') { ctAnchor = null; ctSel = null; renderColor(); }
   else if (a === 'ctundo') ctUndo();
-  else if (a === 'brush') { ctBrush = el.dataset.id; if (ctMode === 'erase') ctMode = null; renderTools(); }
-  else if (a === 'ctpen') { ctMode = ctMode === 'paint' ? null : 'paint'; renderTools(); }
-  else if (a === 'cterase') { ctMode = ctMode === 'erase' ? null : 'erase'; renderTools(); }
-  else if (a === 'ctdel') ctPaint(Number(el.dataset.a), Number(el.dataset.b), null);
+  else if (a === 'brush') { if (selRange()) ctChangeCat(el.dataset.id); else { ctBrush = el.dataset.id; renderTools(); } }
+  else if (a === 'ctpen') { ctSel = null; ctMode = ctMode === 'paint' ? null : 'paint'; renderColor(); }
+  else if (a === 'ctdel') ctDelete(id);
+  else if (a === 'ctdelsel') ctDelete(ctSel);
+  else if (a === 'ctlock') ctToggleLock();
+  else if (a === 'ctdone') { ctSel = null; renderColor(); }
+  else if (a === 'ctselect') { ctSel = id; ctMode = null; renderColor(); $('ctTools').scrollIntoView({ block: 'nearest' }); }
   else if (a === 'ctacts') openSheet({ type: 'activities' });
   else if (a === 'addcat') {
     const used = liveCats().length;
@@ -1055,6 +1078,7 @@ document.addEventListener('change', function (e) {
 
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && sheet) { closeSheet(); return; }
+  if (e.key === 'Escape' && ctSel) { ctSel = null; renderColor(); return; }
   if (view !== 'colortracker' || sheet) return;
   const tag = (e.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
@@ -1063,8 +1087,9 @@ document.addEventListener('keydown', function (e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const n = Number(e.key);
   if (n >= 1 && n <= 9 && liveCats()[n - 1]) { ctBrush = liveCats()[n - 1].id; renderTools(); }
-  else if (e.key.toLowerCase() === 'p') { ctMode = ctMode === 'paint' ? null : 'paint'; renderTools(); }
-  else if (e.key.toLowerCase() === 'e') { ctMode = ctMode === 'erase' ? null : 'erase'; renderTools(); }
+  else if (e.key.toLowerCase() === 'p') { ctSel = null; ctMode = ctMode === 'paint' ? null : 'paint'; renderColor(); }
+  else if (e.key.toLowerCase() === 'l') ctToggleLock();
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && ctSel) ctDelete(ctSel);
   else if (e.key === 'ArrowLeft') ctStep(-1);
   else if (e.key === 'ArrowRight') ctStep(1);
 });
@@ -1101,7 +1126,8 @@ function defaultCategories() {
 }
 
 let ctBrush = 'study';   // selected colour (activity id)
-let ctMode = null;       // null = pen off (grid scrolls) | 'paint' | 'erase'. Turns off after one stroke.
+let ctMode = null;       // null = pen off (grid scrolls, taps select) | 'paint'. Turns off after one stroke.
+let ctSel = null;        // id of the selected block
 let ctAnchor = null;     // a moment inside the day on screen; null = today
 let ctDay = null;         // the day on screen
 let ctUndoStack = [];
@@ -1153,8 +1179,8 @@ function segmentsIn(from, to) {
     });
     if (!best) continue;
     const last = out[out.length - 1];
-    if (last && last.cat === best.cat && last.end === a) last.end = b;
-    else out.push({ start: a, end: b, cat: best.cat });
+    if (last && last.id === best.id && last.end === a) last.end = b;
+    else out.push({ start: a, end: b, cat: best.cat, id: best.id });
   }
   return out;
 }
@@ -1225,6 +1251,7 @@ function ctCurrentDay() {
 }
 
 function ctStep(dir) {
+  ctSel = null;
   const d = ctCurrentDay();
   if (dir < 0 && !d.hasPrev) return;
   if (dir > 0 && !d.hasNext) return;
@@ -1241,6 +1268,7 @@ function ctStep(dir) {
 // Switch between the two views and keep showing the same day.
 function ctSwitchView(v) {
   if (v === state.ui.ctView) return;
+  ctSel = null;
   const d = ctCurrentDay();
   const t = now();
   const anchor = v === 'clock' ? (d.wake || d.start) : d.start + 12 * HOUR;
@@ -1250,7 +1278,27 @@ function ctSwitchView(v) {
   renderColor();
 }
 
-// Paint [a, b) with an activity (cat = null erases). Keeps the stored ranges non-overlapping.
+// Free (not yet logged) stretches inside [a, b).
+function gapsIn(a, b) {
+  const gaps = [];
+  let cur = a;
+  segmentsIn(a, b).forEach(function (s) {
+    if (s.start > cur) gaps.push({ start: cur, end: s.start });
+    cur = Math.max(cur, s.end);
+  });
+  if (cur < b) gaps.push({ start: cur, end: b });
+  return gaps.filter(function (g) { return g.end - g.start >= MIN; });
+}
+
+function pushUndo() {
+  ctUndoStack.push(JSON.stringify(state.ranges));
+  if (ctUndoStack.length > 30) ctUndoStack.shift();
+}
+function findRange(id) { return state.ranges.find(function (r) { return r.id === id; }); }
+function selRange() { const r = ctSel ? findRange(ctSel) : null; return r && !r.deleted ? r : null; }
+
+// Paint [a, b) with an activity. It never paints over what is already logged:
+// only the empty parts of the stroke are filled, so a stroke snaps to the edges of existing blocks.
 function ctPaint(a, b, cat) {
   const t = now();
   b = Math.min(b, Math.floor(t / MIN) * MIN);
@@ -1259,36 +1307,57 @@ function ctPaint(a, b, cat) {
     if (a >= t - MIN) showToast('That time hasn\'t happened yet.');
     return;
   }
-  ctUndoStack.push(JSON.stringify(state.ranges));
-  if (ctUndoStack.length > 30) ctUndoStack.shift();
+  const gaps = gapsIn(a, b);
+  if (!gaps.length) { renderColor(); showToast('Already logged. Tap the block to edit it.'); return; }
+  pushUndo();
   const daysBefore = sleepDays().length;
-  const added = [];
-  state.ranges.forEach(function (r) {
-    if (r.deleted || r.end <= a || r.start >= b) return;
-    if (r.start >= a && r.end <= b) r.deleted = true;                  // fully covered: remove
-    else if (r.start < a && r.end > b) {                                // stroke inside it: split in two
-      added.push({ id: uid(), start: b, end: r.end, cat: r.cat, updatedAt: t, deleted: false });
-      r.end = a;
-    }
-    else if (r.start < a) r.end = a;                                    // trim its end
-    else r.start = b;                                                   // trim its start
-    r.updatedAt = t;
-  });
-  if (cat) {
-    const piece = { id: uid(), start: a, end: b, cat: cat, updatedAt: t, deleted: false };
-    state.ranges.concat(added).forEach(function (r) {                  // join touching strokes of the same activity
-      if (r.deleted || r.cat !== cat) return;
+  gaps.forEach(function (g) {
+    const piece = { id: uid(), start: g.start, end: g.end, cat: cat, updatedAt: t, deleted: false, locked: false };
+    state.ranges.forEach(function (r) {                // join a touching block of the same activity (not if it's locked)
+      if (r.deleted || r.locked || r.cat !== cat) return;
       if (r.end === piece.start) { piece.start = r.start; r.deleted = true; r.updatedAt = t; }
       else if (r.start === piece.end) { piece.end = r.end; r.deleted = true; r.updatedAt = t; }
     });
-    added.push(piece);
-  }
-  state.ranges = state.ranges.concat(added);
+    state.ranges.push(piece);
+  });
   save();
-  if (!ctDrag && state.ui.ctView === 'sleep' && cat && isSleepCat(cat) && sleepDays().length > daysBefore) {
+  if (state.ui.ctView === 'sleep' && isSleepCat(cat) && sleepDays().length > daysBefore) {
     const latest = mainSleeps().pop();
     showToast('New day starts at ' + ctDayTime(latest.start));
   }
+  renderColor();
+}
+
+function ctDelete(id) {
+  const r = findRange(id);
+  if (!r || r.deleted) return;
+  if (r.locked) { showToast('This block is locked. Unlock it first.'); return; }
+  pushUndo();
+  r.deleted = true;
+  r.updatedAt = now();
+  if (ctSel === id) ctSel = null;
+  save();
+  renderColor();
+  showToast(catName(r.cat) + ' block deleted');
+}
+function ctToggleLock() {
+  const r = selRange();
+  if (!r) return;
+  pushUndo();
+  r.locked = !r.locked;
+  r.updatedAt = now();
+  save();
+  renderColor();
+  showToast(r.locked ? 'Locked: it can\'t be moved, changed or deleted' : 'Unlocked');
+}
+function ctChangeCat(cat) {
+  const r = selRange();
+  if (!r || r.cat === cat) return;
+  if (r.locked) { showToast('This block is locked. Unlock it first.'); return; }
+  pushUndo();
+  r.cat = cat;
+  r.updatedAt = now();
+  save();
   renderColor();
 }
 
@@ -1318,28 +1387,47 @@ function showToast(msg) {
 }
 
 // ----- drawing -----
+const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const UNLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.8-1.2"/></svg>';
+
 function renderTools() {
   if (!liveCats().some(function (c) { return c.id === ctBrush; })) ctBrush = liveCats()[0].id;
+  const sel = selRange();
+  const active = sel ? sel.cat : ctBrush;
   const color = catColor(ctBrush);
   $('ctBrushes').innerHTML = liveCats().map(function (c, i) {
-    return '<button class="brush' + (ctBrush === c.id ? ' on' : '') + '" style="--bc:' + c.color + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (ctBrush === c.id) + '"><i></i>' +
+    return '<button class="brush' + (active === c.id ? ' on' : '') + '" style="--bc:' + c.color + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (active === c.id) + '"><i></i>' +
       esc(c.name) + (i < 9 ? '<span class="key">' + (i + 1) + '</span>' : '') + '</button>';
   }).join('');
+  const activeChip = $('ctBrushes').querySelector('.brush.on');
+  const box = $('ctBrushes');
+  if (activeChip && (activeChip.offsetLeft < box.scrollLeft || activeChip.offsetLeft + activeChip.offsetWidth > box.scrollLeft + box.clientWidth)) {
+    box.scrollLeft = activeChip.offsetLeft - 16;
+  }
+  $('ctToolsPaint').hidden = !!sel;
+  $('ctToolsSel').hidden = !sel;
   const pen = $('ctPen');
   pen.style.setProperty('--bc', color);
   pen.classList.toggle('on', ctMode === 'paint');
   pen.setAttribute('aria-pressed', ctMode === 'paint');
   $('ctPenLabel').innerHTML = '<span class="swatch"></span>' + (ctMode === 'paint' ? 'Pen on' : 'Pen');
-  $('ctEraser').classList.toggle('on', ctMode === 'erase');
-  $('ctEraser').setAttribute('aria-pressed', ctMode === 'erase');
   $('ctUndo').disabled = !ctUndoStack.length;
+  if (sel) {
+    $('ctLock').innerHTML = (sel.locked ? UNLOCK_SVG + '<span>Unlock</span>' : LOCK_SVG + '<span>Lock</span>');
+    $('ctLock').classList.toggle('on', !!sel.locked);
+    $('ctDelete').disabled = !!sel.locked;
+  }
   const grid = $('ctGrid');
-  grid.classList.toggle('armed', !!ctMode);
-  grid.style.setProperty('--arm', ctMode === 'erase' ? 'var(--ink)' : color);
+  grid.classList.toggle('armed', ctMode === 'paint');
+  grid.style.setProperty('--arm', color);
   if (!ctDrag) {
-    $('ctLive').textContent = ctMode === 'paint' ? 'Drag across the blocks. Lift your finger to finish.'
-      : ctMode === 'erase' ? 'Drag across what you want to erase.'
-      : 'Pick a colour, tap Pen, then drag.';
+    if (sel) {
+      $('ctLive').innerHTML = '<span class="dot" style="background:' + catColor(sel.cat) + ';display:inline-block;margin-right:6px"></span>' + esc(catName(sel.cat)) +
+        ' <b>' + ctTime(sel.start) + ' – ' + ctTime(sel.end) + '</b> · ' + ctDur(sel.end - sel.start) +
+        (sel.locked ? ' · locked' : '<br>Drag the handles to stretch it. Tap a colour to change it.');
+    } else {
+      $('ctLive').textContent = ctMode === 'paint' ? 'Drag across the blocks. Lift your finger to finish.' : 'Pick a colour, tap Pen, then drag. Tap a coloured block to edit it.';
+    }
   }
 }
 function renderBrushes() { renderTools(); }
@@ -1354,6 +1442,7 @@ function shadeSpan(a, b, blockStart) {
 function renderCtGrid(preview) {
   const d = ctDay;
   const t = now();
+  const sel = selRange();
   const gridStart = floorHour(d.start);
   const shownEnd = d.end || Math.max(t, d.start + MIN);
   const gridEnd = Math.max(ceilHour(shownEnd), gridStart + HOUR);
@@ -1365,16 +1454,25 @@ function renderCtGrid(preview) {
     let inner = '';
     segs.forEach(function (s) {
       if (s.end <= b || s.start >= be) return;
-      inner += fillSpan(Math.max(s.start, b), Math.min(s.end, be), b, catColor(s.cat), '');
+      const cls = sel ? (s.id === sel.id ? 'sel' : 'dim') : '';
+      inner += fillSpan(Math.max(s.start, b), Math.min(s.end, be), b, catColor(s.cat), cls);
+      const r = findRange(s.id);
+      if (r && r.locked && s.start >= b) inner += '<span class="lockmark" style="left:' + pct(s.start - b) + '%">' + LOCK_SVG + '</span>';
     });
-    if (preview && preview.end > b && preview.start < be) {
-      inner += fillSpan(Math.max(preview.start, b), Math.min(preview.end, be), b, preview.cat ? catColor(preview.cat) : null, preview.cat ? 'preview' : 'erase');
+    if (preview) {
+      preview.pieces.forEach(function (p) {
+        if (p.end > b && p.start < be) inner += fillSpan(Math.max(p.start, b), Math.min(p.end, be), b, catColor(preview.cat), 'preview');
+      });
     }
     if (d.start > b) inner += shadeSpan(b, Math.min(d.start, be), b);          // belongs to the previous day
     if (dayEnd < be) inner += shadeSpan(Math.max(dayEnd, b), be, b);           // belongs to the next day
     if (t < be) {
       inner += shadeSpan(Math.max(t, b), be, b);                                // future
       if (t >= b) inner += '<span class="nowline" style="left:' + pct(t - b) + '%"></span>';
+    }
+    if (sel && !sel.locked) {                                                    // stretch handles
+      if (sel.start >= b && sel.start < be) inner += '<span class="handle hs" data-handle="start" style="left:' + pct(sel.start - b) + '%" aria-label="Drag to change the start"><i></i></span>';
+      if (sel.end > b && sel.end <= be) inner += '<span class="handle he" data-handle="end" style="left:' + pct(sel.end - b) + '%" aria-label="Drag to change the end"><i></i></span>';
     }
     html += '<div class="blk" data-start="' + b + '">' + inner + '<span class="hr">' + hourLabel(b) + '</span></div>';
   }
@@ -1401,9 +1499,11 @@ function renderCtSummary() {
   if (span - tracked >= MIN) list += '<li><span class="dot" style="background:var(--line)"></span>Not tracked<b>' + ctDur(span - tracked) + '</b></li>';
   $('ctTotals').innerHTML = list || '<li class="small">Nothing yet.</li>';
   $('ctEntries').innerHTML = segs.length ? segs.map(function (s) {
+    const r = findRange(s.id);
+    const locked = r && r.locked;
     return '<li><span class="dot" style="background:' + catColor(s.cat) + '"></span>' +
-      '<div class="what"><span>' + esc(catName(s.cat)) + '</span><time>' + ctTime(s.start) + ' – ' + ctTime(s.end) + ' · ' + ctDur(s.end - s.start) + '</time></div>' +
-      '<button class="x" data-action="ctdel" data-a="' + s.start + '" data-b="' + s.end + '" aria-label="Erase this entry">×</button></li>';
+      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(catName(s.cat)) + '</span><time>' + ctTime(s.start) + ' – ' + ctTime(s.end) + ' · ' + ctDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
+      (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
   }).join('') : '<li class="small">Paint some blocks and they show up here with exact times.</li>';
 }
 
@@ -1474,9 +1574,8 @@ function blockAt(x, y) {
   return r ? r.start : null;
 }
 
-function showLive(a, b) {
-  const cat = ctMode === 'erase' ? null : ctBrush;
-  $('ctLive').innerHTML = (cat ? esc(catName(cat)) : 'Erase') + ' <b>' + ctTime(a) + ' – ' + ctTime(b) + '</b> · ' + ctDur(Math.max(0, b - a));
+function showLive(cat, a, b, note) {
+  $('ctLive').innerHTML = esc(catName(cat)) + ' <b>' + ctTime(a) + ' – ' + ctTime(b) + '</b> · ' + ctDur(Math.max(0, b - a)) + (note ? ' · ' + note : '');
 }
 
 function schedulePreview() {
@@ -1484,40 +1583,104 @@ function schedulePreview() {
   ctRaf = requestAnimationFrame(function () {
     ctRaf = 0;
     if (!ctDrag) return;
+    if (ctDrag.type === 'handle') {
+      const sel = selRange();
+      renderCtGrid();
+      if (sel) showLive(sel.cat, sel.start, sel.end);
+      return;
+    }
     const a = Math.min(ctDrag.t0, ctDrag.t1);
     const b = Math.min(Math.max(ctDrag.t0, ctDrag.t1), now());
-    renderCtGrid({ start: a, end: b, cat: ctMode === 'erase' ? null : ctBrush });
-    showLive(a, b);
+    const pieces = b > a ? gapsIn(a, b) : [];
+    renderCtGrid({ pieces: pieces, cat: ctBrush });
+    if (pieces.length) {
+      const total = pieces.reduce(function (sum, p) { return sum + p.end - p.start; }, 0);
+      const skipped = (b - a) - total >= MIN;
+      $('ctLive').innerHTML = esc(catName(ctBrush)) + ' <b>' + ctTime(pieces[0].start) + ' – ' + ctTime(pieces[pieces.length - 1].end) + '</b> · ' + ctDur(total) + (skipped ? ' · skipping what\'s already logged' : '');
+    } else {
+      $('ctLive').textContent = 'Already logged here. Keep dragging into empty time.';
+    }
   });
 }
 
+let ctTap = null;
 const ctGridEl = $('ctGrid');
 ctGridEl.addEventListener('pointerdown', function (e) {
-  if (!ctMode) return;                       // pen off: let the page scroll normally
   if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const handle = e.target.closest('[data-handle]');
+  const sel = selRange();
+  if (handle && sel && !sel.locked) {               // stretch the selected block
+    e.preventDefault();
+    cacheRects();
+    let lo = -Infinity, hi = Math.floor(now() / MIN) * MIN;
+    liveRanges().forEach(function (r) {
+      if (r.id === sel.id) return;
+      if (r.end <= sel.start) lo = Math.max(lo, r.end);
+      if (r.start >= sel.end) hi = Math.min(hi, r.start);
+    });
+    ctDrag = { type: 'handle', which: handle.dataset.handle, id: e.pointerId, lo: lo, hi: hi, snap: JSON.stringify(state.ranges), start: sel.start, end: sel.end };
+    try { ctGridEl.setPointerCapture(e.pointerId); } catch (err) {}
+    return;
+  }
+  if (!ctMode) {                                     // pen off: page scrolls; a tap selects a block
+    cacheRects();
+    ctTap = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    return;
+  }
   e.preventDefault();
   cacheRects();
   const t0 = timeAt(e.clientX, e.clientY);
   if (t0 === null) return;
-  ctDrag = { id: e.pointerId, t0: t0, t1: t0, x: e.clientX, y: e.clientY, moved: false, block: blockAt(e.clientX, e.clientY) };
+  ctDrag = { type: 'paint', id: e.pointerId, t0: t0, t1: t0, x: e.clientX, y: e.clientY, moved: false, block: blockAt(e.clientX, e.clientY) };
   try { ctGridEl.setPointerCapture(e.pointerId); } catch (err) {}
 });
 ctGridEl.addEventListener('pointermove', function (e) {
+  if (ctTap && e.pointerId === ctTap.id && Math.abs(e.clientX - ctTap.x) + Math.abs(e.clientY - ctTap.y) > 8) ctTap = null;
   if (!ctDrag || e.pointerId !== ctDrag.id) return;
+  if (ctDrag.type === 'handle') {
+    const sel = selRange();
+    const tm = timeAt(e.clientX, e.clientY);
+    if (!sel || tm === null) return;
+    if (ctDrag.which === 'start') sel.start = Math.max(ctDrag.lo, Math.min(tm, sel.end - MIN));
+    else sel.end = Math.min(ctDrag.hi, Math.max(tm, sel.start + MIN));
+    schedulePreview();
+    return;
+  }
   if (Math.abs(e.clientX - ctDrag.x) + Math.abs(e.clientY - ctDrag.y) > 6) ctDrag.moved = true;
   if (!ctDrag.moved) return;
   ctDrag.t1 = timeAt(e.clientX, e.clientY);
   schedulePreview();
 });
 function endDrag(e, cancelled) {
+  if (ctTap && e.pointerId === ctTap.id) {
+    const tap = ctTap;
+    ctTap = null;
+    if (cancelled) return;
+    const tm = timeAt(tap.x, tap.y);
+    const hit = tm === null ? null : liveRanges().find(function (r) { return r.start <= tm && tm < r.end; });
+    ctSel = hit ? hit.id : null;
+    renderColor();
+    return;
+  }
   if (!ctDrag || e.pointerId !== ctDrag.id) return;
   const d = ctDrag;
   ctDrag = null;
+  if (d.type === 'handle') {
+    const sel = selRange();
+    if (sel && (cancelled || (sel.start === d.start && sel.end === d.end))) { sel.start = d.start; sel.end = d.end; renderColor(); return; }
+    if (sel) {
+      ctUndoStack.push(d.snap);
+      if (ctUndoStack.length > 30) ctUndoStack.shift();
+      sel.updatedAt = now();
+      save();
+    }
+    renderColor();
+    return;
+  }
   if (cancelled) { renderColor(); return; }
-  const cat = ctMode === 'erase' ? null : ctBrush;
   ctMode = null;                             // one stroke, then the pen switches itself off
-  if (d.moved) ctPaint(Math.min(d.t0, d.t1), Math.max(d.t0, d.t1), cat);
-  else if (d.block !== null) ctPaint(d.block, d.block + HOUR, cat);   // a tap fills the whole hour
+  if (d.moved) ctPaint(Math.min(d.t0, d.t1), Math.max(d.t0, d.t1), ctBrush);
+  else if (d.block !== null) ctPaint(d.block, d.block + HOUR, ctBrush);   // a tap fills the empty part of that hour
   else renderColor();
 }
 ctGridEl.addEventListener('pointerup', function (e) { endDrag(e, false); });
