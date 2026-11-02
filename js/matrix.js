@@ -1,5 +1,6 @@
 /* =========================================================
-   Matrix: the four Eisenhower boxes.
+   Matrix: the four Eisenhower boxes, plus the task pieces every
+   view shares (row design, tick, swipe, hold-to-drag, details sheet).
    - tick animation + sound + vibration
    - swipe right = done, swipe left = delete (with Undo)
    - hold a task, then drag it into another box
@@ -11,6 +12,7 @@ const CHECK_SVG = '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M6.5 11.
 const CAL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const LIST_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l2 2 3-3M4 15l2 2 3-3M12 8h8M12 16h8"/></svg>';
 const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+const FLAG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
 const EMPTY_TEXT = { 1: 'Nothing urgent. Nice.', 2: 'Plan something that matters.', 3: 'Nothing to hand off.', 4: 'Nothing to drop.' };
 
 function shortTitle(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
@@ -39,8 +41,7 @@ function addTaskFromInput() {
   save();
   input.value = '';
   renderParse();
-  renderMatrix();
-  afterTaskChange();
+  renderTaskViews();
   sound('soft');
   const li = document.querySelector('.task[data-id="' + task.id + '"]');
   if (li && li.animate) li.animate([{ transform: 'scale(0.92)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
@@ -54,11 +55,20 @@ function sortOpen(list) {
     return (da - db) || (a.createdAt - b.createdAt);
   });
 }
-function taskHTML(t) {
+// One task row, used by Tasks, Calendar and Matrix.
+// opts.box: show the box button on the right; opts.day: the date this list is grouped under (hide that date)
+function taskHTML(t, opts) {
+  opts = opts || {};
   const meta = [];
-  if (t.due) {
+  if (t.due !== null) {
+    const sameDay = opts.day !== undefined && midnight(t.due) === opts.day;
     const cls = isOverdue(t) ? ' late' : (midnight(t.due) === midnight(now()) ? ' today' : '');
-    meta.push('<span class="chip' + cls + '">' + CAL_SVG + esc(fmtDue(t.due, t.hasTime)) + '</span>');
+    if (!sameDay) meta.push('<span class="chip' + cls + '">' + CAL_SVG + esc(fmtDue(t.due, t.hasTime)) + '</span>');
+    else if (t.hasTime) meta.push('<span class="chip' + cls + '">' + esc(fmtTime(t.due)) + '</span>');
+  }
+  if (t.deadline && !t.done) {
+    const left = Math.round((midnight(t.deadline) - midnight(now())) / DAY);
+    meta.push('<span class="chip' + (left <= 1 ? ' late' : '') + '">' + FLAG_SVG + esc(fmtDeadline(t.deadline)) + '</span>');
   }
   if (t.subtasks.length) {
     const d = t.subtasks.filter(function (s) { return s.done; }).length;
@@ -67,16 +77,29 @@ function taskHTML(t) {
   t.tags.forEach(function (tag) { meta.push('<span class="chip">#' + esc(tag) + '</span>'); });
   const poms = pomCount(t.id);
   if (poms) meta.push('<span class="chip">' + poms + ' pom</span>');
-  return '<li class="task q' + t.q + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
+  const q = t.q || 0;
+  return '<li class="task q' + q + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
     '<div class="task-bg" aria-hidden="true"><span class="bg-done">' + (t.done ? 'Not done' : 'Done') + '</span><span class="bg-del">Delete</span></div>' +
     '<div class="task-inner">' +
       '<button class="check" data-action="toggle" data-id="' + t.id + '" aria-label="' + (t.done ? 'Mark not done' : 'Mark done') + '">' + CHECK_SVG + '</button>' +
       '<button class="tbody" data-action="open" data-id="' + t.id + '"><span class="ttl">' + esc(t.title) + (t.example ? '<span class="eg">example</span>' : '') + '</span>' +
       (meta.length ? '<span class="meta">' + meta.join('') + '</span>' : '') + '</button>' +
+      (opts.box ? '<button class="boxbtn q' + q + '" data-action="boxmenu" data-id="' + t.id + '" aria-label="Box: ' + boxName(t.q) + '"><i></i><span>' + (t.q ? QUADS[t.q - 1].name : 'Sort') + '</span></button>' : '') +
     '</div></li>';
+}
+// Redraw every view that shows tasks.
+function renderTaskViews() {
+  renderMatrix();
+  if (typeof renderTaskList === 'function') renderTaskList();
+  if (typeof renderCalendar === 'function') renderCalendar();
+  afterTaskChange();
 }
 function renderMatrix() {
   const tasks = liveTasks();
+  const unsorted = sortOpen(tasks.filter(function (t) { return !t.q && !t.done; }));
+  $('tray').hidden = !unsorted.length;
+  $('tray').innerHTML = '<p class="tray-head"><b>Not sorted · ' + unsorted.length + '</b> Hold one and drag it into a box, or tap its button.</p>' +
+    '<ul class="tasks tray-list">' + unsorted.map(function (t) { return taskHTML(t, { box: true }); }).join('') + '</ul>';
   const scrolls = {};
   document.querySelectorAll('.quad .tasks').forEach(function (ul) { scrolls[ul.parentElement.dataset.q] = ul.scrollTop; });
   $('matrixGrid').innerHTML = QUADS.map(function (q) {
@@ -106,7 +129,7 @@ function toggleTask(id, fromSwipe) {
   if (t.done) {
     snapshot('Marked not done');
     t.done = false; t.doneAt = null; t.updatedAt = now();
-    save(); renderMatrix(); afterTaskChange();
+    save(); renderTaskViews();
     return;
   }
   snapshot('Completed task');
@@ -114,12 +137,12 @@ function toggleTask(id, fromSwipe) {
   save();
   sound('tick');
   haptic(14);
-  const li = document.querySelector('.task[data-id="' + id + '"]');
-  if (li && !fromSwipe) {
-    li.classList.add('completing', 'done', 'leaving');
-    setTimeout(function () { renderMatrix(); afterTaskChange(); }, 720);
+  const rows = document.querySelectorAll('.task[data-id="' + id + '"]');
+  if (rows.length && !fromSwipe) {
+    rows.forEach(function (li) { li.classList.add('completing', 'done', 'leaving'); });
+    setTimeout(renderTaskViews, 720);
   } else {
-    renderMatrix(); afterTaskChange();
+    renderTaskViews();
   }
   toast('Completed "' + shortTitle(t.title) + '"', { undo: true });
 }
@@ -131,20 +154,22 @@ function deleteTask(id) {
   save();
   sound('delete');
   haptic(10);
-  renderMatrix(); afterTaskChange();
+  renderTaskViews();
   toast('Deleted "' + shortTitle(t.title) + '"', { undo: true });
 }
 function moveTask(id, q) {
   const t = findTask(id);
+  q = q || null;
   if (!t || t.q === q) return;
   snapshot('Moved task');
   t.q = q; t.updatedAt = now();
   save();
   haptic(12);
-  renderMatrix();
-  const li = document.querySelector('.task[data-id="' + id + '"]');
-  if (li && li.animate) li.animate([{ transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
-  toast('Moved to ' + QUADS[q - 1].name, { undo: true });
+  renderTaskViews();
+  document.querySelectorAll('.task[data-id="' + id + '"]').forEach(function (li) {
+    if (li.animate) li.animate([{ transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
+  });
+  toast(q ? 'Moved to ' + QUADS[q - 1].name : 'Moved out of the matrix', { undo: true });
 }
 
 // ---------- gestures: swipe and hold-to-drag ----------
@@ -157,7 +182,7 @@ function startDrag(x, y) {
   const t = findTask(gest.id);
   const r = gest.inner.getBoundingClientRect();
   const ghost = gest.inner.cloneNode(true);
-  ghost.classList.add('ghost', 'q' + t.q);
+  ghost.classList.add('ghost', 'q' + (t.q || 0));
   ghost.style.width = r.width + 'px';
   ghost.style.left = r.left + 'px';
   ghost.style.top = r.top + 'px';
@@ -220,49 +245,55 @@ function cancelGesture() {
   gest = null;
 }
 
-const matrixEl = $('matrixGrid');
-// Touch: hold still ~0.4 s to pick a task up; slide sideways to swipe; slide up/down to scroll.
-matrixEl.addEventListener('touchstart', function (e) {
-  if (e.touches.length !== 1) { cancelGesture(); return; }
-  const inner = e.target.closest('.task-inner');
-  if (!inner || e.target.closest('.check')) return;
-  const tch = e.touches[0];
-  gest = { li: inner.parentElement, inner: inner, id: inner.parentElement.dataset.id, x0: tch.clientX, y0: tch.clientY, x: tch.clientX, y: tch.clientY, mode: null, past: false };
-  gest.timer = setTimeout(function () { if (gest && !gest.mode) startDrag(gest.x, gest.y); }, 400);
-}, { passive: true });
-matrixEl.addEventListener('touchmove', function (e) {
-  if (!gest) return;
-  const tch = e.touches[0];
-  gest.x = tch.clientX;
-  gest.y = tch.clientY;
-  const dx = gest.x - gest.x0, dy = gest.y - gest.y0;
-  if (!gest.mode) {
-    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+// Attach swipe + hold gestures to a container of task rows.
+// mode 'drag': hold then drag into a box (Matrix). mode 'menu': hold opens the box menu (Tasks, Calendar).
+function attachTaskGestures(container, mode) {
+  container.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { cancelGesture(); return; }
+    const inner = e.target.closest('.task-inner');
+    if (!inner || e.target.closest('.check') || e.target.closest('.boxbtn')) return;
+    const tch = e.touches[0];
+    gest = { li: inner.parentElement, inner: inner, id: inner.parentElement.dataset.id, x0: tch.clientX, y0: tch.clientY, x: tch.clientX, y: tch.clientY, mode: null, past: false };
+    gest.timer = setTimeout(function () {
+      if (!gest || gest.mode) return;
+      if (mode === 'drag') startDrag(gest.x, gest.y);
+      else { const g = gest; gest = null; suppressClickUntil = now() + 600; openBoxMenu(g.id, g.inner); }
+    }, 420);
+  }, { passive: true });
+  container.addEventListener('touchmove', function (e) {
+    if (!gest) return;
+    const tch = e.touches[0];
+    gest.x = tch.clientX;
+    gest.y = tch.clientY;
+    const dx = gest.x - gest.x0, dy = gest.y - gest.y0;
+    if (!gest.mode) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      clearTimeout(gest.timer);
+      if (Math.abs(dx) > Math.abs(dy) * 1.3) { gest.mode = 'swipe'; gest.li.classList.add('swiping'); }
+      else { gest = null; return; }            // mostly vertical: let the list scroll
+    }
+    if (e.cancelable) e.preventDefault();
+    if (gest.mode === 'swipe') moveSwipe(dx);
+    else if (gest.mode === 'drag') moveDrag(gest.x, gest.y);
+  }, { passive: false });
+  container.addEventListener('touchend', function () {
+    if (!gest) return;
     clearTimeout(gest.timer);
-    if (Math.abs(dx) > Math.abs(dy) * 1.3) { gest.mode = 'swipe'; gest.li.classList.add('swiping'); }
-    else { gest = null; return; }            // mostly vertical: let the list scroll
-  }
-  if (e.cancelable) e.preventDefault();
-  if (gest.mode === 'swipe') moveSwipe(dx);
-  else if (gest.mode === 'drag') moveDrag(gest.x, gest.y);
-}, { passive: false });
-matrixEl.addEventListener('touchend', function () {
-  if (!gest) return;
-  clearTimeout(gest.timer);
-  if (gest.mode === 'swipe') finishSwipe();
-  else if (gest.mode === 'drag') finishDrag();
-  gest = null;
-});
-matrixEl.addEventListener('touchcancel', cancelGesture);
-matrixEl.addEventListener('contextmenu', function (e) { if (e.target.closest('.task')) e.preventDefault(); });
-
-// Mouse (laptop): press and drag a task to another box.
-matrixEl.addEventListener('mousedown', function (e) {
-  if (e.button !== 0) return;
-  const inner = e.target.closest('.task-inner');
-  if (!inner || e.target.closest('.check')) return;
-  gest = { li: inner.parentElement, inner: inner, id: inner.parentElement.dataset.id, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null, mouse: true };
-});
+    if (gest.mode === 'swipe') finishSwipe();
+    else if (gest.mode === 'drag') finishDrag();
+    gest = null;
+  });
+  container.addEventListener('touchcancel', cancelGesture);
+  container.addEventListener('contextmenu', function (e) { if (e.target.closest('.task')) e.preventDefault(); });
+  if (mode !== 'drag') return;
+  // Mouse (laptop): press and drag a task into a box.
+  container.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    const inner = e.target.closest('.task-inner');
+    if (!inner || e.target.closest('.check') || e.target.closest('.boxbtn')) return;
+    gest = { li: inner.parentElement, inner: inner, id: inner.parentElement.dataset.id, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, mode: null, mouse: true };
+  });
+}
 document.addEventListener('mousemove', function (e) {
   if (!gest || !gest.mouse) return;
   gest.x = e.clientX; gest.y = e.clientY;
@@ -278,6 +309,7 @@ document.addEventListener('mouseup', function () {
   if (gest.mode === 'drag') finishDrag();
   gest = null;
 });
+attachTaskGestures($('view-matrix'), 'drag');
 
 // ---------- task details sheet ----------
 function taskSheetHTML(t) {
@@ -285,17 +317,24 @@ function taskSheetHTML(t) {
   const timeVal = t.due && t.hasTime ? String(new Date(t.due).getHours()).padStart(2, '0') + ':' + String(new Date(t.due).getMinutes()).padStart(2, '0') : '';
   return '<h3>Task</h3>' +
     '<input class="text-input" id="tTitle" value="' + esc(t.title) + '" aria-label="Task name">' +
-    '<p class="label">Box</p><div class="qmove">' + QUADS.map(function (q) {
+    '<p class="label">Eisenhower box</p><div class="qmove">' + QUADS.map(function (q) {
       return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="tmove" data-q="' + q.q + '">' + q.name + '</button>';
-    }).join('') + '</div>' +
-    '<p class="label">Due' + (t.due ? ' · ' + esc(fmtDue(t.due, t.hasTime)) : '') + '</p>' +
+    }).join('') + '<button class="q0 wide' + (!t.q ? ' on' : '') + '" data-action="tmove" data-q="0">Not sorted</button></div>' +
+    '<p class="label">Date' + (t.due ? ' · ' + esc(fmtDue(t.due, t.hasTime)) : ' · none, so it shows in Today') + '</p>' +
     '<div class="daterow">' +
       '<button class="btn small" data-action="tdue" data-d="0">Today</button>' +
       '<button class="btn small" data-action="tdue" data-d="1">Tomorrow</button>' +
       '<button class="btn small" data-action="tdue" data-d="7">Next week</button>' +
       (t.due ? '<button class="btn small" data-action="tdue" data-d="clear">No date</button>' : '') +
     '</div>' +
-    '<div class="daterow"><input type="date" id="tDate" value="' + dateVal + '" aria-label="Due date"><input type="time" id="tTime" value="' + timeVal + '" aria-label="Due time"></div>' +
+    '<div class="daterow"><input type="date" id="tDate" value="' + dateVal + '" aria-label="Date"><input type="time" id="tTime" value="' + timeVal + '" aria-label="Time"></div>' +
+    '<p class="label">Deadline' + (t.deadline ? ' · ' + esc(new Date(t.deadline).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + ' (' + esc(fmtDeadline(t.deadline)) + ')' : '') + '</p>' +
+    '<div class="daterow">' +
+      '<button class="btn small" data-action="tdl" data-d="3">In 3 days</button>' +
+      '<button class="btn small" data-action="tdl" data-d="7">In a week</button>' +
+      '<input type="date" id="tDeadline" value="' + (t.deadline ? dayKey(t.deadline) : '') + '" aria-label="Deadline">' +
+      (t.deadline ? '<button class="btn small" data-action="tdl" data-d="clear">Remove</button>' : '') +
+    '</div>' +
     '<p class="label">Checklist</p>' +
     '<ul class="subtasks">' + t.subtasks.map(function (s) {
       return '<li><input type="checkbox" data-sub="' + s.id + '"' + (s.done ? ' checked' : '') + ' aria-label="Done"><input class="text-input" data-subtext="' + s.id + '" value="' + esc(s.title) + '" aria-label="Step"><button class="x" data-action="tsubdel" data-sub="' + s.id + '" aria-label="Remove step">×</button></li>';
@@ -320,7 +359,7 @@ function refreshTaskSheet(focusId) {
   refreshSheet(taskSheetHTML(t));
   if (focusId && $(focusId)) $(focusId).focus();
 }
-function taskChanged(t) { t.updatedAt = now(); save(); renderMatrix(); afterTaskChange(); }
+function taskChanged(t) { t.updatedAt = now(); save(); renderTaskViews(); }
 
 $('sheet').addEventListener('change', function (e) {
   const t = sheetTask();
@@ -329,6 +368,11 @@ $('sheet').addEventListener('change', function (e) {
   if (el.id === 'tTitle') { const v = el.value.trim(); if (v) { t.title = v; taskChanged(t); } }
   else if (el.id === 'tNotes') { t.notes = el.value; taskChanged(t); }
   else if (el.id === 'tTags') { t.tags = el.value.split(',').map(function (s) { return s.trim().replace(/^#/, '').toLowerCase(); }).filter(Boolean); taskChanged(t); }
+  else if (el.id === 'tDeadline') {
+    snapshot('Changed deadline');
+    t.deadline = el.value ? new Date(el.value + 'T00:00').getTime() : null;
+    taskChanged(t); refreshTaskSheet();
+  }
   else if (el.id === 'tDate' || el.id === 'tTime') {
     const d = $('tDate').value, tm = $('tTime').value;
     snapshot('Changed due date');
@@ -369,6 +413,15 @@ actions.toggle = function (el) { toggleTask(el.dataset.id); };
 actions.open = function (el) { if (now() < suppressClickUntil) return; openTask(el.dataset.id); };
 actions.showdone = function (el) { const q = el.dataset.q; state.ui.showDone[q] = !state.ui.showDone[q]; save(); renderMatrix(); };
 actions.tmove = function (el) { const t = sheetTask(); if (!t) return; moveTask(t.id, Number(el.dataset.q)); refreshTaskSheet(); };
+actions.tdl = function (el) {
+  const t = sheetTask();
+  if (!t) return;
+  snapshot('Changed deadline');
+  t.deadline = el.dataset.d === 'clear' ? null : addDays(midnight(now()), Number(el.dataset.d));
+  taskChanged(t); refreshTaskSheet();
+};
+actions.boxmenu = function (el) { if (boxMenuTask === el.dataset.id) { closeBoxMenu(); return; } openBoxMenu(el.dataset.id, el); };
+actions.setbox = function (el) { const id = boxMenuTask; closeBoxMenu(); if (id) moveTask(id, Number(el.dataset.q)); };
 actions.tdue = function (el) {
   const t = sheetTask();
   if (!t) return;

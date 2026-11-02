@@ -3,10 +3,14 @@
    keyboard shortcuts, and starting the app.
    ========================================================= */
 
-const VIEWS = ['matrix', 'focus', 'habits', 'colortracker'];
-let view = 'matrix';
+const VIEWS = ['tasks', 'calendar', 'matrix', 'focus', 'habits', 'colortracker'];
+let view = 'tasks';
 
 function renderAll() {
+  renderListPick();
+  renderListParse();
+  renderTaskList();
+  renderCalendar();
   renderQpick();
   renderParse();
   renderMatrix();
@@ -26,7 +30,7 @@ function applyTheme() {
 }
 
 function showView(v) {
-  if (VIEWS.indexOf(v) === -1) v = 'matrix';
+  if (VIEWS.indexOf(v) === -1) v = 'tasks';
   const changed = v !== view;
   view = v;
   VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== v; });
@@ -43,7 +47,10 @@ function showView(v) {
     el.classList.add('enter');
     $('main').scrollTop = 0;
   }
-  try { history.replaceState(null, '', '#' + v); } catch (e) {}
+  closeBoxMenu();
+  if (!sheetCtx && !(history.state && history.state.overlay)) { try { history.replaceState(null, '', '#' + v); } catch (e) {} }
+  if (v === 'tasks') renderTaskList();
+  if (v === 'calendar') renderCalendar();
   if (v === 'focus') renderFocus();
   if (v === 'colortracker') renderColor();
   applyTheme();
@@ -162,9 +169,9 @@ function paletteItems(q) {
   function match(s) { return !ql || s.toLowerCase().indexOf(ql) !== -1; }
   if (ql) {
     const p = parseQuickAdd(q.trim());
-    items.push({ label: 'Add task: ' + (p.title || q.trim()), hint: quickAddChips(p).join(' · ') || QUADS[addQ - 1].name, run: function () { showView('matrix'); $('addInput').value = q.trim(); addTaskFromInput(); } });
+    items.push({ label: 'Add task: ' + (p.title || q.trim()), hint: quickAddChips(p).join(' · ') || 'Today', run: function () { showView('tasks'); $('taskInput').value = q.trim(); addFromList(); } });
   }
-  [['Matrix', 'matrix'], ['Focus', 'focus'], ['Habits', 'habits'], ['ColorTracker', 'colortracker']].forEach(function (n) {
+  [['Tasks', 'tasks'], ['Calendar', 'calendar'], ['Matrix', 'matrix'], ['Focus', 'focus'], ['Habits', 'habits'], ['ColorTracker', 'colortracker']].forEach(function (n) {
     if (match('go to ' + n[0])) items.push({ label: 'Go to ' + n[0], hint: 'Section', run: function () { showView(n[1]); } });
   });
   const cmds = [
@@ -176,7 +183,7 @@ function paletteItems(q) {
   cmds.forEach(function (c) { if (match(c.label)) items.push(c); });
   if (ql) {
     liveTasks().filter(function (t) { return t.title.toLowerCase().indexOf(ql) !== -1 || t.tags.join(' ').indexOf(ql) !== -1; }).slice(0, 6).forEach(function (t) {
-      items.push({ label: t.title, hint: (t.done ? 'Done · ' : '') + QUADS[t.q - 1].name, run: function () { showView('matrix'); openTask(t.id); } });
+      items.push({ label: t.title, hint: (t.done ? 'Done · ' : '') + boxName(t.q), run: function () { openTask(t.id); } });
     });
     liveHabits().filter(function (h) { return h.name.toLowerCase().indexOf(ql) !== -1; }).slice(0, 4).forEach(function (h) {
       const done = isOn(h, dayKey());
@@ -193,13 +200,18 @@ function renderPalette() {
   }).join('') || '<li class="small" style="padding:12px">Nothing found.</li>';
 }
 function openPalette() {
+  if ($('paletteWrap').hidden) { try { history.pushState({ overlay: 'palette' }, ''); } catch (e) {} }
   $('paletteWrap').hidden = false;
   $('paletteInput').value = '';
   palIndex = 0;
   renderPalette();
   setTimeout(function () { $('paletteInput').focus(); }, 30);
 }
-function closePalette() { $('paletteWrap').hidden = true; }
+function closePalette(fromHistory) {
+  if ($('paletteWrap').hidden) return;
+  $('paletteWrap').hidden = true;
+  if (fromHistory !== true && history.state && history.state.overlay === 'palette') { ignorePop++; history.back(); }
+}
 function runPalette(i) { const it = palItems[i]; closePalette(); if (it) it.run(); }
 actions.palrun = function (el) { runPalette(Number(el.dataset.i)); };
 $('paletteInput').addEventListener('input', function () { palIndex = 0; renderPalette(); });
@@ -217,6 +229,7 @@ document.addEventListener('keydown', function (e) {
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); if ($('paletteWrap').hidden) openPalette(); else closePalette(); return; }
   if (e.key === 'Escape') {
+    if (boxMenuTask) { closeBoxMenu(); return; }
     if (!$('paletteWrap').hidden) { closePalette(); return; }
     if (sheetCtx) { closeSheet(); return; }
     if (view === 'colortracker' && (ctSel || ctMode)) { ctSel = null; ctMode = null; renderColor(); return; }
@@ -226,7 +239,7 @@ document.addEventListener('keydown', function (e) {
   if (mod || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === '/') { e.preventDefault(); openPalette(); return; }
-  if (k === 'n') { e.preventDefault(); showView('matrix'); $('addInput').focus(); return; }
+  if (k === 'n') { e.preventDefault(); if (view === 'matrix') $('addInput').focus(); else if (view === 'calendar') $('calInput').focus(); else { showView('tasks'); $('taskInput').focus(); } return; }
   if (view === 'colortracker') {
     const n = Number(e.key);
     if (n >= 1 && n <= 9 && liveCats()[n - 1]) actions.brush({ dataset: { id: liveCats()[n - 1].id } });
@@ -240,7 +253,6 @@ document.addEventListener('keydown', function (e) {
 
 // unlock audio on the first touch (browsers need a tap before they play sound)
 document.addEventListener('pointerdown', function unlock() { audio(); document.removeEventListener('pointerdown', unlock); });
-window.addEventListener('hashchange', function () { showView(location.hash.slice(1)); });
 
 // ---------- start ----------
 $('today').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
@@ -248,7 +260,7 @@ if (!storageOk) $('storeNote').hidden = false;
 if (state.timer.running && timeLeft() <= 0) finishTimer(false);   // a session ended while the app was closed
 renderAll();
 view = '';
-showView(location.hash.slice(1) || 'matrix');
+showView(location.hash.slice(1) || 'tasks');
 save();
 
 // offline support + "Install app"

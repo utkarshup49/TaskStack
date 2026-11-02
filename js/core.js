@@ -57,10 +57,22 @@ function fmtDue(due, hasTime) {
   else label = new Date(due).toLocaleDateString([], { day: 'numeric', month: 'short' });
   return hasTime ? label + ' ' + fmtTime(due) : label;
 }
+// The date a task shows up on: its planned date, or its deadline when it has no planned date.
+function taskDate(t) { return t.due !== null && t.due !== undefined ? t.due : (t.deadline || null); }
 function isOverdue(task) {
-  if (!task.due || task.done) return false;
-  return task.hasTime ? task.due < now() : midnight(task.due) < midnight(now());
+  const d = taskDate(task);
+  if (d === null || task.done) return false;
+  return (task.due !== null && task.hasTime) ? d < now() : midnight(d) < midnight(now());
 }
+// "Deadline today", "3 days left", "2 days late"
+function fmtDeadline(dl) {
+  const diff = Math.round((midnight(dl) - midnight(now())) / DAY);
+  if (diff === 0) return 'Deadline today';
+  if (diff === 1) return 'Deadline tomorrow';
+  if (diff > 1) return diff + ' days left';
+  return (-diff) + (diff === -1 ? ' day late' : ' days late');
+}
+function boxName(q) { return q ? QUADS[q - 1].name : 'Not sorted'; }
 
 // ---------- saved data ----------
 function defaultCategories() {
@@ -79,7 +91,7 @@ function defaultCategories() {
 function newTask(title, q, extra) {
   const t = now();
   return Object.assign({
-    id: uid(), title: title, q: q, done: false, doneAt: null, due: null, hasTime: false,
+    id: uid(), title: title, q: q || null, done: false, doneAt: null, due: null, hasTime: false, deadline: null,
     notes: '', subtasks: [], tags: [], createdAt: t, updatedAt: t, deleted: false
   }, extra || {});
 }
@@ -99,6 +111,8 @@ function exampleState() {
       task('Revise for tomorrow\'s quiz', 1, { subtasks: [{ id: uid(), title: 'Unit 3 notes', done: true }, { id: uid(), title: 'Past paper', done: false }] }),
       task('Build habit tracker screen', 2),
       task('Plan next week', 2, { due: addDays(midnight(t), 3) }),
+      task('Mini project report', 2, { deadline: addDays(midnight(t), 6) }),
+      task('Buy notebook', null, { due: addDays(midnight(t), 1) }),
       task('Read one research paper', 2, { done: true, doneAt: t }),
       task('Reply to group chat', 3),
       task('Book train tickets', 3),
@@ -114,7 +128,7 @@ function exampleState() {
     timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * MIN, taskId: null, count: 0, intent: '' },
     categories: defaultCategories(),
     ranges: [],
-    ui: { ctView: 'sleep', sound: true, haptics: true, ambient: 'off', showDone: {} }
+    ui: { ctView: 'sleep', sound: true, haptics: true, ambient: 'off', showDone: {}, listQ: null }
   };
 }
 
@@ -134,6 +148,8 @@ function normalize(s) {
     if (!Array.isArray(x.tags)) x.tags = [];
     if (typeof x.notes !== 'string') x.notes = '';
     if (x.due === undefined) x.due = null;
+    if (x.deadline === undefined) x.deadline = null;
+    if (!x.q) x.q = null;
   });
   s.habits.forEach(function (h, i) { if (!h.color) h.color = HABIT_COLORS[i % HABIT_COLORS.length]; if (!h.done) h.done = {}; });
   s.version = 2;
@@ -298,14 +314,23 @@ function haptic(pattern) {
 }
 
 // ---------- bottom sheet ----------
+// Opening a sheet adds a history step, so the phone's back button / back swipe closes it.
+// On touch screens you can also drag the sheet down to close it.
 let sheetCtx = null;
 let sheetTimer = 0;
+let ignorePop = 0;
 function openSheet(ctx, html) {
+  const wasOpen = !!sheetCtx;
   sheetCtx = ctx;
   clearTimeout(sheetTimer);
-  $('sheet').innerHTML = html;
+  const sheetEl = $('sheet');
+  sheetEl.innerHTML = html;
+  sheetEl.scrollTop = 0;
+  sheetEl.style.transform = '';
+  sheetEl.style.transition = '';
   const w = $('sheetWrap');
   w.hidden = false;
+  if (!wasOpen) { try { history.pushState({ overlay: 'sheet' }, ''); } catch (e) {} }
   requestAnimationFrame(function () { requestAnimationFrame(function () { w.classList.add('open'); }); });
 }
 function refreshSheet(html) {
@@ -313,15 +338,83 @@ function refreshSheet(html) {
   $('sheet').innerHTML = html;
   $('sheet').scrollTop = y;
 }
-function closeSheet() {
+function closeSheet(fromHistory) {
   if (!sheetCtx) return;
   const ctx = sheetCtx;
   sheetCtx = null;
   const w = $('sheetWrap');
+  const sheetEl = $('sheet');
+  sheetEl.style.transition = '';
+  sheetEl.style.transform = '';
+  w.querySelector('.scrim').style.opacity = '';
   w.classList.remove('open');
-  sheetTimer = setTimeout(function () { w.hidden = true; $('sheet').innerHTML = ''; }, 330);
+  sheetTimer = setTimeout(function () { w.hidden = true; sheetEl.innerHTML = ''; }, 330);
+  if (fromHistory !== true && history.state && history.state.overlay === 'sheet') { ignorePop++; history.back(); }
   if (ctx.onClose) ctx.onClose();
 }
+window.addEventListener('popstate', function () {
+  if (ignorePop) { ignorePop--; return; }
+  if (typeof closePalette === 'function' && !$('paletteWrap').hidden) { closePalette(true); return; }
+  if (sheetCtx) closeSheet(true);
+});
+(function sheetSwipe() {
+  const sheetEl = $('sheet');
+  let sd = null;
+  sheetEl.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    sd = { y0: e.touches[0].clientY, dy: 0, t0: Date.now(), active: false, top: sheetEl.scrollTop <= 0 };
+  }, { passive: true });
+  sheetEl.addEventListener('touchmove', function (e) {
+    if (!sd) return;
+    sd.dy = e.touches[0].clientY - sd.y0;
+    if (!sd.active) {
+      if (sd.top && sd.dy > 8) sd.active = true;
+      else if (Math.abs(sd.dy) > 8) { sd = null; return; }
+      else return;
+    }
+    if (e.cancelable) e.preventDefault();
+    const dy = Math.max(0, sd.dy);
+    sheetEl.style.transition = 'none';
+    sheetEl.style.transform = 'translateY(' + dy + 'px)';
+    $('sheetWrap').querySelector('.scrim').style.opacity = String(Math.max(0.2, 1 - dy / 500));
+  }, { passive: false });
+  sheetEl.addEventListener('touchend', function () {
+    if (!sd) return;
+    const d = sd;
+    sd = null;
+    if (!d.active) return;
+    const speed = d.dy / Math.max(1, Date.now() - d.t0);
+    if (d.dy > 110 || speed > 0.6) { closeSheet(); return; }
+    sheetEl.style.transition = '';
+    sheetEl.style.transform = '';
+    $('sheetWrap').querySelector('.scrim').style.opacity = '';
+  });
+})();
+
+// ---------- "which box?" menu ----------
+let boxMenuTask = null;
+function openBoxMenu(taskId, anchor) {
+  const t = findTask(taskId);
+  if (!t) return;
+  boxMenuTask = taskId;
+  const m = $('boxMenu');
+  m.innerHTML = '<p class="small">Put in a box</p>' + QUADS.map(function (q) {
+    return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="setbox" data-q="' + q.q + '"><span><b>' + q.name + '</b><small>' + q.sub + '</small></span></button>';
+  }).join('') + '<button class="q0' + (!t.q ? ' on' : '') + '" data-action="setbox" data-q="0"><span><b>Not sorted</b></span></button>';
+  m.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const mw = m.offsetWidth, mh = m.offsetHeight;
+  let left = Math.min(window.innerWidth - mw - 12, Math.max(12, r.right - mw));
+  let top = r.bottom + 6;
+  if (top + mh > window.innerHeight - 12) top = Math.max(12, r.top - mh - 6);
+  m.style.left = left + 'px';
+  m.style.top = top + 'px';
+  haptic(10);
+}
+function closeBoxMenu() { boxMenuTask = null; $('boxMenu').hidden = true; }
+document.addEventListener('pointerdown', function (e) { if (boxMenuTask && !e.target.closest('#boxMenu') && !e.target.closest('[data-action="boxmenu"]')) closeBoxMenu(); });
 
 // ---------- quick add: "Submit report fri 5pm !1 #college" ----------
 const WEEKDAY_NAMES = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };

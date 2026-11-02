@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 </head>
-<body data-section="matrix">
+<body data-section="tasks">
 
 <header class="top">
   <div class="brand">
@@ -37,8 +37,46 @@
 <p id="storeNote" class="note" hidden>This browser isn't saving data. Open Settings and copy a backup before you close the page.</p>
 
 <main id="main">
+  <!-- TASKS (main list) -->
+  <section id="view-tasks" class="view">
+    <form id="taskForm" class="add" autocomplete="off">
+      <div class="add-row">
+        <input id="taskInput" placeholder="Add a task (try &quot;fri 5pm !2 #college&quot;)" aria-label="New task" enterkeyhint="done">
+        <button class="btn primary" type="submit">Add</button>
+      </div>
+      <div class="parse" id="taskParse" aria-live="polite"></div>
+      <div id="taskPick"></div>
+    </form>
+    <div id="taskList"></div>
+    <p class="small">Tasks with no date stay in Today. Tap the box button on a task (or hold the task) to sort it into the matrix. Swipe right to finish, left to delete.</p>
+  </section>
+
+  <!-- CALENDAR -->
+  <section id="view-calendar" class="view" hidden>
+    <div class="cal-wrap">
+      <div class="cal-main">
+        <div class="cal-head">
+          <button class="icon-btn" data-action="calprev" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <h2 id="calTitle"></h2>
+          <button class="btn small" id="calToday" data-action="caltoday">Today</button>
+          <button class="icon-btn" data-action="calnext" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="card cal-day">
+        <div><h3 id="calDayTitle"></h3><p class="small" id="calDaySub"></p></div>
+        <form id="calForm" class="add-row" autocomplete="off">
+          <input id="calInput" aria-label="Add a task on this day" enterkeyhint="done">
+          <button class="btn primary" type="submit">Add</button>
+        </form>
+        <div class="parse" id="calParse"></div>
+        <ul class="tasks list" id="calList"></ul>
+      </div>
+    </div>
+  </section>
+
   <!-- MATRIX -->
-  <section id="view-matrix" class="view">
+  <section id="view-matrix" class="view" hidden>
     <form id="addForm" class="add" autocomplete="off">
       <div class="add-row">
         <input id="addInput" placeholder="Add a task" aria-label="New task" enterkeyhint="done">
@@ -47,6 +85,7 @@
       <div class="parse" id="parsePreview" aria-live="polite"></div>
       <div class="qpick" id="qpick"></div>
     </form>
+    <div class="tray" id="tray" hidden></div>
     <div class="matrix" id="matrixGrid"></div>
     <p class="small">Tip: type <b>tomorrow 5pm !1 #college</b> to set the date, quadrant and tag in one go. Swipe a task right to finish it, left to delete it. Hold a task, then drag it to another box.</p>
   </section>
@@ -193,6 +232,14 @@
 </main>
 
 <nav class="tabs" aria-label="Sections">
+  <button class="tab" data-action="tab" data-view="tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5l1.8 1.8L9 5M4 13.5l1.8 1.8L9 12M12 7h8M12 14h8M12 20h8M4.5 20h3"/></svg>
+    <span>Tasks</span>
+  </button>
+  <button class="tab" data-action="tab" data-view="calendar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><circle cx="8" cy="14" r="1" fill="currentColor"/><circle cx="12" cy="14" r="1" fill="currentColor"/><circle cx="16" cy="14" r="1" fill="currentColor"/></svg>
+    <span>Calendar</span>
+  </button>
   <button class="tab" data-action="tab" data-view="matrix">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
     <span>Matrix</span>
@@ -207,7 +254,7 @@
   </button>
   <button class="tab" data-action="tab" data-view="colortracker">
     <svg viewBox="0 0 24 24"><rect x="3" y="5" width="5" height="6" rx="1.5" fill="#6b6b6b"/><rect x="9.5" y="5" width="5" height="6" rx="1.5" fill="#6cbf3a"/><rect x="16" y="5" width="5" height="6" rx="1.5" fill="#ec4899"/><rect x="3" y="13" width="5" height="6" rx="1.5" fill="#facc15"/><rect x="9.5" y="13" width="5" height="6" rx="1.5" fill="#dc2626"/><rect x="16" y="13" width="5" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-    <span>ColorTracker</span>
+    <span>Tracker</span>
   </button>
 </nav>
 
@@ -224,10 +271,13 @@
   </div>
 </div>
 
+<div class="boxmenu" id="boxMenu" role="menu" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="js/core.js"></script>
 <script src="js/matrix.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/calendar.js"></script>
 <script src="js/focus.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/colortracker.js"></script>

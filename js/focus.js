@@ -23,8 +23,8 @@ function renderTaskSelect() {
   const open = liveTasks().filter(function (t) { return !t.done; });
   if (tm.taskId && !open.some(function (t) { return t.id === tm.taskId; })) tm.taskId = null;
   let html = '<option value="">No task</option>';
-  QUADS.forEach(function (q) {
-    const list = open.filter(function (t) { return t.q === q.q; });
+  QUADS.concat([{ q: null, name: 'Not sorted' }]).forEach(function (q) {
+    const list = open.filter(function (t) { return (t.q || null) === q.q; });
     if (!list.length) return;
     html += '<optgroup label="' + q.name + '">' + list.map(function (t) {
       return '<option value="' + t.id + '"' + (t.id === tm.taskId ? ' selected' : '') + '>' + esc(t.title) + '</option>';

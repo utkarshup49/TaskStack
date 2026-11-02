@@ -4,13 +4,17 @@ An Eisenhower matrix, pomodoro timer and habit tracker in one app. It runs on Wi
 
 **Live app:** https://utkarshup49.github.io/TaskStack/
 
-## Features (v0.2)
+## Features (v0.3)
 
 - **Look and feel**: a signature colour per section (Matrix indigo, Focus orange, Habits green, ColorTracker violet), tuned dark mode, spring animations, sounds and vibration (both switchable in Settings), Undo on every toast.
-- **Matrix**: tick animation, swipe right = done, swipe left = delete, hold a task and drag it to another box, quick add that understands `tomorrow 5pm !1 #college`, due dates, checklists, notes, tags, collapsed "Done" list per box.
+- **Tasks** (main view): a normal to-do list grouped by date: Overdue (with "Move to today"), Today (plus every task with no date), Tomorrow, the next days, Later, Completed today. Quick-add row with date and box pickers. Each task has a box button (or hold the task) to sort it into the matrix.
+- **Calendar**: month view with a coloured dot per task (in its box colour) and a flag on deadlines. Tap a date to see that day and add tasks straight onto it. Swipe to change month.
+- **Deadlines**: separate from the planned date ("3 days left", "2 days late").
+- **Matrix**: tick animation, swipe right = done, swipe left = delete, hold a task and drag it to another box, quick add that understands `tomorrow 5pm !1 #college`, due dates, checklists, notes, tags, collapsed "Done" list per box, and a "Not sorted" tray for tasks that aren't in a box yet.
 - **Focus**: say what you'll do before, note what you did after, a plant that grows while you focus, background sounds (brown noise, rain, waves), 7-day chart, screen stays awake.
 - **Habits**: colour per habit, strength score (forgives a missed day), 17-week heatmap, best streak, milestone celebrations.
 - **ColorTracker**: paint your day hour by hour; strokes never cover logged time; tap a block to stretch, lock, recolour or delete it; sleep-to-sleep and 24-hour views of the same data; warning when two activity colours look alike.
+- **Sheets** close with a swipe down or the phone's back button.
 - **Command bar**: `Ctrl+K` (or the search button) to add tasks, jump to sections, tick habits, start focus.
 - **Backup**: Settings → Copy backup, then paste on another device to merge.
 
@@ -54,7 +58,9 @@ Sync rule (`mergeState` in `index.html`): for each item, the copy with the newer
 index.html             page layout
 css/app.css            design system: colours, dark mode, animations
 js/core.js             saved data, undo, toasts, sounds, sheets, quick-add parser
-js/matrix.js           Eisenhower matrix, swipes, drag between boxes, task details
+js/matrix.js           shared task rows, swipes, drag between boxes, task details, Eisenhower matrix
+js/tasks.js            Tasks list (main view)
+js/calendar.js         Calendar
 js/focus.js            pomodoro, plant, background sounds, chart, reflection
 js/habits.js           habits, strength score, heatmap, milestones
 js/colortracker.js     ColorTracker
