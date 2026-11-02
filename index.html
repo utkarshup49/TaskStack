@@ -172,8 +172,74 @@ h3.section { font-family: var(--display); font-size: 16px; margin: 4px 0 0; }
 .cell.today { border-color: var(--muted); }
 .cell.on { background: var(--break); border-color: var(--break); }
 
+/* ColorTracker */
+.btn.small { height: 36px; padding: 0 12px; font-size: 13px; }
+.btn:disabled, .icon-btn:disabled { opacity: 0.4; cursor: default; }
+.ct { display: grid; gap: 14px; padding-top: 4px; }
+.ct-main, .ct-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ct-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.seg { display: inline-grid; grid-auto-flow: column; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.seg button { height: 32px; padding: 0 12px; border: none; border-radius: 9px; background: none; font-size: 13px; font-weight: 500; color: var(--muted); }
+.seg button.on { background: var(--ink); color: var(--bg); }
+.toolbar { display: flex; gap: 6px; }
+.ct-nav { display: flex; align-items: center; gap: 8px; }
+.ct-nav .icon-btn { width: 36px; height: 36px; flex: 0 0 auto; }
+.ct-day { flex: 1; min-width: 0; }
+.ct-day h2 { font-family: var(--display); font-size: 19px; margin: 0; line-height: 1.2; }
+.ct-day p { margin: 0; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.brushes { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.brush { flex: 0 0 auto; height: 36px; padding: 0 12px 0 9px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; }
+.brush i { width: 16px; height: 16px; border-radius: 50%; background: var(--bc); flex: 0 0 auto; }
+.brush.on { border-color: var(--bc); background: color-mix(in srgb, var(--bc) 18%, var(--surface)); }
+.brush.eraser i { background: repeating-linear-gradient(45deg, var(--muted) 0 2px, transparent 2px 5px); }
+.brush .key { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+@media (hover: none) { .brush .key { display: none; } }
+.ct-live { margin: 0; min-height: 20px; font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ct-live b { color: var(--ink); font-weight: 500; }
+.ct-grid {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: crosshair;
+}
+.blk { position: relative; height: 56px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.fill { position: absolute; top: 0; bottom: 0; }
+.fill.preview { opacity: 0.8; }
+.fill.erase { background: repeating-linear-gradient(45deg, var(--muted) 0 2px, transparent 2px 7px); opacity: 0.6; }
+.shade { position: absolute; top: 0; bottom: 0; pointer-events: none; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 3px, transparent 3px 8px); }
+.nowline { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); pointer-events: none; }
+.hr { position: absolute; top: 3px; right: 3px; z-index: 2; font-family: var(--mono); font-size: 10px; line-height: 14px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--muted); pointer-events: none; }
+.ct-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ct-card h3 { font-family: var(--display); font-size: 15px; margin: 0; }
+.ct-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); }
+.ct-bar span { height: 100%; }
+.ct-totals, .entries { list-style: none; margin: 0; padding: 0; }
+.ct-totals { display: grid; gap: 6px; }
+.ct-totals li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.ct-totals b { margin-left: auto; font-family: var(--mono); font-weight: 500; font-size: 13px; font-variant-numeric: tabular-nums; }
+.entries li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.entries li:last-child { border-bottom: none; }
+.entries .what { flex: 1; min-width: 0; }
+.entries .what span { display: block; }
+.entries time { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.entries .x { flex: 0 0 auto; border: none; background: none; color: var(--muted); width: 32px; height: 32px; border-radius: 8px; font-size: 18px; }
+.act-row { display: flex; gap: 8px; align-items: center; }
+.act-row input[type="color"] { width: 44px; height: 44px; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); flex: 0 0 auto; }
+.act-row .btn { flex: 0 0 auto; }
+.toast {
+  position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 30; max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 16px; font-size: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+.toast[hidden] { display: none; }
+@media (min-width: 900px) {
+  .ct { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+  .ct-side { position: sticky; top: 8px; }
+  .brushes { flex-wrap: wrap; overflow: visible; }
+  .blk { height: 76px; }
+  .hr { font-size: 11px; }
+}
+
 /* Bottom tabs */
-.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 8px 8px; }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 8px 8px; }
 .tab { border: none; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; border-radius: 10px; font-size: 12px; color: var(--muted); font-weight: 500; }
 .tab svg { width: 22px; height: 22px; }
 .tab.on { color: var(--ink); }
@@ -290,6 +356,50 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
       <p class="small">Tap a square to mark a day. Tap a habit's name to rename or delete it.</p>
     </div>
   </section>
+
+  <!-- COLORTRACKER -->
+  <section id="view-colortracker" class="view" hidden>
+    <div class="ct">
+      <div class="ct-main">
+        <div class="ct-top">
+          <div class="seg" role="group" aria-label="How a day is counted">
+            <button data-action="ctview" data-v="sleep">Sleep to sleep</button>
+            <button data-action="ctview" data-v="clock">24-hour</button>
+          </div>
+          <div class="toolbar">
+            <button class="btn small" id="ctUndo" data-action="ctundo">Undo</button>
+            <button class="btn small" data-action="ctacts">Activities</button>
+          </div>
+        </div>
+        <div class="ct-nav">
+          <button class="icon-btn" id="ctPrev" data-action="ctprev" aria-label="Previous day">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="ct-day"><h2 id="ctTitle"></h2><p id="ctSub"></p></div>
+          <button class="btn small" id="ctToday" data-action="cttoday">Today</button>
+          <button class="icon-btn" id="ctNext" data-action="ctnext" aria-label="Next day">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="brushes" id="ctBrushes"></div>
+        <p class="note" id="ctWarn" hidden></p>
+        <p class="ct-live" id="ctLive" aria-live="polite"></p>
+        <div class="ct-grid" id="ctGrid" aria-label="Hours of the day. Drag to paint."></div>
+        <p class="small">Each block is one hour, and time runs left to right. Drag to paint any part of it; strokes carry on into the next row. Tap a block to fill the whole hour.</p>
+      </div>
+      <div class="ct-side">
+        <div class="ct-card">
+          <h3>Where the time went</h3>
+          <div class="ct-bar" id="ctBar"></div>
+          <ul class="ct-totals" id="ctTotals"></ul>
+        </div>
+        <div class="ct-card">
+          <h3>Entries</h3>
+          <ul class="entries" id="ctEntries"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <nav class="tabs" aria-label="Sections">
@@ -305,7 +415,12 @@ textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8.5 15l2.5 2.5 4.5-4.5"/></svg>
     <span>Habits</span>
   </button>
+  <button class="tab" data-action="tab" data-view="colortracker">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="5" height="6" rx="1.5" fill="#6b6b6b"/><rect x="9.5" y="5" width="5" height="6" rx="1.5" fill="#6cbf3a"/><rect x="16" y="5" width="5" height="6" rx="1.5" fill="#ec4899"/><rect x="3" y="13" width="5" height="6" rx="1.5" fill="#facc15"/><rect x="9.5" y="13" width="5" height="6" rx="1.5" fill="#dc2626"/><rect x="16" y="13" width="5" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    <span>ColorTracker</span>
+  </button>
 </nav>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <div class="sheet-wrap" id="sheetWrap" hidden>
   <div class="scrim" data-action="close"></div>
@@ -383,7 +498,10 @@ function exampleState() {
     ],
     sessions: [],
     settings: { focus: 25, short: 5, long: 15, updatedAt: t },
-    timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * 60000, taskId: null, count: 0 }
+    timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * 60000, taskId: null, count: 0 },
+    categories: defaultCategories(),
+    ranges: [],
+    ui: { ctView: 'sleep' }
   };
 }
 
@@ -394,6 +512,9 @@ function normalize(s) {
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings = s.settings || base.settings;
   s.timer = s.timer || base.timer;
+  s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
+  s.ranges = Array.isArray(s.ranges) ? s.ranges : [];
+  s.ui = s.ui || base.ui;
   return s;
 }
 
@@ -454,7 +575,10 @@ function mergeState(local, incoming) {
     habits: mergeHabits(local.habits, incoming.habits || []),
     sessions: mergeById(local.sessions, incoming.sessions || []),
     settings: (incoming.settings && incoming.settings.updatedAt > local.settings.updatedAt) ? incoming.settings : local.settings,
-    timer: local.timer // the running timer belongs to this device only
+    timer: local.timer, // the running timer belongs to this device only
+    categories: mergeById(local.categories, incoming.categories || []),
+    ranges: mergeById(local.ranges, incoming.ranges || []),
+    ui: local.ui // view choices belong to this device only
   };
 }
 
@@ -697,6 +821,18 @@ function openSheet(s) {
       '<p class="status" id="settingsStatus" role="status"></p>' +
       '<div class="row"><button class="btn" data-action="close">Close</button></div>';
   }
+  if (s.type === 'activities') {
+    html = '<h3>Activities</h3>' +
+      '<p class="small">Each activity is a paint colour. Sleep is special: a sleep of 3 hours or more starts a new day in the sleep-to-sleep view.</p>' +
+      liveCats().map(function (c) {
+        return '<div class="act-row">' +
+          '<input type="color" value="' + c.color + '" data-cat="' + c.id + '" data-field="color" aria-label="Colour for ' + esc(c.name) + '">' +
+          '<input class="text-input" value="' + esc(c.name) + '" data-cat="' + c.id + '" data-field="name" aria-label="Activity name">' +
+          (c.sleep ? '<span class="small">Sleep</span>' : '<button class="btn danger" data-action="delcat" data-id="' + c.id + '">Delete</button>') +
+          '</div>';
+      }).join('') +
+      '<div class="row"><button class="btn" data-action="addcat">Add activity</button><button class="btn primary" data-action="close">Done</button></div>';
+  }
   $('sheet').innerHTML = html;
   $('sheetWrap').hidden = false;
 }
@@ -712,10 +848,11 @@ function setStatus(msg, bad) {
 }
 
 // ---------- navigation ----------
+const VIEWS = ['matrix', 'focus', 'habits', 'colortracker'];
 function showView(v) {
-  if (['matrix', 'focus', 'habits'].indexOf(v) === -1) v = 'matrix';
+  if (VIEWS.indexOf(v) === -1) v = 'matrix';
   view = v;
-  ['matrix', 'focus', 'habits'].forEach(function (name) { $('view-' + name).hidden = name !== v; });
+  VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== v; });
   document.querySelectorAll('.tab').forEach(function (b) {
     const on = b.dataset.view === v;
     b.classList.toggle('on', on);
@@ -728,6 +865,7 @@ function renderAll() {
   renderMatrix();
   renderFocus();
   renderHabits();
+  renderColor();
 }
 
 // ---------- events ----------
@@ -773,6 +911,24 @@ document.addEventListener('click', function (e) {
   else if (a === 'startpause') startPause();
   else if (a === 'reset') setMode(state.timer.mode);
   else if (a === 'skip') finish(true);
+  else if (a === 'ctview') ctSwitchView(el.dataset.v);
+  else if (a === 'ctprev') ctStep(-1);
+  else if (a === 'ctnext') ctStep(1);
+  else if (a === 'cttoday') { ctAnchor = null; renderColor(); }
+  else if (a === 'ctundo') ctUndo();
+  else if (a === 'brush') { ctBrush = el.dataset.id; renderBrushes(); }
+  else if (a === 'ctdel') ctPaint(Number(el.dataset.a), Number(el.dataset.b), null);
+  else if (a === 'ctacts') openSheet({ type: 'activities' });
+  else if (a === 'addcat') {
+    const used = liveCats().length;
+    state.categories.push({ id: uid(), name: 'New activity', color: CT_SPARE_COLORS[used % CT_SPARE_COLORS.length], updatedAt: t, deleted: false });
+    save(); renderColor(); openSheet({ type: 'activities' });
+  }
+  else if (a === 'delcat') {
+    const c = findCat(id); c.deleted = true; c.updatedAt = t;
+    if (ctBrush === id) ctBrush = liveCats()[0].id;
+    save(); renderColor(); openSheet({ type: 'activities' });
+  }
   else if (a === 'settings') openSheet({ type: 'settings' });
   else if (a === 'close') closeSheet();
   else if (a === 'copybackup') {
@@ -833,6 +989,12 @@ $('taskSelect').addEventListener('change', function () {
 // rename + settings inputs inside the sheet
 document.addEventListener('change', function (e) {
   const t = now();
+  if (e.target.dataset && e.target.dataset.cat) {
+    const c = findCat(e.target.dataset.cat);
+    const v = e.target.value.trim();
+    if (c && v) { c[e.target.dataset.field] = v; c.updatedAt = t; save(); renderColor(); }
+    return;
+  }
   if (e.target.id === 'renameTask' && sheet) {
     const v = e.target.value.trim();
     if (v) { const task = findTask(sheet.id); task.title = v; task.updatedAt = t; save(); renderMatrix(); renderTaskSelect(); }
@@ -853,8 +1015,460 @@ document.addEventListener('change', function (e) {
   }
 });
 
-document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheet) closeSheet(); });
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && sheet) { closeSheet(); return; }
+  if (view !== 'colortracker' || sheet) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  // laptop shortcuts: 1-9 pick an activity, E eraser, arrows change day, Ctrl+Z undo
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); ctUndo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const n = Number(e.key);
+  if (n >= 1 && n <= 9 && liveCats()[n - 1]) { ctBrush = liveCats()[n - 1].id; renderBrushes(); }
+  else if (e.key.toLowerCase() === 'e') { ctBrush = 'erase'; renderBrushes(); }
+  else if (e.key === 'ArrowLeft') ctStep(-1);
+  else if (e.key === 'ArrowRight') ctStep(1);
+});
 window.addEventListener('hashchange', function () { showView(location.hash.slice(1)); });
+
+// ---------- ColorTracker ----------
+/*
+  HOW IT IS STORED
+  - Every painted stroke is saved as a range: { start, end, cat } with exact times
+    (milliseconds since 1970, rounded to the nearest minute). No 5/10-minute snapping.
+  - There is ONE continuous timeline. "Days" are never stored, they are worked out:
+      24-hour view       -> cut the timeline at midnight
+      Sleep-to-sleep     -> cut the timeline where each main sleep starts
+    So the same data always converts to both views, and editing the past never breaks anything.
+*/
+const HOUR = 3600000;
+const MIN = 60000;
+const MAIN_SLEEP = 3 * HOUR;      // a sleep this long (or longer) starts a new day; shorter = nap
+const SLEEP_MERGE_GAP = HOUR;     // two sleeps closer than this count as one sleep
+const LONG_DAY = 36 * HOUR;       // a day longer than this probably means sleep wasn't logged
+const CT_SPARE_COLORS = ['#7c3aed', '#f97316', '#0ea5e9', '#14b8a6', '#a16207', '#be185d', '#4f46e5', '#65a30d'];
+
+function defaultCategories() {
+  const t = now();
+  return [
+    { id: 'sleep', name: 'Sleep', color: '#6b6b6b', sleep: true },
+    { id: 'study', name: 'College Study', color: '#6cbf3a' },
+    { id: 'college', name: 'College', color: '#0f766e' },
+    { id: 'extra', name: 'Extra-curricular', color: '#ec4899' },
+    { id: 'essentials', name: 'Essentials', color: '#facc15' },
+    { id: 'planned', name: 'Planned', color: '#7c3a12' },
+    { id: 'waste', name: 'Waste', color: '#dc2626' }
+  ].map(function (c) { c.updatedAt = t; c.deleted = false; return c; });
+}
+
+let ctBrush = 'study';
+let ctAnchor = null;      // a moment inside the day on screen; null = today
+let ctDay = null;         // the day on screen
+let ctUndoStack = [];
+let ctDrag = null;
+let ctRects = [];
+let ctRaf = 0;
+
+function liveCats() { return state.categories.filter(function (c) { return !c.deleted; }); }
+function findCat(id) { return state.categories.find(function (c) { return c.id === id; }); }
+function catColor(id) { const c = findCat(id); return c && !c.deleted ? c.color : '#9ca3af'; }
+function catName(id) { const c = findCat(id); return c && !c.deleted ? c.name : 'Deleted activity'; }
+function isSleepCat(id) { const c = findCat(id); return !!(c && c.sleep); }
+function liveRanges() { return state.ranges.filter(function (r) { return !r.deleted; }); }
+
+function floorHour(t) { const d = new Date(t); d.setMinutes(0, 0, 0); return d.getTime(); }
+function ceilHour(t) { const f = floorHour(t); return f === t ? t : f + HOUR; }
+function midnight(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function addDays(t, n) { const d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); }
+function firstMidnightFrom(t) { const m = midnight(t); return m >= t ? m : addDays(m, 1); }
+function roundMin(t) { return Math.round(t / MIN) * MIN; }
+function pct(ms) { return (ms / HOUR * 100).toFixed(3); }
+function ctTime(t) { return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+function ctDayTime(t) { return new Date(t).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }); }
+function ctDate(t) { return new Date(t).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }); }
+function ctDur(ms) {
+  const m = Math.round(ms / MIN);
+  const h = Math.floor(m / 60);
+  return h ? h + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm';
+}
+function hourLabel(t) { const h = new Date(t).getHours(); return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); }
+
+// Non-overlapping pieces of the timeline inside [from, to).
+// If two devices painted the same minutes, the newer edit wins.
+function segmentsIn(from, to) {
+  const list = liveRanges().filter(function (r) { return r.start < to && r.end > from; });
+  const points = [from, to];
+  list.forEach(function (r) {
+    if (r.start > from && r.start < to) points.push(r.start);
+    if (r.end > from && r.end < to) points.push(r.end);
+  });
+  points.sort(function (a, b) { return a - b; });
+  const out = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i], b = points[i + 1];
+    if (b <= a) continue;
+    let best = null;
+    list.forEach(function (r) {
+      if (r.start <= a && r.end >= b && (!best || r.updatedAt > best.updatedAt)) best = r;
+    });
+    if (!best) continue;
+    const last = out[out.length - 1];
+    if (last && last.cat === best.cat && last.end === a) last.end = b;
+    else out.push({ start: a, end: b, cat: best.cat });
+  }
+  return out;
+}
+
+// Main sleeps = sleep ranges (joined when close together) that last 3 hours or more.
+function mainSleeps() {
+  const sleeps = liveRanges().filter(function (r) { return isSleepCat(r.cat); });
+  sleeps.sort(function (a, b) { return a.start - b.start; });
+  const merged = [];
+  sleeps.forEach(function (r) {
+    const last = merged[merged.length - 1];
+    if (last && r.start - last.end < SLEEP_MERGE_GAP) last.end = Math.max(last.end, r.end);
+    else merged.push({ start: r.start, end: r.end });
+  });
+  return merged.filter(function (s) { return s.end - s.start >= MAIN_SLEEP; });
+}
+
+// Sleep-to-sleep days: each day starts when a main sleep starts and ends when the next one starts.
+function sleepDays() {
+  const t = now();
+  const ranges = liveRanges();
+  const sleeps = mainSleeps();
+  const firstStart = ranges.length ? Math.min.apply(null, ranges.map(function (r) { return r.start; })) : t;
+  const days = [];
+  if (!sleeps.length) {
+    days.push({ start: midnight(Math.min(firstStart, t)), end: null, wake: null, estimated: true });
+  } else {
+    if (firstStart < sleeps[0].start) days.push({ start: midnight(firstStart), end: sleeps[0].start, wake: null, estimated: true });
+    sleeps.forEach(function (s, i) {
+      days.push({ start: s.start, end: i + 1 < sleeps.length ? sleeps[i + 1].start : null, wake: s.end, estimated: false });
+    });
+  }
+  // A very long day usually means a sleep wasn't logged: split it at midnight and mark it estimated.
+  const result = [];
+  days.forEach(function (d) {
+    const end = d.end || Math.max(t, d.start);
+    if (end - d.start <= LONG_DAY) { result.push(d); return; }
+    let pieceStart = d.start, first = true;
+    let cut = firstMidnightFrom(d.start + 18 * HOUR);
+    while (cut < end - 6 * HOUR) {
+      result.push({ start: pieceStart, end: cut, wake: first ? d.wake : null, estimated: !first || d.estimated });
+      pieceStart = cut; first = false;
+      cut = addDays(cut, 1);
+    }
+    result.push({ start: pieceStart, end: d.end, wake: first ? d.wake : null, estimated: !first || d.estimated });
+  });
+  return result;
+}
+
+function ctCurrentDay() {
+  const t = now();
+  if (state.ui.ctView === 'clock') {
+    const s = midnight(ctAnchor || t);
+    return { start: s, end: addDays(s, 1), label: s, clock: true, hasPrev: true, hasNext: s < midnight(t) };
+  }
+  const days = sleepDays();
+  let idx = days.length - 1;
+  if (ctAnchor !== null) {
+    const found = days.findIndex(function (d) { return ctAnchor >= d.start && ctAnchor < (d.end || Infinity); });
+    if (found !== -1) idx = found;
+    else if (ctAnchor < days[0].start) idx = 0;
+  }
+  const d = days[idx];
+  return {
+    start: d.start, end: d.end, wake: d.wake, estimated: d.estimated, label: d.wake || d.start,
+    clock: false, index: idx, days: days, hasPrev: idx > 0, hasNext: idx < days.length - 1
+  };
+}
+
+function ctStep(dir) {
+  const d = ctCurrentDay();
+  if (dir < 0 && !d.hasPrev) return;
+  if (dir > 0 && !d.hasNext) return;
+  if (d.clock) {
+    const s = addDays(d.start, dir);
+    ctAnchor = s === midnight(now()) ? null : s;
+  } else {
+    const next = d.days[d.index + dir];
+    ctAnchor = d.index + dir === d.days.length - 1 ? null : next.start;
+  }
+  renderColor();
+}
+
+// Switch between the two views and keep showing the same day.
+function ctSwitchView(v) {
+  if (v === state.ui.ctView) return;
+  const d = ctCurrentDay();
+  const t = now();
+  const anchor = v === 'clock' ? (d.wake || d.start) : d.start + 12 * HOUR;
+  state.ui.ctView = v;
+  ctAnchor = (ctAnchor === null || midnight(anchor) === midnight(t)) ? null : anchor;
+  save();
+  renderColor();
+}
+
+// Paint [a, b) with an activity (cat = null erases). Keeps the stored ranges non-overlapping.
+function ctPaint(a, b, cat) {
+  const t = now();
+  b = Math.min(b, Math.floor(t / MIN) * MIN);
+  if (b - a < MIN) {
+    renderColor();
+    if (a >= t - MIN) showToast('That time hasn\'t happened yet.');
+    return;
+  }
+  ctUndoStack.push(JSON.stringify(state.ranges));
+  if (ctUndoStack.length > 30) ctUndoStack.shift();
+  const daysBefore = sleepDays().length;
+  const added = [];
+  state.ranges.forEach(function (r) {
+    if (r.deleted || r.end <= a || r.start >= b) return;
+    if (r.start >= a && r.end <= b) r.deleted = true;                  // fully covered: remove
+    else if (r.start < a && r.end > b) {                                // stroke inside it: split in two
+      added.push({ id: uid(), start: b, end: r.end, cat: r.cat, updatedAt: t, deleted: false });
+      r.end = a;
+    }
+    else if (r.start < a) r.end = a;                                    // trim its end
+    else r.start = b;                                                   // trim its start
+    r.updatedAt = t;
+  });
+  if (cat) {
+    const piece = { id: uid(), start: a, end: b, cat: cat, updatedAt: t, deleted: false };
+    state.ranges.concat(added).forEach(function (r) {                  // join touching strokes of the same activity
+      if (r.deleted || r.cat !== cat) return;
+      if (r.end === piece.start) { piece.start = r.start; r.deleted = true; r.updatedAt = t; }
+      else if (r.start === piece.end) { piece.end = r.end; r.deleted = true; r.updatedAt = t; }
+    });
+    added.push(piece);
+  }
+  state.ranges = state.ranges.concat(added);
+  save();
+  if (!ctDrag && state.ui.ctView === 'sleep' && cat && isSleepCat(cat) && sleepDays().length > daysBefore) {
+    const latest = mainSleeps().pop();
+    showToast('New day starts at ' + ctDayTime(latest.start));
+  }
+  renderColor();
+}
+
+function ctUndo() {
+  const snap = ctUndoStack.pop();
+  if (!snap) return;
+  const t = now();
+  const old = JSON.parse(snap);
+  const ids = {};
+  old.forEach(function (r) { ids[r.id] = true; r.updatedAt = t; });
+  state.ranges.forEach(function (r) {
+    if (!ids[r.id]) old.push(Object.assign({}, r, { deleted: true, updatedAt: t }));
+  });
+  state.ranges = old;
+  save();
+  renderColor();
+  showToast('Undone');
+}
+
+let toastTimer = 0;
+function showToast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.hidden = true; }, 2600);
+}
+
+// ----- drawing -----
+function renderBrushes() {
+  if (ctBrush !== 'erase' && !liveCats().some(function (c) { return c.id === ctBrush; })) ctBrush = liveCats()[0].id;
+  let html = liveCats().map(function (c, i) {
+    return '<button class="brush' + (ctBrush === c.id ? ' on' : '') + '" style="--bc:' + c.color + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (ctBrush === c.id) + '"><i></i>' +
+      esc(c.name) + (i < 9 ? '<span class="key">' + (i + 1) + '</span>' : '') + '</button>';
+  }).join('');
+  html += '<button class="brush eraser' + (ctBrush === 'erase' ? ' on' : '') + '" style="--bc:var(--muted)" data-action="brush" data-id="erase" aria-pressed="' + (ctBrush === 'erase') + '"><i></i>Eraser<span class="key">E</span></button>';
+  $('ctBrushes').innerHTML = html;
+}
+
+function fillSpan(a, b, blockStart, color, cls) {
+  return '<span class="fill ' + cls + '" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%;' + (color ? 'background:' + color : '') + '"></span>';
+}
+function shadeSpan(a, b, blockStart) {
+  return '<span class="shade" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%"></span>';
+}
+
+function renderCtGrid(preview) {
+  const d = ctDay;
+  const t = now();
+  const gridStart = floorHour(d.start);
+  const shownEnd = d.end || Math.max(t, d.start + MIN);
+  const gridEnd = Math.max(ceilHour(shownEnd), gridStart + HOUR);
+  const segs = segmentsIn(gridStart, gridEnd);
+  const dayEnd = d.end || Infinity;
+  let html = '';
+  for (let b = gridStart; b < gridEnd; b += HOUR) {
+    const be = b + HOUR;
+    let inner = '';
+    segs.forEach(function (s) {
+      if (s.end <= b || s.start >= be) return;
+      inner += fillSpan(Math.max(s.start, b), Math.min(s.end, be), b, catColor(s.cat), '');
+    });
+    if (preview && preview.end > b && preview.start < be) {
+      inner += fillSpan(Math.max(preview.start, b), Math.min(preview.end, be), b, preview.cat ? catColor(preview.cat) : null, preview.cat ? 'preview' : 'erase');
+    }
+    if (d.start > b) inner += shadeSpan(b, Math.min(d.start, be), b);          // belongs to the previous day
+    if (dayEnd < be) inner += shadeSpan(Math.max(dayEnd, b), be, b);           // belongs to the next day
+    if (t < be) {
+      inner += shadeSpan(Math.max(t, b), be, b);                                // future
+      if (t >= b) inner += '<span class="nowline" style="left:' + pct(t - b) + '%"></span>';
+    }
+    html += '<div class="blk" data-start="' + b + '">' + inner + '<span class="hr">' + hourLabel(b) + '</span></div>';
+  }
+  $('ctGrid').innerHTML = html;
+}
+
+function renderCtSummary() {
+  const d = ctDay;
+  const t = now();
+  const from = d.start;
+  const to = Math.min(d.end || t, t);
+  const segs = to > from ? segmentsIn(from, to) : [];
+  const span = Math.max(0, to - from);
+  const totals = {};
+  let tracked = 0;
+  segs.forEach(function (s) { totals[s.cat] = (totals[s.cat] || 0) + (s.end - s.start); tracked += s.end - s.start; });
+  const ids = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; });
+  $('ctBar').innerHTML = span ? ids.map(function (id) {
+    return '<span style="width:' + (totals[id] / span * 100).toFixed(2) + '%;background:' + catColor(id) + '"></span>';
+  }).join('') : '';
+  let list = ids.map(function (id) {
+    return '<li><span class="dot" style="background:' + catColor(id) + '"></span>' + esc(catName(id)) + '<b>' + ctDur(totals[id]) + '</b></li>';
+  }).join('');
+  if (span - tracked >= MIN) list += '<li><span class="dot" style="background:var(--line)"></span>Not tracked<b>' + ctDur(span - tracked) + '</b></li>';
+  $('ctTotals').innerHTML = list || '<li class="small">Nothing yet.</li>';
+  $('ctEntries').innerHTML = segs.length ? segs.map(function (s) {
+    return '<li><span class="dot" style="background:' + catColor(s.cat) + '"></span>' +
+      '<div class="what"><span>' + esc(catName(s.cat)) + '</span><time>' + ctTime(s.start) + ' – ' + ctTime(s.end) + ' · ' + ctDur(s.end - s.start) + '</time></div>' +
+      '<button class="x" data-action="ctdel" data-a="' + s.start + '" data-b="' + s.end + '" aria-label="Erase this entry">×</button></li>';
+  }).join('') : '<li class="small">Paint some blocks and they show up here with exact times.</li>';
+}
+
+function renderColor() {
+  ctDay = ctCurrentDay();
+  const d = ctDay;
+  const t = now();
+  document.querySelectorAll('[data-action="ctview"]').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.v === state.ui.ctView);
+    b.setAttribute('aria-pressed', b.dataset.v === state.ui.ctView);
+  });
+  $('ctTitle').textContent = ctDate(d.label) + (d.estimated ? ' (estimated)' : '');
+  if (d.clock) {
+    $('ctSub').textContent = 'Midnight to midnight · 24 hours';
+  } else {
+    const end = d.end || t;
+    $('ctSub').textContent = ctDayTime(d.start) + ' → ' + (d.end ? ctDayTime(d.end) : 'now') + ' · ' + ctDur(end - d.start);
+  }
+  $('ctPrev').disabled = !d.hasPrev;
+  $('ctNext').disabled = !d.hasNext;
+  $('ctToday').disabled = ctAnchor === null;
+  $('ctUndo').disabled = !ctUndoStack.length;
+
+  let warn = '';
+  if (!liveRanges().length) warn = 'Start with last night: pick Sleep, then paint from when you fell asleep to when you woke up.';
+  else if (!d.clock && !d.end && t - d.start > 30 * HOUR) warn = 'No sleep logged since ' + ctDayTime(d.start) + '. Paint your sleep and a new day will start there.';
+  else if (!d.clock && d.estimated) warn = 'No sleep is logged around here, so this day is cut at midnight. Paint the sleep to fix it.';
+  $('ctWarn').textContent = warn;
+  $('ctWarn').hidden = !warn;
+  if (!ctDrag) $('ctLive').textContent = 'Drag across the blocks to paint.';
+
+  renderBrushes();
+  renderCtGrid();
+  renderCtSummary();
+}
+
+// ----- painting with finger / mouse / pencil -----
+function cacheRects() {
+  ctRects = Array.prototype.map.call(document.querySelectorAll('#ctGrid .blk'), function (el) {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, start: Number(el.dataset.start) };
+  });
+}
+
+// Turn a screen point into an exact time (to the minute).
+function timeAt(x, y) {
+  if (!ctRects.length) return null;
+  const tops = [];
+  ctRects.forEach(function (r) { if (!tops.some(function (tp) { return Math.abs(tp - r.top) < 2; })) tops.push(r.top); });
+  let rowTop = tops[0], best = Infinity;
+  tops.forEach(function (tp) {
+    const r0 = ctRects.find(function (r) { return Math.abs(r.top - tp) < 2; });
+    const dist = Math.abs((r0.top + r0.bottom) / 2 - y);
+    if (dist < best) { best = dist; rowTop = tp; }
+  });
+  const row = ctRects.filter(function (r) { return Math.abs(r.top - rowTop) < 2; });
+  const last = row[row.length - 1];
+  if (x <= row[0].left) return row[0].start;
+  if (x >= last.right) return last.start + HOUR;
+  for (let i = 0; i < row.length; i++) {
+    const r = row[i];
+    if (x >= r.left && x <= r.right) return roundMin(r.start + (x - r.left) / (r.right - r.left) * HOUR);
+    if (x < r.left) return r.start; // in the small gap before this block
+  }
+  return last.start + HOUR;
+}
+
+function blockAt(x, y) {
+  const r = ctRects.find(function (b) { return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom; });
+  return r ? r.start : null;
+}
+
+function showLive(a, b) {
+  const cat = ctBrush === 'erase' ? null : ctBrush;
+  $('ctLive').innerHTML = (cat ? esc(catName(cat)) : 'Erase') + ' <b>' + ctTime(a) + ' – ' + ctTime(b) + '</b> · ' + ctDur(Math.max(0, b - a));
+}
+
+function schedulePreview() {
+  if (ctRaf) return;
+  ctRaf = requestAnimationFrame(function () {
+    ctRaf = 0;
+    if (!ctDrag) return;
+    const a = Math.min(ctDrag.t0, ctDrag.t1);
+    const b = Math.min(Math.max(ctDrag.t0, ctDrag.t1), now());
+    renderCtGrid({ start: a, end: b, cat: ctBrush === 'erase' ? null : ctBrush });
+    showLive(a, b);
+  });
+}
+
+const ctGridEl = $('ctGrid');
+ctGridEl.addEventListener('pointerdown', function (e) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault();
+  cacheRects();
+  const t0 = timeAt(e.clientX, e.clientY);
+  if (t0 === null) return;
+  ctDrag = { id: e.pointerId, t0: t0, t1: t0, x: e.clientX, y: e.clientY, moved: false, block: blockAt(e.clientX, e.clientY) };
+  try { ctGridEl.setPointerCapture(e.pointerId); } catch (err) {}
+});
+ctGridEl.addEventListener('pointermove', function (e) {
+  if (!ctDrag || e.pointerId !== ctDrag.id) return;
+  if (Math.abs(e.clientX - ctDrag.x) + Math.abs(e.clientY - ctDrag.y) > 6) ctDrag.moved = true;
+  if (!ctDrag.moved) return;
+  ctDrag.t1 = timeAt(e.clientX, e.clientY);
+  schedulePreview();
+});
+function endDrag(e, cancelled) {
+  if (!ctDrag || e.pointerId !== ctDrag.id) return;
+  const d = ctDrag;
+  ctDrag = null;
+  if (cancelled) { renderColor(); return; }
+  const cat = ctBrush === 'erase' ? null : ctBrush;
+  if (d.moved) ctPaint(Math.min(d.t0, d.t1), Math.max(d.t0, d.t1), cat);
+  else if (d.block !== null) ctPaint(d.block, d.block + HOUR, cat);   // a tap fills the whole hour
+  else renderColor();
+}
+ctGridEl.addEventListener('pointerup', function (e) { endDrag(e, false); });
+ctGridEl.addEventListener('pointercancel', function (e) { endDrag(e, true); });
+
+// keep "now" moving while the tracker is open
+setInterval(function () { if (view === 'colortracker' && !ctDrag && !sheet) renderColor(); }, 60000);
 
 // ---------- start ----------
 $('today').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
