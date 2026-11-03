@@ -20,9 +20,9 @@ const EMPTY_TEXT = { 1: 'Nothing urgent. Nice.', 2: 'Plan something that matters
 
 function shortTitle(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
 
-// ---------- adding a task: the + on each box opens this pop-up ----------
+// ---------- adding a task: the + on each box (and the Calendar) opens this pop-up ----------
 let addQ = 1;          // the box the last task was added to (the N key reuses it)
-let addDraft = null;   // what's picked in the pop-up: { q, date (midnight ms or null), time ('HH:MM' or ''), deadline (ms or null) }
+let addDraft = null;   // what's picked in the pop-up: { q (null = not sorted), date (midnight ms or null), time ('HH:MM' or ''), deadline (ms or null) }
 
 function addSheetHTML() {
   const d = addDraft;
@@ -31,14 +31,14 @@ function addSheetHTML() {
     const val = n === 'none' ? null : addDays(today, n);
     return '<button type="button" class="pick' + (current === val ? ' on' : '') + '" data-action="' + action + '" data-d="' + n + '">' + label + '</button>';
   }
-  return '<h3 class="add-title q' + d.q + '"><i></i>Add to ' + esc(quadName(d.q)) + '</h3>' +
+  return '<h3 class="add-title q' + (d.q || 0) + '"><i></i>' + (d.q ? 'Add to ' + esc(quadName(d.q)) : 'Add a task') + '</h3>' +
     '<form id="addSheetForm" class="add" autocomplete="off"><div class="add-row">' +
       '<input id="addTitle" placeholder="What needs doing?" aria-label="Task name" enterkeyhint="done">' +
       '<button class="btn primary" type="submit">Add</button></div>' +
       '<div class="parse" id="addParse" aria-live="polite"></div></form>' +
     '<p class="label">Box</p><div class="qmove">' + QUADS.map(function (q) {
       return '<button type="button" class="q' + q.q + (d.q === q.q ? ' on' : '') + '" data-action="aq" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
-    }).join('') + '</div>' +
+    }).join('') + '<button type="button" class="q0 wide' + (!d.q ? ' on' : '') + '" data-action="aq" data-q="0">Not sorted</button></div>' +
     '<p class="label">Date' + (d.date === null && !d.time ? ' · none, so it shows in Today' : '') + '</p>' +
     '<div class="daterow">' + pick('adate', 'none', 'No date', d.date) + pick('adate', 0, 'Today', d.date) + pick('adate', 1, 'Tomorrow', d.date) + pick('adate', 7, 'Next week', d.date) + '</div>' +
     '<div class="daterow"><input type="date" id="addDate" value="' + (d.date !== null ? dayKey(d.date) : '') + '" aria-label="Date"><input type="time" id="addTime" value="' + d.time + '" aria-label="Time"></div>' +
@@ -49,9 +49,11 @@ function addSheetHTML() {
     '<p class="status" id="addStatus" role="status"></p>' +
     '<div class="row"><button class="btn" data-action="close">Done</button></div>';
 }
-function openAddSheet(q) {
-  addQ = q;
-  addDraft = { q: q, date: null, time: '', deadline: null };
+// q: the box (null = not sorted). preset: { date, time } when opened from the Calendar.
+function openAddSheet(q, preset) {
+  preset = preset || {};
+  if (q) addQ = q;
+  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null };
   openSheet({ type: 'add' }, addSheetHTML());
   setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
 }
@@ -91,7 +93,7 @@ function addFromSheet() {
   sound('soft');
   input.value = '';
   renderAddParse();
-  $('addStatus').textContent = 'Added "' + shortTitle(task.title) + '" to ' + quadName(task.q) + '. Add another, or press Done.';
+  $('addStatus').textContent = 'Added "' + shortTitle(task.title) + '" to ' + boxName(task.q) + (task.due !== null ? ', ' + fmtDue(task.due, task.hasTime) : '') + '. Add another, or press Done.';
   const li = document.querySelector('#matrixGrid .task[data-id="' + task.id + '"]');
   if (li) {
     li.scrollIntoView({ block: 'nearest' });
@@ -504,7 +506,7 @@ $('sheet').addEventListener('keydown', function (e) {
 
 // ---------- click actions ----------
 actions.addhere = function (el) { openAddSheet(Number(el.dataset.q)); };
-actions.aq = function (el) { addDraft.q = Number(el.dataset.q); addQ = addDraft.q; refreshAddSheet(); };
+actions.aq = function (el) { addDraft.q = Number(el.dataset.q) || null; if (addDraft.q) addQ = addDraft.q; refreshAddSheet(); };
 actions.adate = function (el) { addDraft.date = el.dataset.d === 'none' ? null : addDays(midnight(now()), Number(el.dataset.d)); if (addDraft.date === null) addDraft.time = ''; refreshAddSheet(); };
 actions.adl = function (el) { addDraft.deadline = el.dataset.d === 'none' ? null : addDays(midnight(now()), Number(el.dataset.d)); refreshAddSheet(); };
 actions.quadedit = function (el) { const q = Number(el.dataset.q); openSheet({ type: 'quad', q: q }, quadSheetHTML(q)); setTimeout(function () { if ($('qName')) $('qName').select(); }, 60); };

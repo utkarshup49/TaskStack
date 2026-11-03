@@ -33,7 +33,8 @@ js/matrix.js           shared task rows (taskHTML), tick/swipe/hold-drag gesture
                        task details sheet, Eisenhower matrix + "Not sorted" tray,
                        per-box add pop-up (+) and rename (...)
 js/tasks.js            Tasks list, the main view (grouped by date)
-js/calendar.js         Calendar month view, add a task onto a date
+js/calendar.js         Calendar: Day / 3 days / Week (hour grid), 2 weeks / Month (day grid), Year;
+                       days off shaded; tap an empty hour slot to add a task there
 js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound, 7-day chart
 js/habits.js           habits, strength score, heatmap, milestones
 js/colortracker.js     ColorTracker (paint the day hour by hour)
@@ -58,6 +59,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - `mergeState()` merges two copies: newer `updatedAt` wins per item; habit ticks merge per day. Google Drive sync (sync.js) uses it.
 - **Every edit must bump `updatedAt`** (habit ticks: `done[day].at`), or sync won't see it.
 - `timer` and `ui` stay on the device and are never uploaded. Sync's own info (token, file id) is in localStorage key `taskstack.sync`.
+- Calendar: `settings.offDays` = weekdays shaded as days off (0 = Sun … 6 = Sat, default [0, 6]; syncs). `ui.calMode` = the view (device-only). Timed tasks are drawn 1 hour tall (tasks have no duration yet).
 - Box names: `quadName(q)` / `quadSub(q)` (core.js), renamable, stored in `settings.quadNames` so they sync. Never read `QUADS[i].name` directly for display.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes`.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.

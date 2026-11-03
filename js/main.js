@@ -82,6 +82,12 @@ function settingsHTML() {
     '<div class="seg">' + ['system', 'light', 'dark'].map(function (t) {
       return '<button class="' + (theme === t ? 'on' : '') + '" data-action="theme" data-t="' + t + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
     }).join('') + '</div>' +
+    '<p class="label">Calendar: days off</p>' +
+    '<p class="small">These days are shaded in the Calendar. Tap to switch a day on or off.</p>' +
+    '<div class="daterow">' + [1, 2, 3, 4, 5, 6, 0].map(function (wd) {
+      const on = state.settings.offDays.indexOf(wd) !== -1;
+      return '<button class="pick' + (on ? ' on' : '') + '" data-action="offday" data-wd="' + wd + '" aria-pressed="' + on + '">' + dayName(addDays(weekStart(now()), (wd + 6) % 7), 'short') + '</button>';
+    }).join('') + '</div>' +
     '<p class="label">Timer lengths (minutes)</p><div class="dur">' +
       '<div><label for="setFocus">Focus</label><input id="setFocus" type="number" min="1" max="120" value="' + st.focus + '"></div>' +
       '<div><label for="setShort">Short break</label><input id="setShort" type="number" min="1" max="60" value="' + st.short + '"></div>' +
@@ -109,6 +115,16 @@ actions.pref = function (el) {
   el.setAttribute('aria-checked', state.ui[k]);
   if (k === 'sound' && state.ui.sound) sound('tick');
   if (k === 'haptics' && state.ui.haptics) haptic(15);
+};
+actions.offday = function (el) {
+  const wd = Number(el.dataset.wd);
+  const list = state.settings.offDays;
+  const i = list.indexOf(wd);
+  if (i === -1) list.push(wd); else list.splice(i, 1);
+  state.settings.updatedAt = now();
+  save();
+  renderCalendar();
+  refreshSheet(settingsHTML());
 };
 actions.theme = function (el) {
   state.ui.theme = el.dataset.t;
@@ -240,7 +256,8 @@ document.addEventListener('keydown', function (e) {
   if (mod || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === '/') { e.preventDefault(); openPalette(); return; }
-  if (k === 'n') { e.preventDefault(); if (view === 'matrix') openAddSheet(addQ); else if (view === 'calendar') $('calInput').focus(); else { showView('tasks'); $('taskInput').focus(); } return; }
+  if (k === 'n') { e.preventDefault(); if (view === 'matrix') openAddSheet(addQ); else if (view === 'calendar') { if (TIMED_MODES[calMode()]) actions.caladd(); else $('calInput').focus(); } else { showView('tasks'); $('taskInput').focus(); } return; }
+  if (view === 'calendar' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { calStep(e.key === 'ArrowLeft' ? -1 : 1); return; }
   if (view === 'colortracker') {
     const n = Number(e.key);
     if (n >= 1 && n <= 9 && liveCats()[n - 1]) actions.brush({ dataset: { id: liveCats()[n - 1].id } });

@@ -127,7 +127,7 @@ function exampleState() {
       habit('No phone after 11 pm', HABIT_COLORS[4], [2, 3, 7])
     ],
     sessions: [],
-    settings: { focus: 25, short: 5, long: 15, quadNames: {}, updatedAt: t },
+    settings: { focus: 25, short: 5, long: 15, quadNames: {}, offDays: [0, 6], updatedAt: t },
     timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * MIN, taskId: null, count: 0, intent: '' },
     categories: defaultCategories(),
     ranges: [],
@@ -143,6 +143,7 @@ function normalize(s) {
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings = s.settings || base.settings;
   if (!s.settings.quadNames || typeof s.settings.quadNames !== 'object') s.settings.quadNames = {};
+  if (!Array.isArray(s.settings.offDays)) s.settings.offDays = [0, 6];   // days shaded in the Calendar (0 = Sun, 6 = Sat)
   s.timer = Object.assign({}, base.timer, s.timer || {});
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
   s.ranges = Array.isArray(s.ranges) ? s.ranges : [];

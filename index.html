@@ -62,17 +62,19 @@
 
   <!-- CALENDAR -->
   <section id="view-calendar" class="view" hidden>
-    <div class="cal-wrap">
-      <div class="cal-main">
-        <div class="cal-head">
-          <button class="icon-btn" data-action="calprev" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-          <h2 id="calTitle"></h2>
-          <button class="btn small" id="calToday" data-action="caltoday">Today</button>
-          <button class="icon-btn" data-action="calnext" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
-        </div>
-        <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-top">
+      <div class="cal-head">
+        <h2 id="calTitle"></h2>
+        <button class="icon-btn" data-action="caladd" aria-label="Add a task" title="Add a task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="icon-btn" data-action="calprev" aria-label="Previous" title="Previous (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button class="btn small" id="calToday" data-action="caltoday">Today</button>
+        <button class="icon-btn" data-action="calnext" aria-label="Next" title="Next (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
       </div>
-      <div class="card cal-day">
+      <div class="seg cal-modes" id="calModes" role="group" aria-label="Calendar view"></div>
+    </div>
+    <div class="cal-wrap" id="calWrap">
+      <div class="cal-main" id="calBody"></div>
+      <div class="card cal-day" id="calDayCard">
         <div><h3 id="calDayTitle"></h3><p class="small" id="calDaySub"></p></div>
         <form id="calForm" class="add-row" autocomplete="off">
           <input id="calInput" aria-label="Add a task on this day" enterkeyhint="done">
