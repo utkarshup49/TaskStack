@@ -66,6 +66,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Quadrants: `--q1` red, `--q2` blue, `--q3` mustard, `--q4` slate. Keep every colour clearly different from the others, in light and dark mode (he dislikes colours that look alike).
 - Use colour tokens, never hard-coded hex in components.
 - Motion: 150–300 ms, springy, never blocks the next tap; respect reduced motion.
+- Depth (trial on ColorTracker, "ColorTracker look" block in app.css): buttons are raised (coloured border, solid ledge `--edge` under them, soft `--drop` shadow; pressing pushes them down), cards float with an accent strip on top, activity chips are tinted in their own colour and the chosen one is filled. Tokens: `--raise --raise-line --edge --drop --hi`. If Utkarsh approves it, spread it to the other sections, each in its own colour.
 - Nothing destructive happens by accident: confirm via Undo, require a deliberate gesture (hold, swipe past a threshold, pen button that turns itself off after one stroke).
 
 ## ColorTracker rules (his own feature, keep these)

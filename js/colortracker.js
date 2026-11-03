@@ -60,6 +60,17 @@ function colorDistance(a, b) {
   return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3;
 }
 
+// Dark or white text, whichever reads better on this colour (for a filled activity chip).
+function textOn(hex) {
+  const h = hex.replace('#', '');
+  const lin = [0, 2, 4].map(function (i) {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  return lum > 0.4 ? 'var(--text-on-light)' : 'var(--text-on-dark)';
+}
+
 // ---------- the timeline ----------
 // Non-overlapping pieces inside [from, to). If two devices painted the same minutes, the newer edit wins.
 function segmentsIn(from, to) {
@@ -258,7 +269,7 @@ function renderTools() {
   const color = catColor(ctBrush);
   const box = $('ctBrushes');
   box.innerHTML = liveCats().map(function (c, i) {
-    return '<button class="brush' + (active === c.id ? ' on' : '') + '" style="--bc:' + c.color + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (active === c.id) + '"><i></i>' +
+    return '<button class="brush' + (active === c.id ? ' on' : '') + '" style="--bc:' + c.color + ';--bt:' + textOn(c.color) + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (active === c.id) + '"><i></i>' +
       esc(c.name) + (i < 9 ? '<span class="key">' + (i + 1) + '</span>' : '') + '</button>';
   }).join('');
   const chip = box.querySelector('.brush.on');
@@ -347,15 +358,17 @@ function renderCtSummary() {
   $('ctBar').innerHTML = span ? ids.map(function (id) {
     return '<span style="width:' + (totals[id] / span * 100).toFixed(2) + '%;background:' + catColor(id) + '"></span>';
   }).join('') : '';
-  let list = ids.map(function (id) {
-    return '<li><span class="dot" style="background:' + catColor(id) + '"></span>' + esc(catName(id)) + '<b>' + fmtDur(totals[id]) + '</b></li>';
-  }).join('');
-  if (span - tracked >= MIN) list += '<li><span class="dot" style="background:var(--line)"></span>Not tracked<b>' + fmtDur(span - tracked) + '</b></li>';
+  // each row gets a thin bar showing its share of the day
+  function row(color, name, ms) {
+    return '<li style="--ec:' + color + ';--w:' + (span ? ms / span : 0).toFixed(4) + '"><span class="dot"></span>' + name + '<b>' + fmtDur(ms) + '</b><span class="share"></span></li>';
+  }
+  let list = ids.map(function (id) { return row(catColor(id), esc(catName(id)), totals[id]); }).join('');
+  if (span - tracked >= MIN) list += row('var(--muted)', 'Not tracked', span - tracked);
   $('ctTotals').innerHTML = list || '<li class="small">Nothing yet.</li>';
   $('ctEntries').innerHTML = segs.length ? segs.map(function (s) {
     const r = findRange(s.id);
     const locked = r && r.locked;
-    return '<li><span class="dot" style="background:' + catColor(s.cat) + '"></span>' +
+    return '<li style="--ec:' + catColor(s.cat) + '">' +
       '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(catName(s.cat)) + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
       (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
   }).join('') : '<li class="small">Painted blocks show up here with exact times.</li>';

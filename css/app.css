@@ -32,6 +32,15 @@
   --good: #16a34a;
   --danger: #dc2626;
 
+  /* depth: raised buttons and cards ("comes out of the screen") */
+  --raise: #ffffff;                 /* face of a raised button or card */
+  --raise-line: #cfd2ca;            /* its border */
+  --edge: #b9bdb3;                  /* the solid ledge under a raised button */
+  --drop: rgba(22, 26, 34, 0.16);   /* soft shadow it casts */
+  --hi: rgba(255, 255, 255, 0.9);   /* thin light catch on the top edge */
+  --text-on-light: #15171c;         /* text on a light activity colour */
+  --text-on-dark: #ffffff;          /* text on a dark activity colour */
+
   --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
   --body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
@@ -46,6 +55,7 @@
     --bg: #0e1014; --surface: #171a20; --surface-2: #1d2027; --ink: #eceef2; --muted: #9ba1ab; --line: #2a2e36;
     --c-tasks: #38bdf8; --c-cal: #e879f9; --c-matrix: #8b87ff; --c-focus: #fb923c; --c-break: #2dd4bf; --c-habits: #4ade80; --c-ct: #b69cff; --on-accent: #0e1014;
     --q1: #f87171; --q2: #60a5fa; --q3: #e5b54a; --q4: #94a3b8; --good: #4ade80; --danger: #f87171;
+    --raise: #222632; --raise-line: #363c4a; --edge: #06070a; --drop: rgba(0, 0, 0, 0.6); --hi: rgba(255, 255, 255, 0.07);
     color-scheme: dark;
   }
 }
@@ -53,6 +63,7 @@
   --bg: #0e1014; --surface: #171a20; --surface-2: #1d2027; --ink: #eceef2; --muted: #9ba1ab; --line: #2a2e36;
   --c-tasks: #38bdf8; --c-cal: #e879f9; --c-matrix: #8b87ff; --c-focus: #fb923c; --c-break: #2dd4bf; --c-habits: #4ade80; --c-ct: #b69cff; --on-accent: #0e1014;
   --q1: #f87171; --q2: #60a5fa; --q3: #e5b54a; --q4: #94a3b8; --good: #4ade80; --danger: #f87171;
+    --raise: #222632; --raise-line: #363c4a; --edge: #06070a; --drop: rgba(0, 0, 0, 0.6); --hi: rgba(255, 255, 255, 0.07);
   color-scheme: dark;
 }
 
@@ -380,6 +391,100 @@ select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid var(-
 .act-row input[type="color"] { width: 44px; height: 44px; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); flex: 0 0 auto; }
 .act-row .btn { flex: 0 0 auto; }
 .clash { font-size: 12px; color: var(--danger); margin: -4px 0 0 52px; }
+
+/* ---------- ColorTracker look: raised buttons and floating cards ----------
+   Trial on this page first; if it works it spreads to the other sections.
+   A raised button has a light face, a coloured border (--rb), a solid ledge under it (--re)
+   and a soft shadow. Pressing pushes it down onto the ledge. */
+.ct .btn, .ct .icon-btn, .ct .tool, .ct .pen, body[data-section="colortracker"] .top .icon-btn {
+  --rb: var(--raise-line); --re: var(--edge);
+  background: var(--raise); border: 1.5px solid var(--rb);
+  box-shadow: inset 0 1px 0 var(--hi), 0 3px 0 var(--re), 0 8px 16px -6px var(--drop);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.ct .btn:active:not(:disabled), .ct .icon-btn:active:not(:disabled), .ct .tool:active:not(:disabled), .ct .pen:active,
+body[data-section="colortracker"] .top .icon-btn:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 0 var(--hi), 0 1px 0 var(--re), 0 3px 6px -3px var(--drop);
+}
+.ct .btn:disabled, .ct .icon-btn:disabled, .ct .tool:disabled { box-shadow: inset 0 1px 0 var(--hi), 0 1px 0 var(--re); }   /* still the same button, just resting flat */
+@media (hover: hover) {
+  .ct .btn:hover:not(:disabled), .ct .icon-btn:hover:not(:disabled), .ct .tool:hover:not(:disabled), .ct .pen:not(.on):hover,
+  body[data-section="colortracker"] .top .icon-btn:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 var(--hi), 0 4px 0 var(--re), 0 12px 20px -8px var(--drop); }
+}
+body[data-section="colortracker"] .sync-btn .sdot { border-color: var(--raise); }
+body[data-section="colortracker"] .sync-btn[data-s="reconnect"] { --rb: color-mix(in srgb, var(--danger) 55%, var(--raise-line)); }
+
+/* buttons in the page's own colour: Edit activities, Today, day arrows */
+.ct .btn-accent {
+  --rb: color-mix(in srgb, var(--accent) 65%, var(--raise-line)); --re: color-mix(in srgb, var(--accent) 50%, var(--edge));
+  background: color-mix(in srgb, var(--accent) 12%, var(--raise)); color: var(--accent);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ct .btn-accent svg { width: 16px; height: 16px; }
+.ct-nav .icon-btn { color: var(--accent); --rb: color-mix(in srgb, var(--accent) 35%, var(--raise-line)); }
+
+/* Sleep to sleep / 24-hour: a sunken track with the chosen option raised in violet */
+.ct .seg { background: color-mix(in srgb, var(--ink) 6%, var(--bg)); border-color: var(--raise-line); box-shadow: inset 0 1px 3px var(--drop); }
+.ct .seg button.on {
+  background: var(--accent); color: var(--on-accent); font-weight: 600;
+  box-shadow: inset 0 1px 0 var(--hi), 0 2px 0 color-mix(in srgb, var(--accent) 50%, var(--edge)), 0 4px 10px -4px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Pen and Undo: same size side by side (space left over on wide screens) */
+#ctToolsPaint { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#ctToolsSel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 600px) {
+  #ctToolsPaint { grid-template-columns: repeat(2, 190px); }
+  #ctToolsSel { grid-template-columns: repeat(3, 150px); }
+}
+/* the pen wears the chosen colour; when it's on it stays pressed down with a glow */
+.ct .pen {
+  --rb: color-mix(in srgb, var(--bc) 75%, var(--ink)); --re: color-mix(in srgb, var(--bc) 60%, var(--edge));
+  background: color-mix(in srgb, var(--bc) 14%, var(--raise)); border-width: 2px;
+}
+.ct .pen.on {
+  border-width: 2px; background: color-mix(in srgb, var(--bc) 32%, var(--raise)); transform: translateY(2px);
+  box-shadow: inset 0 1px 0 var(--hi), 0 1px 0 var(--re), 0 0 0 4px color-mix(in srgb, var(--bc) 28%, transparent);
+}
+#ctUndo svg { color: var(--accent); }
+.ct .tool.danger { --rb: color-mix(in srgb, var(--danger) 55%, var(--raise-line)); --re: color-mix(in srgb, var(--danger) 45%, var(--edge)); background: color-mix(in srgb, var(--danger) 8%, var(--raise)); }
+.ct .tool.done { --rb: var(--ink); --re: color-mix(in srgb, var(--ink) 50%, var(--edge)); background: var(--ink); color: var(--bg); }
+.ct .tool.on { --rb: var(--ink); }
+
+/* activity chips: each one tinted and edged in its own colour; the chosen one is filled */
+.ct .brushes { gap: 8px; padding: 6px 2px 8px; margin: -2px -2px -6px; }
+.ct .brush {
+  --bl: color-mix(in srgb, var(--bc) 70%, var(--ink));
+  height: 38px; font-weight: 600; border: 1.5px solid var(--bl);
+  background: color-mix(in srgb, var(--bc) 16%, var(--raise));
+  box-shadow: inset 0 1px 0 var(--hi), 0 3px 0 color-mix(in srgb, var(--bc) 55%, var(--edge)), 0 6px 12px -6px var(--drop);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease;
+}
+.ct .brush i { box-shadow: 0 0 0 2px var(--raise); }
+.ct .brush:active { transform: translateY(2px); box-shadow: inset 0 1px 0 var(--hi), 0 1px 0 color-mix(in srgb, var(--bc) 55%, var(--edge)); }
+.ct .brush.on {
+  background: var(--bc); color: var(--bt); transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 var(--hi), 0 4px 0 color-mix(in srgb, var(--bc) 60%, var(--edge)), 0 10px 20px -6px color-mix(in srgb, var(--bc) 60%, transparent);
+}
+.ct .brush.on i { background: var(--bt); box-shadow: inset 0 0 0 4px var(--bc), 0 0 0 2px var(--bt); }   /* filled dot = chosen */
+.ct .brush.on .key { color: var(--bt); opacity: 0.75; }
+@media (hover: hover) { .ct .brush:not(.on):hover { transform: translateY(-1px); } }
+
+/* side cards float above the page, with a violet strip along the top */
+.ct-side .card {
+  background: var(--raise); border: 1px solid var(--raise-line); padding: 16px;
+  box-shadow: inset 0 3px 0 var(--accent), 0 2px 0 var(--edge), 0 6px 12px -6px var(--drop), 0 22px 40px -16px var(--drop);
+}
+.ct-bar { height: 16px; gap: 2px; background: color-mix(in srgb, var(--ink) 8%, transparent); box-shadow: inset 0 1px 2px var(--drop); }
+.ct-totals { gap: 12px; }
+.ct-totals li { position: relative; padding-bottom: 9px; }
+.ct-totals .dot { width: 12px; height: 12px; border-radius: 4px; background: var(--ec); }
+.ct-totals .share { position: absolute; left: 20px; right: 0; bottom: 0; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--ec) 16%, transparent); }
+.ct-totals .share::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--w) * 100%); border-radius: 2px; background: var(--ec); }
+.entries { display: flex; flex-direction: column; gap: 6px; }
+.entries li { border-bottom: none; padding: 6px 4px 6px 14px; border-radius: 10px; background: color-mix(in srgb, var(--ec) 12%, transparent); box-shadow: inset 4px 0 0 var(--ec); }
+.entries li.small { background: none; box-shadow: none; padding-left: 0; }
 
 /* ---------- tasks list ---------- */
 #view-tasks { display: flex; flex-direction: column; gap: 14px; }
