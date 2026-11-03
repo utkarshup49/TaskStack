@@ -93,6 +93,32 @@ h1 { font-family: var(--display); font-size: 20px; margin: 0; letter-spacing: -0
 .icon-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; padding: 0; transition: transform 0.12s ease; }
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn svg { width: 20px; height: 20px; }
+/* sync: cloud button with a status dot */
+.sync-btn { position: relative; color: var(--muted); }
+.sync-btn .sdot { position: absolute; right: 7px; bottom: 8px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface); background: var(--sc, transparent); display: none; }
+.sync-btn:not([data-s="off"]) { color: var(--ink); }
+.sync-btn:not([data-s="off"]) .sdot { display: block; }
+.sync-btn[data-s="idle"] { --sc: var(--good); }
+.sync-btn[data-s="busy"] { --sc: var(--accent); }
+.sync-btn[data-s="busy"] .sdot { animation: syncPulse 0.9s ease-in-out infinite alternate; }
+.sync-btn[data-s="offline"] { --sc: var(--muted); }
+.sync-btn[data-s="error"] { --sc: var(--q3); }
+.sync-btn[data-s="reconnect"] { --sc: var(--danger); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+@keyframes syncPulse { from { transform: scale(0.7); opacity: 0.5; } to { transform: scale(1.15); opacity: 1; } }
+.note.sync-prompt { width: calc(100% - 32px); max-width: 1068px; margin: 0 auto 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); }
+.sync-prompt span { flex: 1 1 220px; }
+.sync-box { display: flex; flex-direction: column; gap: 10px; }
+.gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+.gbtn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.sync-state { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.sync-state i { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; background: var(--good); }
+.sync-state.busy i { background: var(--accent); animation: syncPulse 0.9s ease-in-out infinite alternate; }
+.sync-state.offline i { background: var(--muted); }
+.sync-state.error i { background: var(--q3); }
+.sync-state.reconnect i { background: var(--danger); }
+.sync-state div { min-width: 0; }
+.sync-state b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.sync-state span { display: block; font-size: 13px; color: var(--muted); }
 .note { margin: 0 16px 8px; padding: 9px 12px; border-radius: 10px; background: color-mix(in srgb, var(--q3) 15%, var(--surface)); font-size: 13px; }
 
 main { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
@@ -329,7 +355,8 @@ select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid var(-
 .fill.dim { opacity: 0.35; }
 .shade { position: absolute; top: 0; bottom: 0; pointer-events: none; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 3px, transparent 3px 8px); }
 .nowline { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); pointer-events: none; }
-.hr { position: absolute; top: 3px; right: 3px; z-index: 2; font-family: var(--mono); font-size: 10px; line-height: 14px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--muted); pointer-events: none; }
+.hr { position: absolute; top: 3px; right: 3px; max-width: calc(100% - 6px); z-index: 2; font-family: var(--mono); font-size: 10px; line-height: 14px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--muted); pointer-events: none; white-space: nowrap; overflow: hidden; }
+@media (max-width: 380px) { .hr { font-size: 9px; padding: 0 2px; letter-spacing: -0.04em; } }
 .handle { position: absolute; top: 0; bottom: 0; width: 28px; z-index: 4; touch-action: none; cursor: ew-resize; display: flex; align-items: center; }
 .handle.hs { justify-content: flex-start; }
 .handle.he { margin-left: -28px; justify-content: flex-end; }

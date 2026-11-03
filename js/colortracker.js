@@ -43,7 +43,13 @@ function roundMin(t) { return Math.round(t / MIN) * MIN; }
 function pct(ms) { return (ms / HOUR * 100).toFixed(3); }
 function ctDayTime(t) { return new Date(t).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }); }
 function ctDate(t) { return new Date(t).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }); }
-function hourLabel(t) { const h = new Date(t).getHours(); return (h % 12 || 12) + (h < 12 ? 'a' : 'p'); }
+// The hour a block covers, e.g. "8–9pm", "11pm–12am". Says both ends so "8p" can't mean 7–8 or 8–9.
+function hourLabel(t) {
+  const h1 = new Date(t).getHours(), h2 = new Date(t + HOUR).getHours();
+  function num(h) { return h % 12 || 12; }
+  function ap(h) { return h < 12 ? 'am' : 'pm'; }
+  return ap(h1) === ap(h2) ? num(h1) + '–' + num(h2) + ap(h2) : num(h1) + ap(h1) + '–' + num(h2) + ap(h2);
+}
 
 // How different two colours look (0 = identical). Below ~50 they're easy to confuse.
 function colorDistance(a, b) {

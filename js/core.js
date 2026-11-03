@@ -167,6 +167,7 @@ function load() {
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch (e) { storageOk = false; const n = $('storeNote'); if (n) n.hidden = false; }
+  if (typeof syncSoon === 'function') syncSoon();   // sync.js: push the change to Google Drive shortly
 }
 
 let state = load();
@@ -177,7 +178,7 @@ function liveSessions() { return state.sessions.filter(function (s) { return !s.
 function findTask(id) { return state.tasks.find(function (t) { return t.id === id; }); }
 function findHabit(id) { return state.habits.find(function (h) { return h.id === id; }); }
 
-// ---------- merging two copies (Import now, Google Drive sync later) ----------
+// ---------- merging two copies (Import backup, and Google Drive sync in sync.js) ----------
 // For every item the copy with the newer updatedAt wins. Deletes are kept as deleted:true.
 function mergeById(local, incoming) {
   const map = {};

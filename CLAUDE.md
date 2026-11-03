@@ -36,12 +36,13 @@ js/calendar.js         Calendar month view, add a task onto a date
 js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound, 7-day chart
 js/habits.js           habits, strength score, heatmap, milestones
 js/colortracker.js     ColorTracker (paint the day hour by hour)
+js/sync.js             Google sign-in (redirect, no server) + Google Drive sync
 js/main.js             section switching, settings sheet, Ctrl+K command bar, keyboard, start-up
 sw.js                  service worker (offline)
 manifest.webmanifest   install-as-app info
 ```
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, matrix, tasks, calendar, focus, habits, colortracker, main. Top-level names must be unique across files.
+core, matrix, tasks, calendar, focus, habits, colortracker, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -53,7 +54,9 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 ## Data (localStorage key `taskstack.v1`)
 - One object: `tasks`, `habits`, `sessions`, `ranges` (ColorTracker), `categories` (ColorTracker activities), `settings`, `timer`, `ui`.
 - Every item has `id` and `updatedAt`. Deletes set `deleted: true` (kept so sync can spread deletes).
-- `mergeState()` merges two copies: newer `updatedAt` wins per item; habit ticks merge per day. This is the planned basis for Google Drive sync.
+- `mergeState()` merges two copies: newer `updatedAt` wins per item; habit ticks merge per day. Google Drive sync (sync.js) uses it.
+- **Every edit must bump `updatedAt`** (habit ticks: `done[day].at`), or sync won't see it.
+- `timer` and `ui` stay on the device and are never uploaded. Sync's own info (token, file id) is in localStorage key `taskstack.sync`.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes`.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.
 - Snapshot before a change (`snapshot('label')`) so Undo works; show `toast(msg, { undo: true })` for anything destructive.
@@ -74,7 +77,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 ## Roadmap (next, in order)
 1. Repeating tasks
 2. Reminders / notifications
-3. Google Drive sync (data in the user's own Drive, file `TaskStack/taskstack-data.json`)
+3. ~~Google Drive sync~~ (done: sync.js, file `TaskStack/taskstack-data.json` in the user's Drive)
 4. Plan vs actual: time-block tasks on a day timeline and compare with ColorTracker
 5. Lists (College, Personal, ...)
 6. Snooze swipe, Google Calendar events (read-only), weekly review, exam countdowns, morning plan

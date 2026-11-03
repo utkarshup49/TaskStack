@@ -26,6 +26,10 @@
     </div>
   </div>
   <div class="top-actions">
+    <button class="icon-btn sync-btn" id="syncBtn" data-action="syncbtn" data-s="off" aria-label="Sync with Google Drive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.6 4.5 4.5 0 0 0 7 18.5z"/></svg>
+      <i class="sdot"></i>
+    </button>
     <button class="icon-btn" data-action="palette" aria-label="Search and commands (Ctrl+K)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     </button>
@@ -35,6 +39,11 @@
   </div>
 </header>
 <p id="storeNote" class="note" hidden>This browser isn't saving data. Open Settings and copy a backup before you close the page.</p>
+<div id="syncPrompt" class="note sync-prompt" hidden>
+  <span>Use TaskStack on more than one device? Sync it with your Google Drive.</span>
+  <button class="btn small primary" data-action="syncsignin">Sign in with Google</button>
+  <button class="btn small" data-action="syncpromptno">Not now</button>
+</div>
 
 <main id="main">
   <!-- TASKS (main list) -->
@@ -281,6 +290,7 @@
 <script src="js/focus.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/colortracker.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

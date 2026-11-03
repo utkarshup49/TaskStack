@@ -77,6 +77,8 @@ function settingsHTML() {
     return '<div class="toggle"><span>' + label + '</span><button class="switch" role="switch" aria-checked="' + !!state.ui[key] + '" data-action="pref" data-k="' + key + '" aria-label="' + label + '"></button></div>';
   }
   return '<h3>Settings</h3>' +
+    '<p class="label">Sync with Google Drive</p>' +
+    '<div class="sync-box" id="syncBox">' + syncSettingsHTML() + '</div>' +
     sw('sound', 'Sounds') + sw('haptics', 'Vibration') +
     '<p class="label">Appearance</p>' +
     '<div class="seg">' + ['system', 'light', 'dark'].map(function (t) {
@@ -87,7 +89,7 @@ function settingsHTML() {
       '<div><label for="setShort">Short break</label><input id="setShort" type="number" min="1" max="60" value="' + st.short + '"></div>' +
       '<div><label for="setLong">Long break</label><input id="setLong" type="number" min="1" max="90" value="' + st.long + '"></div></div>' +
     '<p class="label">Backup</p>' +
-    '<p class="small">Your data lives in this browser until Google Drive sync arrives. Copy a backup, paste it on another device and press Merge.</p>' +
+    '<p class="small">Keep a copy of your data, or move it without signing in: copy a backup, paste it on another device and press Merge.</p>' +
     '<div class="row"><button class="btn" data-action="copybackup">Copy backup</button><button class="btn" data-action="clearexamples">Remove examples</button></div>' +
     '<textarea class="mono" id="backupBox" aria-label="Backup data" placeholder="Paste a backup here, then press Merge"></textarea>' +
     '<div class="row"><button class="btn primary" data-action="importbackup">Merge pasted backup</button></div>' +
@@ -178,7 +180,8 @@ function paletteItems(q) {
     { label: state.timer.running ? 'Pause timer' : 'Start a focus session', hint: 'Focus', run: function () { showView('focus'); if (!state.timer.running && state.timer.mode !== 'focus') setMode('focus'); startPause(); } },
     { label: 'Paint in ColorTracker', hint: 'Pen on', run: function () { showView('colortracker'); ctSel = null; ctMode = 'paint'; renderColor(); } },
     { label: 'Undo last change', hint: 'Ctrl Z', run: undo },
-    { label: 'Settings', hint: 'Sounds, theme, backup', run: function () { actions.settings(); } }
+    { label: 'Sync now', hint: 'Google Drive', run: function () { if (sync.signedIn) syncNow(false); else actions.settings(); } },
+    { label: 'Settings', hint: 'Sync, sounds, theme, backup', run: function () { actions.settings(); } }
   ];
   cmds.forEach(function (c) { if (match(c.label)) items.push(c); });
   if (ql) {
@@ -262,6 +265,7 @@ renderAll();
 view = '';
 showView(location.hash.slice(1) || 'tasks');
 save();
+startSync();
 
 // offline support + "Install app"
 if ('serviceWorker' in navigator) {

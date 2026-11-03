@@ -1,6 +1,6 @@
 // Service worker: lets TaskStack open without internet.
 // When you change any file, bump CACHE_NAME (v1 -> v2) so phones pick up the new version.
-const CACHE_NAME = 'taskstack-v6';
+const CACHE_NAME = 'taskstack-v7';
 const FILES = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const FILES = [
   './js/focus.js',
   './js/habits.js',
   './js/colortracker.js',
+  './js/sync.js',
   './js/main.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -35,8 +36,11 @@ self.addEventListener('activate', function (event) {
 });
 
 // Network first, cache as fallback: you always get the latest version when online.
+// Only the app's own files and its fonts: Google sign-in and Drive requests must always go to the network.
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin && url.hostname.indexOf('fonts.') !== 0) return;
   event.respondWith(
     fetch(event.request)
       .then(function (response) {
