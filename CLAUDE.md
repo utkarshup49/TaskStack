@@ -79,6 +79,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Pick a colour, tap **Pen**, drag; the pen turns off after one stroke. With the pen off, the grid scrolls and a tap selects a block.
 - New paint never covers logged time (it fills only the gaps). Selected blocks can be stretched, recoloured, locked, deleted.
 - Times are stored exactly (to the minute), no 5/10-minute snapping.
+- "One-off" activity (category `oneoff: true`, id `oneoff`, striped): for rare things. After painting it, a sheet asks "What was this?" and the name goes in `range.label`. Entries, totals (one line per name) and the grid show the name; One-off blocks never join their neighbours. Use `rangeName(r)` for display.
 - One continuous timeline; "Sleep to sleep" and "24-hour" are two views of it. A sleep of 3 h+ starts a new day; sleeps < 1 h apart merge; a day longer than 36 h is split at midnight and marked estimated.
 
 ## Roadmap (next, in order)

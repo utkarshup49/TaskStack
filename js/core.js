@@ -87,9 +87,13 @@ function defaultCategories() {
     { id: 'extra', name: 'Extra-curricular', color: '#ec4899' },
     { id: 'essentials', name: 'Essentials', color: '#facc15' },
     { id: 'planned', name: 'Planned', color: '#7c3a12' },
-    { id: 'waste', name: 'Waste', color: '#dc2626' }
-  ].map(function (c) { c.updatedAt = t; c.deleted = false; return c; });
+    { id: 'waste', name: 'Waste', color: '#dc2626' },
+    ONEOFF_CAT
+  ].map(function (c) { c = Object.assign({}, c); c.updatedAt = t; c.deleted = false; return c; });
 }
+// ColorTracker's "One-off": one striped colour for things that don't happen often (an exam, a trip).
+// Each block of it gets its own name, asked for when you paint it.
+const ONEOFF_CAT = { id: 'oneoff', name: 'One-off', color: '#22d3ee', oneoff: true };
 
 function newTask(title, q, extra) {
   const t = now();
@@ -146,6 +150,8 @@ function normalize(s) {
   if (!Array.isArray(s.settings.offDays)) s.settings.offDays = [0, 6];   // days shaded in the Calendar (0 = Sun, 6 = Sat)
   s.timer = Object.assign({}, base.timer, s.timer || {});
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
+  // Older data has no One-off activity: add it. updatedAt 1 so any real edit synced from another device wins.
+  if (!s.categories.some(function (c) { return c.id === ONEOFF_CAT.id; })) s.categories.push(Object.assign({}, ONEOFF_CAT, { updatedAt: 1, deleted: false }));
   s.ranges = Array.isArray(s.ranges) ? s.ranges : [];
   s.ui = Object.assign({}, base.ui, s.ui || {});
   s.tasks.forEach(function (x) {

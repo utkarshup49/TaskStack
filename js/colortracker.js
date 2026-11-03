@@ -8,6 +8,8 @@
        24-hour view    -> cut the timeline at midnight
        Sleep to sleep  -> cut it where each main sleep starts
      so the same data always converts to both views.
+   - The "One-off" activity is for rare things (an exam, a trip). Each of
+     its blocks has its own name (range.label), asked for after painting.
    ========================================================= */
 
 const MAIN_SLEEP = 3 * HOUR;       // a sleep this long or longer starts a new day; shorter = nap
@@ -35,6 +37,17 @@ function isSleepCat(id) { const c = findCat(id); return !!(c && c.sleep); }
 function liveRanges() { return state.ranges.filter(function (r) { return !r.deleted; }); }
 function findRange(id) { return state.ranges.find(function (r) { return r.id === id; }); }
 function selRange() { const r = ctSel ? findRange(ctSel) : null; return r && !r.deleted ? r : null; }
+function isOneOff(catId) { const c = findCat(catId); return !!(c && c.oneoff && !c.deleted); }
+// What a block is called: its own name for a One-off block, else the activity name.
+function rangeName(r) { return isOneOff(r.cat) ? (r.label || catName(r.cat) + ' (no name)') : catName(r.cat); }
+// Names used before for One-off blocks, newest first (offered as quick picks).
+function recentLabels() {
+  const seen = {}, out = [];
+  liveRanges().filter(function (r) { return r.label && isOneOff(r.cat); })
+    .sort(function (a, b) { return b.updatedAt - a.updatedAt; })
+    .forEach(function (r) { const k = r.label.toLowerCase(); if (!seen[k]) { seen[k] = true; out.push(r.label); } });
+  return out.slice(0, 8);
+}
 
 function floorHour(t) { const d = new Date(t); d.setMinutes(0, 0, 0); return d.getTime(); }
 function ceilHour(t) { const f = floorHour(t); return f === t ? t : f + HOUR; }
@@ -90,7 +103,7 @@ function segmentsIn(from, to) {
     if (!best) continue;
     const last = out[out.length - 1];
     if (last && last.id === best.id && last.end === a) last.end = b;
-    else out.push({ start: a, end: b, cat: best.cat, id: best.id });
+    else out.push({ start: a, end: b, cat: best.cat, id: best.id, label: best.label || '' });
   }
   return out;
 }
@@ -205,10 +218,14 @@ function ctPaint(a, b, cat) {
   if (!gaps.length) { renderColor(); toast('Already logged. Tap the block to edit it.'); return; }
   snapshot('Painted ' + catName(cat));
   const daysBefore = sleepDays().length;
+  const oneoff = isOneOff(cat);
+  const made = [];
   gaps.forEach(function (g) {
     const piece = { id: uid(), start: g.start, end: g.end, cat: cat, updatedAt: t, deleted: false, locked: false };
-    state.ranges.forEach(function (r) {             // join a touching block of the same activity (not a locked one)
-      if (r.deleted || r.locked || r.cat !== cat) return;
+    if (oneoff) piece.label = '';
+    made.push(piece.id);
+    state.ranges.forEach(function (r) {             // join a touching block of the same activity (not a locked one, not a One-off)
+      if (oneoff || r.deleted || r.locked || r.cat !== cat) return;
       if (r.end === piece.start) { piece.start = r.start; r.deleted = true; r.updatedAt = t; }
       else if (r.start === piece.end) { piece.end = r.end; r.deleted = true; r.updatedAt = t; }
     });
@@ -216,6 +233,7 @@ function ctPaint(a, b, cat) {
   });
   save();
   haptic(10);
+  if (oneoff) { renderColor(); openLabelSheet(made); return; }
   if (state.ui.ctView === 'sleep' && isSleepCat(cat) && sleepDays().length > daysBefore) {
     const latest = mainSleeps().pop();
     toast('New day starts at ' + ctDayTime(latest.start), { undo: true });
@@ -259,6 +277,7 @@ function ctChangeCat(cat) {
   r.updatedAt = now();
   save();
   renderColor();
+  if (isOneOff(cat) && !r.label) openLabelSheet([r.id]);
 }
 
 // ---------- drawing ----------
@@ -269,7 +288,7 @@ function renderTools() {
   const color = catColor(ctBrush);
   const box = $('ctBrushes');
   box.innerHTML = liveCats().map(function (c, i) {
-    return '<button class="brush' + (active === c.id ? ' on' : '') + '" style="--bc:' + c.color + ';--bt:' + textOn(c.color) + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (active === c.id) + '"><i></i>' +
+    return '<button class="brush' + (active === c.id ? ' on' : '') + (c.oneoff ? ' oneoff' : '') + '" style="--bc:' + c.color + ';--bt:' + textOn(c.color) + '" data-action="brush" data-id="' + c.id + '" aria-pressed="' + (active === c.id) + '"><i></i>' +
       esc(c.name) + (i < 9 ? '<span class="key">' + (i + 1) + '</span>' : '') + '</button>';
   }).join('');
   const chip = box.querySelector('.brush.on');
@@ -282,6 +301,7 @@ function renderTools() {
   pen.setAttribute('aria-pressed', ctMode === 'paint');
   $('ctPenLabel').innerHTML = '<span class="swatch"></span>' + (ctMode === 'paint' ? 'Pen on' : 'Pen');
   $('ctUndo').disabled = !undoStack.length;
+  $('ctName').hidden = !sel || !isOneOff(sel.cat);
   if (sel) {
     $('ctLock').innerHTML = sel.locked ? UNLOCK_SVG + '<span>Unlock</span>' : LOCK_SVG + '<span>Lock</span>';
     $('ctLock').classList.toggle('on', !!sel.locked);
@@ -292,7 +312,7 @@ function renderTools() {
   grid.style.setProperty('--arm', color);
   if (!ctDrag) {
     if (sel) {
-      $('ctLive').innerHTML = '<span class="dot" style="background:' + catColor(sel.cat) + ';margin-right:6px"></span>' + esc(catName(sel.cat)) +
+      $('ctLive').innerHTML = '<span class="dot" style="background:' + catColor(sel.cat) + ';margin-right:6px"></span>' + esc(rangeName(sel)) +
         ' <b>' + fmtTime(sel.start) + ' – ' + fmtTime(sel.end) + '</b> · ' + fmtDur(sel.end - sel.start) +
         (sel.locked ? ' · locked' : '<br>Drag the black handles to stretch it. Tap a colour to change it.');
     } else {
@@ -300,8 +320,9 @@ function renderTools() {
     }
   }
 }
-function fillSpan(a, b, blockStart, color, cls) {
-  return '<span class="fill ' + cls + '" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%;' + (color ? 'background:' + color : '') + '"></span>';
+function fillSpan(a, b, blockStart, color, cls, label) {
+  const text = label && b - a >= 20 * MIN ? '<em class="flabel" style="color:' + textOn(color) + '">' + esc(label) + '</em>' : '';
+  return '<span class="fill ' + cls + '" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%;' + (color ? 'background-color:' + color : '') + '">' + text + '</span>';
 }
 function shadeSpan(a, b, blockStart) {
   return '<span class="shade" style="left:' + pct(a - blockStart) + '%;width:' + pct(b - a) + '%"></span>';
@@ -321,13 +342,14 @@ function renderCtGrid(preview) {
     let inner = '';
     segs.forEach(function (s) {
       if (s.end <= b || s.start >= be) return;
-      inner += fillSpan(Math.max(s.start, b), Math.min(s.end, be), b, catColor(s.cat), sel ? (s.id === sel.id ? 'sel' : 'dim') : '');
+      const one = isOneOff(s.cat);
+      inner += fillSpan(Math.max(s.start, b), Math.min(s.end, be), b, catColor(s.cat), (sel ? (s.id === sel.id ? 'sel' : 'dim') : '') + (one ? ' oneoff' : ''), one ? (s.label || '?') : '');
       const r = findRange(s.id);
       if (r && r.locked && s.start >= b) inner += '<span class="lockmark" style="left:' + pct(s.start - b) + '%">' + LOCK_SVG + '</span>';
     });
     if (preview) {
       preview.pieces.forEach(function (p) {
-        if (p.end > b && p.start < be) inner += fillSpan(Math.max(p.start, b), Math.min(p.end, be), b, catColor(preview.cat), 'preview');
+        if (p.end > b && p.start < be) inner += fillSpan(Math.max(p.start, b), Math.min(p.end, be), b, catColor(preview.cat), 'preview' + (isOneOff(preview.cat) ? ' oneoff' : ''));
       });
     }
     if (d.start > b) inner += shadeSpan(b, Math.min(d.start, be), b);       // belongs to the previous day
@@ -351,25 +373,33 @@ function renderCtSummary() {
   const to = Math.min(d.end || t, t);
   const segs = to > from ? segmentsIn(from, to) : [];
   const span = Math.max(0, to - from);
-  const totals = {};
+  // One-off time is counted per name ("Exam", "Trip"), everything else per activity
+  const totals = {}, keyCat = {}, keyName = {};
   let tracked = 0;
-  segs.forEach(function (s) { totals[s.cat] = (totals[s.cat] || 0) + (s.end - s.start); tracked += s.end - s.start; });
+  segs.forEach(function (s) {
+    const one = isOneOff(s.cat);
+    const k = one ? s.cat + '|' + (s.label || '').toLowerCase() : s.cat;
+    keyCat[k] = s.cat;
+    if (!keyName[k]) keyName[k] = one ? (s.label || catName(s.cat) + ' (no name)') : catName(s.cat);
+    totals[k] = (totals[k] || 0) + (s.end - s.start);
+    tracked += s.end - s.start;
+  });
   const ids = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; });
   $('ctBar').innerHTML = span ? ids.map(function (id) {
-    return '<span style="width:' + (totals[id] / span * 100).toFixed(2) + '%;background:' + catColor(id) + '"></span>';
+    return '<span style="width:' + (totals[id] / span * 100).toFixed(2) + '%;background:' + catColor(keyCat[id]) + '"></span>';
   }).join('') : '';
   // each row gets a thin bar showing its share of the day
   function row(color, name, ms) {
     return '<li style="--ec:' + color + ';--w:' + (span ? ms / span : 0).toFixed(4) + '"><span class="dot"></span>' + name + '<b>' + fmtDur(ms) + '</b><span class="share"></span></li>';
   }
-  let list = ids.map(function (id) { return row(catColor(id), esc(catName(id)), totals[id]); }).join('');
+  let list = ids.map(function (id) { return row(catColor(keyCat[id]), esc(keyName[id]) + (isOneOff(keyCat[id]) ? ' <small class="tag">one-off</small>' : ''), totals[id]); }).join('');
   if (span - tracked >= MIN) list += row('var(--muted)', 'Not tracked', span - tracked);
   $('ctTotals').innerHTML = list || '<li class="small">Nothing yet.</li>';
   $('ctEntries').innerHTML = segs.length ? segs.map(function (s) {
     const r = findRange(s.id);
     const locked = r && r.locked;
     return '<li style="--ec:' + catColor(s.cat) + '">' +
-      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(catName(s.cat)) + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
+      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(r ? rangeName(r) : catName(s.cat)) + (isOneOff(s.cat) ? ' <small class="tag">one-off</small>' : '') + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
       (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
   }).join('') : '<li class="small">Painted blocks show up here with exact times.</li>';
 }
@@ -442,7 +472,7 @@ function schedulePreview() {
     if (ctDrag.type === 'handle') {
       const sel = selRange();
       renderCtGrid();
-      if (sel) $('ctLive').innerHTML = esc(catName(sel.cat)) + ' <b>' + fmtTime(sel.start) + ' – ' + fmtTime(sel.end) + '</b> · ' + fmtDur(sel.end - sel.start);
+      if (sel) $('ctLive').innerHTML = esc(rangeName(sel)) + ' <b>' + fmtTime(sel.start) + ' – ' + fmtTime(sel.end) + '</b> · ' + fmtDur(sel.end - sel.start);
       return;
     }
     const a = Math.min(ctDrag.t0, ctDrag.t1);
@@ -547,6 +577,44 @@ function ctEndPointer(e, cancelled) {
 ctGridEl.addEventListener('pointerup', function (e) { ctEndPointer(e, false); });
 ctGridEl.addEventListener('pointercancel', function (e) { ctEndPointer(e, true); });
 
+// ---------- naming a One-off block ----------
+function labelSheetHTML(ids) {
+  const rs = ids.map(findRange).filter(Boolean);
+  const total = rs.reduce(function (sum, r) { return sum + r.end - r.start; }, 0);
+  const first = rs[0];
+  const when = rs.length ? fmtTime(rs[0].start) + ' – ' + fmtTime(rs[rs.length - 1].end) + ' · ' + fmtDur(total) : '';
+  const recent = recentLabels();
+  return '<h3 class="label-title"><i class="oneoff-dot" style="background-color:' + catColor(first ? first.cat : 'oneoff') + '"></i>What was this?</h3>' +
+    '<p class="small">' + when + '. Give this ' + esc(catName(first ? first.cat : 'oneoff')) + ' block a name, e.g. Exam or Out with friends.</p>' +
+    '<input class="text-input" id="ctLabel" maxlength="40" placeholder="Name it" value="' + esc(first && first.label ? first.label : '') + '" aria-label="Name for this block" enterkeyhint="done">' +
+    (recent.length ? '<p class="label">Used before</p><div class="daterow">' + recent.map(function (l) {
+      return '<button class="pick" data-action="ctlabelpick" data-l="' + esc(l) + '">' + esc(l) + '</button>';
+    }).join('') + '</div>' : '') +
+    '<div class="row"><button class="btn" data-action="close">' + (first && first.label ? 'Cancel' : 'Skip for now') + '</button><button class="btn primary" data-action="ctlabelsave">Save</button></div>';
+}
+function openLabelSheet(ids) {
+  openSheet({ type: 'ctlabel', ids: ids }, labelSheetHTML(ids));
+  setTimeout(function () { if ($('ctLabel')) $('ctLabel').select(); }, 60);
+}
+function saveRangeLabel(text) {
+  const label = text.trim().slice(0, 40);
+  if (!label || !sheetCtx || sheetCtx.type !== 'ctlabel') { if ($('ctLabel')) $('ctLabel').focus(); return; }
+  const rs = sheetCtx.ids.map(findRange).filter(function (r) { return r && !r.deleted; });
+  if (rs.some(function (r) { return r.label; })) snapshot('Renamed block');   // a fresh block's name is part of its paint (one Undo)
+  const t = now();
+  rs.forEach(function (r) { r.label = label; r.updatedAt = t; });
+  save();
+  closeSheet();
+  renderColor();
+  const total = rs.reduce(function (sum, r) { return sum + r.end - r.start; }, 0);
+  toast(label + ' · ' + fmtDur(total) + ' logged', { undo: true });
+}
+$('sheet').addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' || e.target.id !== 'ctLabel') return;
+  e.preventDefault();
+  saveRangeLabel(e.target.value);
+});
+
 // ---------- activities sheet (with a warning when two colours look alike) ----------
 function activitiesSheetHTML() {
   const cats = liveCats();
@@ -558,7 +626,8 @@ function activitiesSheetHTML() {
         '<input type="color" value="' + c.color + '" data-cat="' + c.id + '" data-field="color" aria-label="Colour for ' + esc(c.name) + '">' +
         '<input class="text-input" value="' + esc(c.name) + '" data-cat="' + c.id + '" data-field="name" aria-label="Activity name">' +
         (c.sleep ? '<span class="small">Sleep</span>' : '<button class="btn danger" data-action="delcat" data-id="' + c.id + '">Delete</button>') +
-        '</div>' + (twin ? '<p class="clash">Looks a lot like ' + esc(twin.name) + '. Pick a more different colour.</p>' : '');
+        '</div>' + (twin ? '<p class="clash">Looks a lot like ' + esc(twin.name) + '. Pick a more different colour.</p>' : '') +
+        (c.oneoff ? '<p class="small act-note">For rare things (exams, trips). It\'s striped, and asks for a name each time you paint it.</p>' : '');
     }).join('') +
     '<div class="row"><button class="btn" data-action="addcat">Add activity</button><button class="btn primary" data-action="close">Done</button></div>';
 }
@@ -577,6 +646,9 @@ actions.cttoday = function () { ctAnchor = null; ctSel = null; renderColor(); };
 actions.brush = function (el) { if (selRange()) ctChangeCat(el.dataset.id); else { ctBrush = el.dataset.id; renderTools(); } };
 actions.ctpen = function () { ctSel = null; ctMode = ctMode === 'paint' ? null : 'paint'; haptic(8); renderColor(); };
 actions.ctdel = function (el) { ctDelete(el.dataset.id); };
+actions.ctname = function () { const r = selRange(); if (r) openLabelSheet([r.id]); };
+actions.ctlabelsave = function () { saveRangeLabel($('ctLabel').value); };
+actions.ctlabelpick = function (el) { saveRangeLabel(el.dataset.l); };
 actions.ctdelsel = function () { ctDelete(ctSel); };
 actions.ctlock = function () { ctToggleLock(); };
 actions.ctdone = function () { ctSel = null; renderColor(); };
