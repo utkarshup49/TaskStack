@@ -15,7 +15,7 @@
    ========================================================= */
 
 // From Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application).
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '118777867394-pohkdctau9jl6mg07ch3hblgh1dds4tq.apps.googleusercontent.com';
 const SYNC_KEY = 'taskstack.sync';      // device-only: sign-in, file id, last sync. Never uploaded.
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_API = 'https://www.googleapis.com/drive/v3/';
