@@ -26,7 +26,7 @@ function renderTaskSelect() {
   QUADS.concat([{ q: null, name: 'Not sorted' }]).forEach(function (q) {
     const list = open.filter(function (t) { return (t.q || null) === q.q; });
     if (!list.length) return;
-    html += '<optgroup label="' + q.name + '">' + list.map(function (t) {
+    html += '<optgroup label="' + esc(q.q ? quadName(q.q) : q.name) + '">' + list.map(function (t) {
       return '<option value="' + t.id + '"' + (t.id === tm.taskId ? ' selected' : '') + '>' + esc(t.title) + '</option>';
     }).join('') + '</optgroup>';
   });

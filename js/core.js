@@ -72,7 +72,10 @@ function fmtDeadline(dl) {
   if (diff > 1) return diff + ' days left';
   return (-diff) + (diff === -1 ? ' day late' : ' days late');
 }
-function boxName(q) { return q ? QUADS[q - 1].name : 'Not sorted'; }
+// Box names can be renamed in the Matrix (saved in settings.quadNames, so they sync).
+function quadName(q) { const c = state.settings.quadNames && state.settings.quadNames[q]; return (c && c.name) || QUADS[q - 1].name; }
+function quadSub(q) { const c = state.settings.quadNames && state.settings.quadNames[q]; return c && typeof c.sub === 'string' ? c.sub : QUADS[q - 1].sub; }
+function boxName(q) { return q ? quadName(q) : 'Not sorted'; }
 
 // ---------- saved data ----------
 function defaultCategories() {
@@ -124,7 +127,7 @@ function exampleState() {
       habit('No phone after 11 pm', HABIT_COLORS[4], [2, 3, 7])
     ],
     sessions: [],
-    settings: { focus: 25, short: 5, long: 15, updatedAt: t },
+    settings: { focus: 25, short: 5, long: 15, quadNames: {}, updatedAt: t },
     timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * MIN, taskId: null, count: 0, intent: '' },
     categories: defaultCategories(),
     ranges: [],
@@ -139,6 +142,7 @@ function normalize(s) {
   s.habits = Array.isArray(s.habits) ? s.habits : [];
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings = s.settings || base.settings;
+  if (!s.settings.quadNames || typeof s.settings.quadNames !== 'object') s.settings.quadNames = {};
   s.timer = Object.assign({}, base.timer, s.timer || {});
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
   s.ranges = Array.isArray(s.ranges) ? s.ranges : [];
@@ -402,7 +406,7 @@ function openBoxMenu(taskId, anchor) {
   boxMenuTask = taskId;
   const m = $('boxMenu');
   m.innerHTML = '<p class="small">Put in a box</p>' + QUADS.map(function (q) {
-    return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="setbox" data-q="' + q.q + '"><span><b>' + q.name + '</b><small>' + q.sub + '</small></span></button>';
+    return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="setbox" data-q="' + q.q + '"><span><b>' + esc(quadName(q.q)) + '</b><small>' + esc(quadSub(q.q)) + '</small></span></button>';
   }).join('') + '<button class="q0' + (!t.q ? ' on' : '') + '" data-action="setbox" data-q="0"><span><b>Not sorted</b></span></button>';
   m.hidden = false;
   const r = anchor.getBoundingClientRect();
@@ -496,7 +500,7 @@ function parseQuickAdd(text) {
 function quickAddChips(p) {
   const chips = [];
   if (p.due !== null) chips.push(fmtDue(p.due, p.hasTime));
-  if (p.q) chips.push(QUADS[p.q - 1].name);
+  if (p.q) chips.push(quadName(p.q));
   p.tags.forEach(function (t) { chips.push('#' + t); });
   return chips;
 }

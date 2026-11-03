@@ -172,17 +172,18 @@ textarea.text-input { height: auto; min-height: 80px; padding: 10px 14px; resize
 .switch[aria-checked="true"]::after { transform: translateX(18px); }
 
 /* ---------- matrix ---------- */
-#view-matrix:not([hidden]) { display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
+/* the matrix fills the screen; each box scrolls on its own when it has many tasks */
+#view-matrix { max-width: none; }
+#view-matrix:not([hidden]) { display: flex; flex-direction: column; gap: 10px; height: 100%; }
 .parse { display: flex; flex-wrap: wrap; gap: 6px; min-height: 0; }
 .parse .chip { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); animation: pop 0.25s var(--spring); }
-.qpick { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
 .qchip {
   flex: 0 0 auto; height: 34px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line);
   background: var(--surface); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all 0.15s ease;
 }
 .qchip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--qc); }
 .qchip.on { border-color: var(--qc); background: color-mix(in srgb, var(--qc) 13%, var(--surface)); }
-.matrix { flex: 1; min-height: 470px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; }
+.matrix { flex: 1; min-height: 440px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .quad {
   min-height: 0; min-width: 0; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden;
   background: color-mix(in srgb, var(--qc) 6%, var(--surface));
@@ -190,12 +191,35 @@ textarea.text-input { height: auto; min-height: 80px; padding: 10px 14px; resize
   transition: box-shadow 0.15s ease, transform 0.2s var(--spring), background-color 0.15s ease;
 }
 .quad.drop { box-shadow: 0 0 0 3px var(--qc); background: color-mix(in srgb, var(--qc) 14%, var(--surface)); transform: scale(1.015); }
-.quad-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; padding: 10px 8px 6px 12px; }
-.quad h2 { font-family: var(--display); font-size: 15px; margin: 0; color: var(--qc); line-height: 1.15; }
+.quad-head { display: flex; align-items: center; gap: 8px; padding: 10px 6px 8px 12px; }
+.qnum { flex: 0 0 auto; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 999px; background: var(--qc); color: var(--surface); font-family: var(--display); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.qtitle { flex: 1; min-width: 0; border: none; background: none; padding: 2px 4px; margin-left: -4px; border-radius: 8px; text-align: left; }
+.quad h2 { font-family: var(--display); font-size: 15px; margin: 0; color: var(--qc); line-height: 1.15; overflow-wrap: anywhere; }
 .quad .sub { display: block; font-size: 11px; color: var(--muted); }
-.quad-tools { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .count { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.quad-add { width: 30px; height: 30px; border-radius: 9px; border: none; padding: 0; font-size: 19px; line-height: 1; background: color-mix(in srgb, var(--qc) 15%, transparent); color: var(--qc); }
+.quad-tools { display: flex; gap: 2px; flex: 0 0 auto; transition: opacity 0.15s ease; }
+.quad-btn { width: 32px; height: 32px; border-radius: 9px; border: none; padding: 0; background: none; color: var(--qc); display: grid; place-items: center; transition: background-color 0.15s ease, transform 0.12s ease; }
+.quad-btn svg { width: 18px; height: 18px; }
+.quad-btn[data-action="addhere"] { background: color-mix(in srgb, var(--qc) 15%, transparent); }
+.quad-btn:active { transform: scale(0.92); }
+/* on a laptop the + and ... show when the mouse is over that box (like TickTick); on touch they're always there */
+@media (hover: hover) {
+  .quad-tools { opacity: 0; }
+  .quad:hover .quad-tools, .quad:focus-within .quad-tools { opacity: 1; }
+  .quad-btn:hover { background: color-mix(in srgb, var(--qc) 22%, transparent); }
+  .qtitle:hover { background: color-mix(in srgb, var(--qc) 10%, transparent); }
+}
+/* phone: boxes are narrow, so drop the numeral and the ... (tap the title to rename) */
+@media (max-width: 599px) {
+  .quad-btn[data-action="quadedit"], .qnum { display: none; }
+  .quad-head { gap: 6px; padding-left: 10px; }
+  .quad h2 { overflow-wrap: normal; }
+}
+.quad .empty { margin: 2px 0; }
+.empty-add { width: 100%; text-align: left; border: 1.5px dashed color-mix(in srgb, var(--qc) 35%, var(--line)); background: none; border-radius: 10px; padding: 10px 12px; color: var(--muted); font-size: 13px; }
+.empty-add b { color: var(--qc); font-weight: 600; white-space: nowrap; }
+.add-title { display: flex; align-items: center; gap: 10px; }
+.add-title i { width: 12px; height: 12px; border-radius: 50%; background: var(--qc); flex: 0 0 auto; }
 .tasks { list-style: none; margin: 0; padding: 0 6px 8px; overflow-y: auto; flex: 1; overscroll-behavior: contain; }
 .task { position: relative; border-radius: 10px; margin-bottom: 2px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .task-bg { position: absolute; inset: 0; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 12px; font-weight: 600; color: #fff; opacity: 0; }
@@ -643,9 +667,22 @@ textarea.mono { width: 100%; min-height: 90px; border-radius: 12px; border: 1px 
   .sheet { border-radius: 22px; transform: translateY(24px) scale(0.98); opacity: 0; transition: transform 0.25s var(--ease), opacity 0.2s ease; }
   .sheet::before { display: none; }
   .sheet-wrap.open .sheet { opacity: 1; }
-  .matrix { gap: 12px; min-height: 560px; }
+  .matrix { gap: 12px; min-height: 480px; }
   .quad h2 { font-size: 17px; }
-  .toast { bottom: 96px; }
+  .quad-head { padding: 12px 8px 8px 14px; }
+  .toast { bottom: 24px; }
+
+  /* sections in a sidebar on the left, like a desktop app; everything else fills the rest */
+  body { display: grid; grid-template-columns: 84px minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr); }
+  body > .top { grid-column: 2; grid-row: 1; max-width: none; padding: 14px 24px 10px; }
+  #storeNote { grid-column: 2; grid-row: 2; margin: 0 24px 8px; }
+  #syncPrompt { grid-column: 2; grid-row: 3; max-width: none; width: auto; margin: 0 24px 8px; }
+  main { grid-column: 2; grid-row: 4; }
+  .view { max-width: 1400px; padding: 4px 24px 24px; }
+  #view-matrix, #view-colortracker { max-width: none; }
+  .ct-tools { margin: 0 0 0 -24px; padding: 8px 0 8px 24px; }   /* stop at the side cards, don't cover their edge */
+  .tabs { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; gap: 6px; padding: 14px 10px; border-top: none; border-right: 1px solid var(--line); }
+  .tab { padding: 10px 0 8px; font-size: 11.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

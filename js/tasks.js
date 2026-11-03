@@ -27,7 +27,7 @@ function renderListPick() {
     '<input type="date" id="listDateInput" aria-label="Pick a date" value="' + (custom ? dayKey(listDate) : '') + '"></label>' +
     '</div><div class="pickrow">' +
     [0, 1, 2, 3, 4].map(function (q) {
-      return '<button type="button" class="qchip q' + q + ((listQ || 0) === q ? ' on' : '') + '" data-action="lbox" data-q="' + q + '">' + (q ? QUADS[q - 1].name : 'Not sorted') + '</button>';
+      return '<button type="button" class="qchip q' + q + ((listQ || 0) === q ? ' on' : '') + '" data-action="lbox" data-q="' + q + '">' + esc(boxName(q)) + '</button>';
     }).join('') + '</div>';
   $('taskPick').innerHTML = html;
 }

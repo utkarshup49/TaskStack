@@ -4,49 +4,139 @@
    - tick animation + sound + vibration
    - swipe right = done, swipe left = delete (with Undo)
    - hold a task, then drag it into another box
-   - quick add that understands "tomorrow 5pm !1 #college"
+   - a + on each box opens an add pop-up (title, box, date, time, deadline)
+   - each box can be renamed from its ... button
    ========================================================= */
 
-let addQ = 1;
 const CHECK_SVG = '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M6.5 11.5l3 3 6-6.5"/></svg>';
 const CAL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const LIST_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l2 2 3-3M4 15l2 2 3-3M12 8h8M12 16h8"/></svg>';
 const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 const FLAG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
+const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const DOTS_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+const ROMAN = ['I', 'II', 'III', 'IV'];
 const EMPTY_TEXT = { 1: 'Nothing urgent. Nice.', 2: 'Plan something that matters.', 3: 'Nothing to hand off.', 4: 'Nothing to drop.' };
 
 function shortTitle(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
 
-// ---------- quick add ----------
-function renderQpick() {
-  $('qpick').innerHTML = QUADS.map(function (q) {
-    const on = q.q === addQ;
-    return '<button type="button" class="qchip q' + q.q + (on ? ' on' : '') + '" data-action="pickq" data-q="' + q.q + '" aria-pressed="' + on + '">' + q.name + '</button>';
-  }).join('');
-  $('addInput').placeholder = 'Add to ' + QUADS[addQ - 1].name + ' (try "tomorrow 5pm #college")';
+// ---------- adding a task: the + on each box opens this pop-up ----------
+let addQ = 1;          // the box the last task was added to (the N key reuses it)
+let addDraft = null;   // what's picked in the pop-up: { q, date (midnight ms or null), time ('HH:MM' or ''), deadline (ms or null) }
+
+function addSheetHTML() {
+  const d = addDraft;
+  const today = midnight(now());
+  function pick(action, n, label, current) {
+    const val = n === 'none' ? null : addDays(today, n);
+    return '<button type="button" class="pick' + (current === val ? ' on' : '') + '" data-action="' + action + '" data-d="' + n + '">' + label + '</button>';
+  }
+  return '<h3 class="add-title q' + d.q + '"><i></i>Add to ' + esc(quadName(d.q)) + '</h3>' +
+    '<form id="addSheetForm" class="add" autocomplete="off"><div class="add-row">' +
+      '<input id="addTitle" placeholder="What needs doing?" aria-label="Task name" enterkeyhint="done">' +
+      '<button class="btn primary" type="submit">Add</button></div>' +
+      '<div class="parse" id="addParse" aria-live="polite"></div></form>' +
+    '<p class="label">Box</p><div class="qmove">' + QUADS.map(function (q) {
+      return '<button type="button" class="q' + q.q + (d.q === q.q ? ' on' : '') + '" data-action="aq" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
+    }).join('') + '</div>' +
+    '<p class="label">Date' + (d.date === null && !d.time ? ' · none, so it shows in Today' : '') + '</p>' +
+    '<div class="daterow">' + pick('adate', 'none', 'No date', d.date) + pick('adate', 0, 'Today', d.date) + pick('adate', 1, 'Tomorrow', d.date) + pick('adate', 7, 'Next week', d.date) + '</div>' +
+    '<div class="daterow"><input type="date" id="addDate" value="' + (d.date !== null ? dayKey(d.date) : '') + '" aria-label="Date"><input type="time" id="addTime" value="' + d.time + '" aria-label="Time"></div>' +
+    '<p class="label">Deadline</p>' +
+    '<div class="daterow">' + pick('adl', 'none', 'None', d.deadline) + pick('adl', 3, 'In 3 days', d.deadline) + pick('adl', 7, 'In a week', d.deadline) +
+      '<input type="date" id="addDeadline" value="' + (d.deadline ? dayKey(d.deadline) : '') + '" aria-label="Deadline"></div>' +
+    '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm #college</b>.</p>' +
+    '<p class="status" id="addStatus" role="status"></p>' +
+    '<div class="row"><button class="btn" data-action="close">Done</button></div>';
 }
-function renderParse() {
-  const text = $('addInput').value;
+function openAddSheet(q) {
+  addQ = q;
+  addDraft = { q: q, date: null, time: '', deadline: null };
+  openSheet({ type: 'add' }, addSheetHTML());
+  setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
+}
+// Redraw the pop-up after a pick, keeping what's typed.
+function refreshAddSheet() {
+  const typed = $('addTitle') ? $('addTitle').value : '';
+  const status = $('addStatus') ? $('addStatus').textContent : '';
+  refreshSheet(addSheetHTML());
+  $('addTitle').value = typed;
+  $('addStatus').textContent = status;
+  renderAddParse();
+}
+function renderAddParse() {
+  const text = $('addTitle').value;
   const chips = text.trim() ? quickAddChips(parseQuickAdd(text)) : [];
-  $('parsePreview').innerHTML = chips.map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('');
+  $('addParse').innerHTML = chips.map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('');
 }
-function addTaskFromInput() {
-  const input = $('addInput');
+// Add it, then keep the pop-up open for the next one (dates stay picked).
+function addFromSheet() {
+  const input = $('addTitle');
   const raw = input.value.trim();
-  if (!raw) return;
+  if (!raw) { input.focus(); return; }
+  const d = addDraft;
   const p = parseQuickAdd(raw);
-  const task = newTask(p.title || raw, p.q || addQ, { due: p.due, hasTime: p.hasTime, tags: p.tags });
+  let due = null, hasTime = false;
+  if (p.due !== null) { due = p.due; hasTime = p.hasTime; }                 // typed words win over the pickers
+  else if (d.date !== null || d.time) {
+    const mins = d.time ? Number(d.time.slice(0, 2)) * 60 + Number(d.time.slice(3, 5)) : 0;
+    due = (d.date !== null ? d.date : midnight(now())) + mins * MIN;
+    hasTime = !!d.time;
+  }
+  const task = newTask(p.title || raw, p.q || d.q, { due: due, hasTime: hasTime, deadline: d.deadline, tags: p.tags });
   snapshot('Added task');
   state.tasks.push(task);
   save();
-  input.value = '';
-  renderParse();
   renderTaskViews();
   sound('soft');
-  const li = document.querySelector('.task[data-id="' + task.id + '"]');
-  if (li && li.animate) li.animate([{ transform: 'scale(0.92)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
+  input.value = '';
+  renderAddParse();
+  $('addStatus').textContent = 'Added "' + shortTitle(task.title) + '" to ' + quadName(task.q) + '. Add another, or press Done.';
+  const li = document.querySelector('#matrixGrid .task[data-id="' + task.id + '"]');
+  if (li) {
+    li.scrollIntoView({ block: 'nearest' });
+    if (li.animate) li.animate([{ transform: 'scale(0.92)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
+  }
   input.focus();
 }
+$('sheet').addEventListener('submit', function (e) {
+  if (e.target.id !== 'addSheetForm') return;
+  e.preventDefault();
+  addFromSheet();
+});
+$('sheet').addEventListener('input', function (e) { if (e.target.id === 'addTitle') renderAddParse(); });
+$('sheet').addEventListener('change', function (e) {
+  if (!sheetCtx || sheetCtx.type !== 'add') return;
+  const el = e.target;
+  if (el.id === 'addDate') addDraft.date = el.value ? new Date(el.value + 'T00:00').getTime() : null;
+  else if (el.id === 'addTime') addDraft.time = el.value;
+  else if (el.id === 'addDeadline') addDraft.deadline = el.value ? new Date(el.value + 'T00:00').getTime() : null;
+  else return;
+  refreshAddSheet();
+});
+
+// ---------- renaming a box (the ... on each box) ----------
+function quadSheetHTML(q) {
+  return '<h3 class="add-title q' + q + '"><i></i>Rename box</h3>' +
+    '<p class="label">Name</p><input class="text-input" id="qName" value="' + esc(quadName(q)) + '" maxlength="40" aria-label="Box name" enterkeyhint="done">' +
+    '<p class="label">Description</p><input class="text-input" id="qSub" value="' + esc(quadSub(q)) + '" maxlength="60" placeholder="Optional" aria-label="Box description" enterkeyhint="done">' +
+    '<p class="small">Original: ' + QUADS[q - 1].name + ' · ' + QUADS[q - 1].sub + '</p>' +
+    '<div class="row"><button class="btn" data-action="quadreset" data-q="' + q + '">Reset to original</button><button class="btn primary" data-action="quadsave" data-q="' + q + '">Save</button></div>';
+}
+function saveQuadName(q, name, sub) {
+  if (name === null) delete state.settings.quadNames[q];
+  else state.settings.quadNames[q] = { name: name, sub: sub };
+  state.settings.updatedAt = now();
+  save();
+  closeSheet();
+  renderAll();
+  toast(name === null ? 'Box name reset' : 'Renamed to ' + name);
+}
+$('sheet').addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' || (e.target.id !== 'qName' && e.target.id !== 'qSub')) return;
+  e.preventDefault();
+  actions.quadsave($('sheet').querySelector('[data-action="quadsave"]'));
+});
 
 // ---------- drawing the boxes ----------
 function sortOpen(list) {
@@ -84,7 +174,7 @@ function taskHTML(t, opts) {
       '<button class="check" data-action="toggle" data-id="' + t.id + '" aria-label="' + (t.done ? 'Mark not done' : 'Mark done') + '">' + CHECK_SVG + '</button>' +
       '<button class="tbody" data-action="open" data-id="' + t.id + '"><span class="ttl">' + esc(t.title) + (t.example ? '<span class="eg">example</span>' : '') + '</span>' +
       (meta.length ? '<span class="meta">' + meta.join('') + '</span>' : '') + '</button>' +
-      (opts.box ? '<button class="boxbtn q' + q + '" data-action="boxmenu" data-id="' + t.id + '" aria-label="Box: ' + boxName(t.q) + '"><i></i><span>' + (t.q ? QUADS[t.q - 1].name : 'Sort') + '</span></button>' : '') +
+      (opts.box ? '<button class="boxbtn q' + q + '" data-action="boxmenu" data-id="' + t.id + '" aria-label="Box: ' + boxName(t.q) + '"><i></i><span>' + (t.q ? esc(quadName(t.q)) : 'Sort') + '</span></button>' : '') +
     '</div></li>';
 }
 // Redraw every view that shows tasks.
@@ -107,15 +197,21 @@ function renderMatrix() {
     const open = sortOpen(mine.filter(function (t) { return !t.done; }));
     const done = mine.filter(function (t) { return t.done; }).sort(function (a, b) { return (b.doneAt || 0) - (a.doneAt || 0); });
     const showDone = !!state.ui.showDone[q.q];
-    let list = open.length ? open.map(taskHTML).join('') : '<li class="empty">' + EMPTY_TEXT[q.q] + '</li>';
+    const name = esc(quadName(q.q));
+    let list = open.length ? open.map(taskHTML).join('') :
+      '<li class="empty"><button class="empty-add" data-action="addhere" data-q="' + q.q + '">' + EMPTY_TEXT[q.q] + ' <b>+ Add a task</b></button></li>';
     if (done.length) {
-      list += '<li><button class="done-toggle" data-action="showdone" data-q="' + q.q + '" aria-expanded="' + showDone + '">' + CHEVRON_SVG + 'Done · ' + done.length + '</button></li>';
+      list += '<li><button class="done-toggle" data-action="showdone" data-q="' + q.q + '" aria-expanded="' + showDone + '">' + CHEVRON_SVG + 'Completed · ' + done.length + '</button></li>';
       if (showDone) list += done.map(taskHTML).join('');
     }
     return '<div class="quad q' + q.q + '" data-q="' + q.q + '">' +
-      '<div class="quad-head"><div><h2>' + q.name + '</h2><span class="sub">' + q.sub + '</span></div>' +
-      '<div class="quad-tools"><span class="count">' + open.length + '</span>' +
-      '<button class="quad-add" data-action="addhere" data-q="' + q.q + '" aria-label="Add a task to ' + q.name + '">+</button></div></div>' +
+      '<div class="quad-head"><span class="qnum" aria-hidden="true">' + ROMAN[q.q - 1] + '</span>' +
+      '<button class="qtitle" data-action="quadedit" data-q="' + q.q + '" title="Rename"><h2>' + name + '</h2>' + (quadSub(q.q) ? '<span class="sub">' + esc(quadSub(q.q)) + '</span>' : '') + '</button>' +
+      '<span class="count" title="Open tasks">' + open.length + '</span>' +
+      '<div class="quad-tools">' +
+        '<button class="quad-btn" data-action="addhere" data-q="' + q.q + '" aria-label="Add a task to ' + name + '" title="Add a task">' + PLUS_SVG + '</button>' +
+        '<button class="quad-btn" data-action="quadedit" data-q="' + q.q + '" aria-label="Rename ' + name + '" title="Rename">' + DOTS_SVG + '</button>' +
+      '</div></div>' +
       '<ul class="tasks">' + list + '</ul></div>';
   }).join('');
   document.querySelectorAll('.quad .tasks').forEach(function (ul) { const y = scrolls[ul.parentElement.dataset.q]; if (y) ul.scrollTop = y; });
@@ -169,7 +265,7 @@ function moveTask(id, q) {
   document.querySelectorAll('.task[data-id="' + id + '"]').forEach(function (li) {
     if (li.animate) li.animate([{ transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
   });
-  toast(q ? 'Moved to ' + QUADS[q - 1].name : 'Moved out of the matrix', { undo: true });
+  toast(q ? 'Moved to ' + quadName(q) : 'Moved out of the matrix', { undo: true });
 }
 
 // ---------- gestures: swipe and hold-to-drag ----------
@@ -318,7 +414,7 @@ function taskSheetHTML(t) {
   return '<h3>Task</h3>' +
     '<input class="text-input" id="tTitle" value="' + esc(t.title) + '" aria-label="Task name">' +
     '<p class="label">Eisenhower box</p><div class="qmove">' + QUADS.map(function (q) {
-      return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="tmove" data-q="' + q.q + '">' + q.name + '</button>';
+      return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="tmove" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
     }).join('') + '<button class="q0 wide' + (!t.q ? ' on' : '') + '" data-action="tmove" data-q="0">Not sorted</button></div>' +
     '<p class="label">Date' + (t.due ? ' · ' + esc(fmtDue(t.due, t.hasTime)) : ' · none, so it shows in Today') + '</p>' +
     '<div class="daterow">' +
@@ -407,8 +503,20 @@ $('sheet').addEventListener('keydown', function (e) {
 });
 
 // ---------- click actions ----------
-actions.pickq = function (el) { addQ = Number(el.dataset.q); renderQpick(); renderParse(); };
-actions.addhere = function (el) { addQ = Number(el.dataset.q); renderQpick(); $('addInput').focus(); };
+actions.addhere = function (el) { openAddSheet(Number(el.dataset.q)); };
+actions.aq = function (el) { addDraft.q = Number(el.dataset.q); addQ = addDraft.q; refreshAddSheet(); };
+actions.adate = function (el) { addDraft.date = el.dataset.d === 'none' ? null : addDays(midnight(now()), Number(el.dataset.d)); if (addDraft.date === null) addDraft.time = ''; refreshAddSheet(); };
+actions.adl = function (el) { addDraft.deadline = el.dataset.d === 'none' ? null : addDays(midnight(now()), Number(el.dataset.d)); refreshAddSheet(); };
+actions.quadedit = function (el) { const q = Number(el.dataset.q); openSheet({ type: 'quad', q: q }, quadSheetHTML(q)); setTimeout(function () { if ($('qName')) $('qName').select(); }, 60); };
+actions.quadsave = function (el) {
+  const q = Number(el.dataset.q);
+  const name = $('qName').value.trim();
+  const sub = $('qSub').value.trim();
+  if (!name) { $('qName').focus(); return; }
+  if (name === QUADS[q - 1].name && sub === QUADS[q - 1].sub) saveQuadName(q, null);
+  else saveQuadName(q, name, sub);
+};
+actions.quadreset = function (el) { saveQuadName(Number(el.dataset.q), null); };
 actions.toggle = function (el) { toggleTask(el.dataset.id); };
 actions.open = function (el) { if (now() < suppressClickUntil) return; openTask(el.dataset.id); };
 actions.showdone = function (el) { const q = el.dataset.q; state.ui.showDone[q] = !state.ui.showDone[q]; save(); renderMatrix(); };
@@ -447,5 +555,3 @@ actions.tfocus = function () {
 };
 actions.tdelete = function () { const t = sheetTask(); if (!t) return; closeSheet(); deleteTask(t.id); };
 
-$('addForm').addEventListener('submit', function (e) { e.preventDefault(); addTaskFromInput(); });
-$('addInput').addEventListener('input', renderParse);

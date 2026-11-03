@@ -11,8 +11,6 @@ function renderAll() {
   renderListParse();
   renderTaskList();
   renderCalendar();
-  renderQpick();
-  renderParse();
   renderMatrix();
   renderFocus();
   renderHabits();
@@ -242,7 +240,7 @@ document.addEventListener('keydown', function (e) {
   if (mod || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === '/') { e.preventDefault(); openPalette(); return; }
-  if (k === 'n') { e.preventDefault(); if (view === 'matrix') $('addInput').focus(); else if (view === 'calendar') $('calInput').focus(); else { showView('tasks'); $('taskInput').focus(); } return; }
+  if (k === 'n') { e.preventDefault(); if (view === 'matrix') openAddSheet(addQ); else if (view === 'calendar') $('calInput').focus(); else { showView('tasks'); $('taskInput').focus(); } return; }
   if (view === 'colortracker') {
     const n = Number(e.key);
     if (n >= 1 && n <= 9 && liveCats()[n - 1]) actions.brush({ dataset: { id: liveCats()[n - 1].id } });

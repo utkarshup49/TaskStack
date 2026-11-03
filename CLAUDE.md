@@ -30,7 +30,8 @@ js/core.js             helpers, saved data (load/save/normalize), merge for sync
                        sounds + vibration, bottom sheet (swipe-down + back button), box menu,
                        quick-add parser (parseQuickAdd)
 js/matrix.js           shared task rows (taskHTML), tick/swipe/hold-drag gestures,
-                       task details sheet, Eisenhower matrix + "Not sorted" tray
+                       task details sheet, Eisenhower matrix + "Not sorted" tray,
+                       per-box add pop-up (+) and rename (...)
 js/tasks.js            Tasks list, the main view (grouped by date)
 js/calendar.js         Calendar month view, add a task onto a date
 js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound, 7-day chart
@@ -57,11 +58,14 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - `mergeState()` merges two copies: newer `updatedAt` wins per item; habit ticks merge per day. Google Drive sync (sync.js) uses it.
 - **Every edit must bump `updatedAt`** (habit ticks: `done[day].at`), or sync won't see it.
 - `timer` and `ui` stay on the device and are never uploaded. Sync's own info (token, file id) is in localStorage key `taskstack.sync`.
+- Box names: `quadName(q)` / `quadSub(q)` (core.js), renamable, stored in `settings.quadNames` so they sync. Never read `QUADS[i].name` directly for display.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes`.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.
 - Snapshot before a change (`snapshot('label')`) so Undo works; show `toast(msg, { undo: true })` for anything destructive.
 
 ## Design rules
+- Layout: phone/tablet = bottom tabs; 900px+ = tabs become a left sidebar and the Matrix and ColorTracker fill the whole width (other views max 1400px).
+- Matrix: no add box on the page. Each box has its own + (shown on hover on a laptop, always on touch) that opens the add pop-up; tap a box title or ... to rename it.
 - One signature colour per section (`--c-tasks`, `--c-cal`, `--c-matrix`, `--c-focus`, `--c-break`, `--c-habits`, `--c-ct`); the active section sets `--accent`.
 - Quadrants: `--q1` red, `--q2` blue, `--q3` mustard, `--q4` slate. Keep every colour clearly different from the others, in light and dark mode (he dislikes colours that look alike).
 - Use colour tokens, never hard-coded hex in components.
