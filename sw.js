@@ -1,6 +1,6 @@
 // Service worker: lets TaskStack open without internet.
 // When you change any file, bump CACHE_NAME (v1 -> v2) so phones pick up the new version.
-const CACHE_NAME = 'taskstack-v13';
+const CACHE_NAME = 'taskstack-v14';
 const FILES = [
   './',
   './index.html',
@@ -40,9 +40,14 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin && url.hostname.indexOf('fonts.') !== 0) return;
+  const own = url.origin === self.location.origin;
+  if (!own && url.hostname.indexOf('fonts.') !== 0) return;
+  // GitHub Pages lets the browser reuse files for 10 minutes. 'no-cache' asks the server every time
+  // (a tiny "not changed" reply when nothing changed), so an update shows up on the next open.
+  // (A page-load request can't be copied with options, so fetch its URL instead.)
+  const live = own ? fetch(url.href, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(event.request);
   event.respondWith(
-    fetch(event.request)
+    live
       .then(function (response) {
         const copy = response.clone();
         caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, copy); });
