@@ -12,7 +12,10 @@
      its blocks has its own name (range.label), asked for after painting.
    ========================================================= */
 
-const MAIN_SLEEP = 3 * HOUR;       // a sleep this long or longer starts a new day; shorter = nap
+// A sleep at least this long starts a new day; shorter ones are naps. Set in ColorTracker settings (default 3.5 h).
+function napLimit() { return (state.settings.napHours || 3.5) * HOUR; }
+const NAP_GAP = 14 * HOUR;         // a short sleep this close to a big one is a nap that belongs to that day
+const MIN_DAY_SLEEP = HOUR;        // shortest sleep that can still start a day when no big sleep is near
 const SLEEP_MERGE_GAP = HOUR;      // two sleeps closer than this count as one
 const LONG_DAY = 36 * HOUR;        // a day longer than this probably means a sleep wasn't logged
 const CT_SPARE_COLORS = ['#7c3aed', '#0ea5e9', '#f97316', '#14b8a6', '#a16207', '#be185d', '#4f46e5', '#65a30d'];
@@ -108,8 +111,8 @@ function gapsIn(a, b) {
   return gaps.filter(function (g) { return g.end - g.start >= MIN; });
 }
 
-// Main sleeps = sleep blocks (joined when close together) that last 3 hours or more.
-function mainSleeps() {
+// All sleeps, with sleeps less than 1 h apart joined into one (waking up for water doesn't split a night).
+function joinedSleeps() {
   const sleeps = liveRanges().filter(function (r) { return isSleepCat(r.cat); }).sort(function (a, b) { return a.start - b.start; });
   const merged = [];
   sleeps.forEach(function (r) {
@@ -117,7 +120,34 @@ function mainSleeps() {
     if (last && r.start - last.end < SLEEP_MERGE_GAP) last.end = Math.max(last.end, r.end);
     else merged.push({ start: r.start, end: r.end });
   });
-  return merged.filter(function (s) { return s.end - s.start >= MAIN_SLEEP; });
+  return merged;
+}
+// Gap between two sleeps (0 if they touch or overlap).
+function sleepGap(a, b) { return Math.max(0, Math.max(a.start, b.start) - Math.min(a.end, b.end)); }
+
+// Main sleeps = the sleeps that start a new day.
+//  1. Any sleep at least as long as the nap limit (default 3.5 h).
+//  2. A shorter sleep only counts when no big sleep is within 14 h of it AND it's the longest
+//     sleep around (so 3 h nights during a rough week still start days, but an evening nap after
+//     a proper night's sleep never does).
+function mainSleeps() {
+  const all = joinedSleeps();
+  const limit = napLimit();
+  const big = all.filter(function (s) { return s.end - s.start >= limit; });
+  const lonely = all.filter(function (s) {
+    if (s.end - s.start >= limit || s.end - s.start < Math.min(MIN_DAY_SLEEP, limit)) return false;
+    return !big.some(function (b) { return sleepGap(s, b) < NAP_GAP; });
+  });
+  // longest first, and skip any that sit within 14 h of one already picked
+  const picked = [];
+  lonely.slice().sort(function (a, b) { return (b.end - b.start) - (a.end - a.start) || a.start - b.start; }).forEach(function (s) {
+    if (!picked.some(function (p) { return sleepGap(s, p) < NAP_GAP; })) picked.push(s);
+  });
+  return big.concat(picked).sort(function (a, b) { return a.start - b.start; });
+}
+// Is this sleep block a nap (i.e. not part of a day-starting sleep)?
+function isNap(r, mains) {
+  return isSleepCat(r.cat) && !(mains || mainSleeps()).some(function (m) { return r.start >= m.start && r.end <= m.end; });
 }
 
 // Sleep-to-sleep days: each starts when a main sleep starts and ends when the next one starts.
@@ -384,11 +414,13 @@ function renderCtSummary() {
   let list = ids.map(function (id) { return row(catColor(keyCat[id]), esc(keyName[id]) + (isOneOff(keyCat[id]) ? ' <small class="tag">one-off</small>' : ''), totals[id]); }).join('');
   if (span - tracked >= MIN) list += row('var(--muted)', 'Not tracked', span - tracked);
   $('ctTotals').innerHTML = list || '<li class="small">Nothing yet.</li>';
+  const mains = mainSleeps();
   $('ctEntries').innerHTML = segs.length ? segs.map(function (s) {
     const r = findRange(s.id);
     const locked = r && r.locked;
+    const nap = r && isNap(r, mains);
     return '<li style="--ec:' + catColor(s.cat) + '">' +
-      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(r ? rangeName(r) : catName(s.cat)) + (isOneOff(s.cat) ? ' <small class="tag">one-off</small>' : '') + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
+      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(r ? rangeName(r) : catName(s.cat)) + (isOneOff(s.cat) ? ' <small class="tag">one-off</small>' : '') + (nap ? ' <small class="tag">nap</small>' : '') + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
       (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
   }).join('') : '<li class="small">Painted blocks show up here with exact times.</li>';
 }
@@ -607,8 +639,9 @@ $('sheet').addEventListener('keydown', function (e) {
 // ---------- activities sheet (with a warning when two colours look alike) ----------
 function activitiesSheetHTML() {
   const cats = liveCats();
-  return '<h3>Activities</h3>' +
-    '<p class="small">Each activity is a paint colour. Sleep is special: a sleep of 3 hours or more starts a new day in the sleep-to-sleep view.</p>' +
+  return '<h3>ColorTracker settings</h3>' + napSliderHTML() +
+    '<h3>Activities</h3>' +
+    '<p class="small">Each activity is a paint colour.</p>' +
     cats.map(function (c) {
       const twin = cats.find(function (o) { return o.id !== c.id && colorDistance(o.color, c.color) < 50; });
       return '<div class="act-row">' +
@@ -620,6 +653,31 @@ function activitiesSheetHTML() {
     }).join('') +
     '<div class="row"><button class="btn" data-action="addcat">Add activity</button><button class="btn primary" data-action="close">Done</button></div>';
 }
+// ---------- nap limit slider (0.5 h to 6 h, steps of 15 min) ----------
+function fmtHours(h) { const m = Math.round(h * 60); return Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') + 'm' : ''); }
+function napSliderHTML() {
+  const h = state.settings.napHours || 3.5;
+  return '<div class="napbox">' +
+    '<label for="napRange"><b>New day after a sleep of at least</b> <span class="napval" id="napVal">' + fmtHours(h) + '</span></label>' +
+    '<input type="range" id="napRange" min="0.5" max="6" step="0.25" value="' + h + '" aria-describedby="napHelp">' +
+    '<div class="napscale"><span>30m</span><span>6h</span></div>' +
+    '<p class="small" id="napHelp">Shorter sleeps are naps: they stay inside the day. If you only get short sleeps for a while (no big sleep within 14 hours), the longest one still starts the day. The 24-hour view always runs midnight to midnight.</p>' +
+    '</div>';
+}
+$('sheet').addEventListener('input', function (e) {
+  if (e.target.id !== 'napRange') return;
+  state.settings.napHours = Number(e.target.value);
+  $('napVal').textContent = fmtHours(state.settings.napHours);
+  renderColor();                                   // the days re-cut live while you slide
+});
+$('sheet').addEventListener('change', function (e) {
+  if (e.target.id !== 'napRange') return;
+  state.settings.napHours = Number(e.target.value);
+  state.settings.updatedAt = now();                // so the setting syncs to other devices
+  save();
+  renderColor();
+  toast('Naps are now anything under ' + fmtHours(state.settings.napHours));
+});
 $('sheet').addEventListener('change', function (e) {
   if (!sheetCtx || sheetCtx.type !== 'activities' || !e.target.dataset.cat) return;
   const c = findCat(e.target.dataset.cat);

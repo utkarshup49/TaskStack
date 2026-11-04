@@ -870,3 +870,10 @@ textarea.mono { width: 100%; min-height: 90px; border-radius: 12px; border: 1px 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
 }
+
+/* ColorTracker: nap limit slider */
+.napbox { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); }
+.napbox label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.napval { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.napbox input[type="range"] { width: 100%; accent-color: var(--accent); height: 28px; }
+.napscale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: -6px; }

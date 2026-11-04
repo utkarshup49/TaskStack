@@ -142,7 +142,7 @@ function exampleState() {
       habit('No phone after 11 pm', HABIT_COLORS[4], [2, 3, 7])
     ],
     sessions: [],
-    settings: { focus: 25, short: 5, long: 15, quadNames: {}, offDays: [0, 6], updatedAt: t },
+    settings: { focus: 25, short: 5, long: 15, quadNames: {}, offDays: [0, 6], napHours: 3.5, updatedAt: t },
     timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * MIN, taskId: null, count: 0, intent: '' },
     categories: defaultCategories(),
     ranges: [],
@@ -158,7 +158,8 @@ function normalize(s) {
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings = s.settings || base.settings;
   if (!s.settings.quadNames || typeof s.settings.quadNames !== 'object') s.settings.quadNames = {};
-  if (!Array.isArray(s.settings.offDays)) s.settings.offDays = [0, 6];   // days shaded in the Calendar (0 = Sun, 6 = Sat)
+  if (!Array.isArray(s.settings.offDays)) s.settings.offDays = [0, 6];
+  if (!(s.settings.napHours >= 0.5 && s.settings.napHours <= 6)) s.settings.napHours = 3.5;   // ColorTracker: shorter sleeps are naps   // days shaded in the Calendar (0 = Sun, 6 = Sat)
   s.timer = Object.assign({}, base.timer, s.timer || {});
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
   // Older data has no One-off activity: add it. updatedAt 1 so any real edit synced from another device wins.
