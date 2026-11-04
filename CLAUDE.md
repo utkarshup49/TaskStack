@@ -36,7 +36,8 @@ js/tasks.js            Tasks list, the main view (grouped by date)
 js/calendar.js         Calendar: Day / 3 days / Week (hour grid), 2 weeks / Month (day grid), Year;
                        days off shaded; tap an empty hour slot to add a task there
 js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound, 7-day chart
-js/habits.js           habits, strength score, heatmap, milestones
+js/habits.js           habits, strength score, milestones; details sheet with stat cards,
+                       a tickable month calendar (streaks join into bands) and a 12-month chart
 js/colortracker.js     ColorTracker (paint the day hour by hour)
 js/sync.js             Google sign-in (redirect, no server) + Google Drive sync
 js/main.js             section switching, settings sheet, Ctrl+K command bar, keyboard, start-up

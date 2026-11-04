@@ -1,6 +1,7 @@
 /* =========================================================
    Habits: a colour per habit, 7-day grid, streaks, a strength
-   score that forgives a missed day, a heatmap and milestones.
+   score that forgives a missed day, milestones, and a details
+   sheet with a tickable month calendar and a 12-month chart.
    ========================================================= */
 
 const MILESTONES = [3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 365];
@@ -98,37 +99,130 @@ function tickHabit(id, key) {
 }
 
 // ---------- habit details sheet ----------
-function heatmapHTML(h) {
+// Stat cards, a month calendar you can tick in (ticks on back-to-back days join into one band),
+// and a 12-month bar chart of how often you did it.
+let habitMonth = null;   // first day of the month shown in the sheet
+
+const FLAME_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 7-2.7 7-7 0-3.5-2.2-5.6-3.6-7.3-.5 2-1.6 3.1-2.9 3.6C12.8 8 12 5 9.5 2.5 9.8 6 5 8.5 5 15c0 4.3 3 7 7 7z"/></svg>';
+const TROPHY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>';
+const BOLT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>';
+const TICKS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>';
+
+// Ticked days / days so far in the month that starts at ms (future days don't count).
+function monthScore(h, ms) {
   const today = midnight(now());
-  const dow = (new Date(today).getDay() + 6) % 7;            // Monday = 0
-  const start = addDays(today, -dow - 7 * 16);               // 17 weeks, starting on a Monday
-  let cells = '';
-  for (let d = start; d <= addDays(today, 6 - dow); d = addDays(d, 1)) {
-    const k = dayKey(d);
-    cells += '<i class="' + (isOn(h, k) ? 'on' : '') + (d > today ? ' future' : '') + '" title="' + k + '"></i>';
+  const d0 = new Date(ms);
+  const inMonth = new Date(d0.getFullYear(), d0.getMonth() + 1, 0).getDate();
+  let on = 0, n = 0;
+  for (let day = 1; day <= inMonth; day++) {
+    const d = new Date(d0.getFullYear(), d0.getMonth(), day).getTime();
+    if (d > today) break;
+    n++;
+    if (isOn(h, dayKey(d))) on++;
   }
-  return '<div class="heat" style="--hc:' + h.color + '">' + cells + '</div>';
+  return { on: on, n: n };
+}
+function habitCalendarHTML(h) {
+  const today = midnight(now());
+  const ms = habitMonth;
+  const d0 = new Date(ms);
+  const y = d0.getFullYear(), m = d0.getMonth();
+  const inMonth = new Date(y, m + 1, 0).getDate();
+  const lead = (d0.getDay() + 6) % 7;                       // weeks start on Monday
+  const ink = textOn(h.color);
+  let cells = '';
+  const mon = weekStart(today);
+  for (let i = 0; i < 7; i++) {
+    const wd = addDays(mon, i);
+    cells += '<span class="hwd' + (isOffDay(wd) ? ' off' : '') + '">' + dayName(wd, 'short') + '</span>';
+  }
+  for (let i = 0; i < lead; i++) cells += '<span></span>';
+  for (let day = 1; day <= inMonth; day++) {
+    const d = new Date(y, m, day).getTime();
+    const k = dayKey(d);
+    const on = isOn(h, k);
+    const col = (lead + day - 1) % 7;
+    const joinL = on && col > 0 && day > 1 && isOn(h, dayKey(addDays(d, -1)));
+    const joinR = on && col < 6 && day < inMonth && isOn(h, dayKey(addDays(d, 1)));
+    const future = d > today;
+    cells += '<button class="hday' + (on ? ' on' : '') + (joinL ? ' jl' : '') + (joinR ? ' jr' : '') + (d === today ? ' today' : '') + (future ? ' future' : '') +
+      '" data-action="htick" data-day="' + k + '"' + (future ? ' disabled' : '') + ' aria-pressed="' + on + '" aria-label="' + new Date(d).toDateString() + (on ? ', done' : '') + '">' +
+      '<span' + (on ? ' style="color:' + ink + '"' : '') + '>' + day + '</span></button>';
+  }
+  const sc = monthScore(h, ms);
+  const pct = sc.n ? Math.round(sc.on / sc.n * 100) : 0;
+  return '<div class="hcal-head">' +
+      '<button class="icon-btn" data-action="hmonthstep" data-dir="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+      '<div><b>' + d0.toLocaleDateString([], { month: 'long', year: 'numeric' }) + '</b><span>' + (sc.n ? sc.on + ' of ' + sc.n + ' days · ' + pct + '%' : 'Not started yet') + '</span></div>' +
+      '<button class="icon-btn" data-action="hmonthstep" data-dir="1" aria-label="Next month"' + (ms >= monthStart(today) ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>' +
+    '</div><div class="hcal">' + cells + '</div>' +
+    '<p class="small hcal-tip">Tap a day to tick or untick it.</p>';
+}
+function habitYearHTML(h) {
+  const thisMonth = monthStart(now());
+  let bars = '';
+  for (let i = 11; i >= 0; i--) {
+    const ms = addMonths(thisMonth, -i);
+    const sc = monthScore(h, ms);
+    const pct = sc.n ? sc.on / sc.n : 0;
+    const name = new Date(ms).toLocaleDateString([], { month: 'short' });
+    bars += '<button class="hbar' + (ms === habitMonth ? ' sel' : '') + '" data-action="hmonthpick" data-d="' + ms + '" title="' + name + ': ' + sc.on + ' days (' + Math.round(pct * 100) + '%)">' +
+      '<small>' + (sc.on ? Math.round(pct * 100) + '%' : '') + '</small><span class="track"><i style="height:' + (pct * 100).toFixed(1) + '%"></i></span><b>' + name + '</b></button>';
+  }
+  return '<div class="hbars">' + bars + '</div>';
 }
 function habitSheetHTML(h) {
   const total = Object.keys(h.done).filter(function (k) { return h.done[k].on; }).length;
-  return '<h3>Habit</h3>' +
-    '<input class="text-input" id="hName" value="' + esc(h.name) + '" aria-label="Habit name">' +
-    '<p class="label">Colour</p><div class="swatches">' + HABIT_COLORS.map(function (c) {
+  const s = streak(h), str = strength(h);
+  function stat(icon, value, label, extra) {
+    return '<div class="hstat">' + icon + '<b>' + value + '</b><span>' + label + '</span>' + (extra || '') + '</div>';
+  }
+  return '<div class="hsheet" style="--hc:' + h.color + '">' +
+    '<div class="hsheet-head"><span class="avatar">' + esc(h.name.trim().charAt(0).toUpperCase() || '?') + '</span>' +
+      '<input class="text-input" id="hName" value="' + esc(h.name) + '" aria-label="Habit name"></div>' +
+    '<div class="swatches">' + HABIT_COLORS.map(function (c) {
       return '<button class="swatch-btn" style="--sc:' + c + '" data-action="hcolor" data-c="' + c + '" aria-pressed="' + (h.color === c) + '" aria-label="Colour ' + c + '"></button>';
     }).join('') + '</div>' +
     '<div class="hstats">' +
-      '<div><b>' + streak(h) + '</b><span>streak</span></div>' +
-      '<div><b>' + bestStreak(h) + '</b><span>best</span></div>' +
-      '<div><b>' + strength(h) + '%</b><span>strength</span></div>' +
-      '<div><b>' + total + '</b><span>total</span></div>' +
+      stat(FLAME_SVG, s, 'day streak') +
+      stat(TROPHY_SVG, bestStreak(h), 'best streak') +
+      stat(BOLT_SVG, str + '%', 'strength', '<i class="hstr"><i style="width:' + str + '%"></i></i>') +
+      stat(TICKS_SVG, total, 'days done') +
     '</div>' +
-    '<p class="label">Last 17 weeks</p>' + heatmapHTML(h) +
-    '<div class="row"><button class="btn danger" data-action="delhabit">Delete habit</button><button class="btn" data-action="close">Done</button></div>';
+    '<div class="hcard">' + habitCalendarHTML(h) + '</div>' +
+    '<div class="hcard"><p class="label">Last 12 months</p>' + habitYearHTML(h) + '</div>' +
+    '<div class="row"><button class="btn danger" data-action="delhabit">Delete habit</button><button class="btn" data-action="close">Done</button></div>' +
+  '</div>';
 }
 function sheetHabit() { return sheetCtx && sheetCtx.type === 'habit' ? findHabit(sheetCtx.id) : null; }
 
 actions.tick = function (el) { tickHabit(el.dataset.id, el.dataset.day); };
-actions.openhabit = function (el) { const h = findHabit(el.dataset.id); if (h) openSheet({ type: 'habit', id: h.id }, habitSheetHTML(h)); };
+actions.openhabit = function (el) {
+  const h = findHabit(el.dataset.id);
+  if (!h) return;
+  habitMonth = monthStart(now());
+  openSheet({ type: 'habit', id: h.id }, habitSheetHTML(h));
+};
+actions.htick = function (el) {
+  const h = sheetHabit();
+  if (!h) return;
+  const key = el.dataset.day;
+  tickHabit(h.id, key);
+  refreshSheet(habitSheetHTML(h));
+  if (isOn(h, key)) { const c = $('sheet').querySelector('.hday[data-day="' + key + '"]'); if (c) c.classList.add('pop'); }
+};
+actions.hmonthstep = function (el) {
+  const h = sheetHabit();
+  if (!h) return;
+  habitMonth = addMonths(habitMonth, Number(el.dataset.dir));
+  refreshSheet(habitSheetHTML(h));
+};
+actions.hmonthpick = function (el) {
+  const h = sheetHabit();
+  if (!h) return;
+  habitMonth = Number(el.dataset.d);
+  refreshSheet(habitSheetHTML(h));
+};
 actions.hcolor = function (el) {
   const h = sheetHabit();
   if (!h) return;

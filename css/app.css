@@ -332,13 +332,58 @@ select { width: 100%; height: 46px; border-radius: 12px; border: 1px solid var(-
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch-btn { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--surface); box-shadow: 0 0 0 1px var(--line); background: var(--sc); padding: 0; }
 .swatch-btn[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
-.heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 1fr); gap: 3px; overflow-x: auto; }
-.heat i { width: 13px; height: 13px; border-radius: 3px; background: var(--line); }
-.heat i.on { background: var(--hc); }
-.heat i.future { opacity: 0.25; }
-.hstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
-.hstats b { display: block; font-family: var(--mono); font-size: 18px; font-weight: 500; }
-.hstats span { font-size: 11px; color: var(--muted); }
+/* habit details sheet: everything is tinted with the habit's colour (--hc) */
+.hsheet { display: flex; flex-direction: column; gap: 14px; }
+.hsheet-head { display: flex; align-items: center; gap: 12px; }
+.hsheet-head .avatar { width: 46px; height: 46px; border-radius: 14px; font-size: 20px; color: var(--surface); }
+.hsheet-head .text-input { flex: 1; font-family: var(--display); font-size: 18px; font-weight: 700; }
+.hstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.hstat {
+  position: relative; display: flex; flex-direction: column; gap: 2px; padding: 10px 10px 12px; border-radius: 14px; min-width: 0;
+  background: color-mix(in srgb, var(--hc) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--hc) 30%, var(--line));
+}
+.hstat svg { width: 16px; height: 16px; color: var(--hc); margin-bottom: 2px; }
+.hstat b { font-family: var(--display); font-size: 24px; line-height: 1.05; color: color-mix(in srgb, var(--hc) 70%, var(--ink)); }
+.hstat span { font-size: 11.5px; color: var(--muted); }
+.hstr { display: block; height: 4px; margin-top: 6px; border-radius: 2px; background: color-mix(in srgb, var(--hc) 20%, transparent); overflow: hidden; }
+.hstr i { display: block; height: 100%; border-radius: 2px; background: var(--hc); }
+.hcard { background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.hcal-head { display: flex; align-items: center; gap: 10px; }
+.hcal-head > div { flex: 1; text-align: center; }
+.hcal-head b { display: block; font-family: var(--display); font-size: 17px; }
+.hcal-head span { font-size: 12.5px; color: var(--muted); }
+.hcal-head .icon-btn { width: 36px; height: 36px; }
+/* the month: no gap between columns, so back-to-back ticks join into one band */
+.hcal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 6px; }
+.hwd { text-align: center; font-family: var(--display); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in srgb, var(--hc) 70%, var(--ink)); padding: 4px 0 6px; }
+.hwd.off { color: var(--muted); }
+.hday { position: relative; height: 42px; border: none; background: none; padding: 0; display: grid; place-items: center; }
+.hday span { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-size: 13.5px; font-weight: 500; transition: transform 0.2s var(--spring), background-color 0.15s ease; }
+.hday:not(.future):hover span { background: color-mix(in srgb, var(--hc) 14%, transparent); }
+.hday.on span { background: var(--hc); font-weight: 700; box-shadow: 0 3px 8px -3px color-mix(in srgb, var(--hc) 70%, transparent); }
+.hday.jl::before, .hday.jr::after { content: ""; position: absolute; top: 50%; height: 30px; margin-top: -15px; background: color-mix(in srgb, var(--hc) 38%, transparent); }
+.hday.jl::before { left: 0; right: 50%; }
+.hday.jr::after { left: 50%; right: 0; }
+.hday.today span { box-shadow: inset 0 0 0 2px var(--hc); }
+.hday.today.on span { box-shadow: 0 0 0 2px var(--surface-2), 0 0 0 4px var(--hc); }
+.hday.future { opacity: 0.35; cursor: default; }
+.hday.pop span { animation: cellPop 0.35s var(--spring); }
+.hday:active:not(.future) span { transform: scale(0.9); }
+.hcal-tip { text-align: center; }
+/* 12 months of bars: how much of each month was ticked; tap one to show that month above */
+.hbars { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; align-items: end; }
+.hbar { display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: none; padding: 4px 0; border-radius: 8px; min-width: 0; }
+.hbar small { font-size: 9.5px; color: var(--muted); height: 12px; font-family: var(--mono); }
+.hbar .track { position: relative; width: 100%; max-width: 22px; height: 70px; border-radius: 6px; background: color-mix(in srgb, var(--hc) 14%, transparent); overflow: hidden; display: block; }
+.hbar .track i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; background: var(--hc); }
+.hbar b { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.hbar.sel { background: color-mix(in srgb, var(--hc) 14%, transparent); }
+.hbar.sel b { color: color-mix(in srgb, var(--hc) 70%, var(--ink)); }
+@media (max-width: 420px) {
+  .hstats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hbar small { display: none; }
+  .hbar b { font-size: 9px; }
+}
 
 /* ---------- ColorTracker ---------- */
 .ct { display: grid; gap: 14px; padding-top: 4px; }
@@ -702,6 +747,7 @@ body[data-section="colortracker"] .sync-btn[data-s="reconnect"] { --rb: color-mi
   transform: translateY(100%); transition: transform 0.32s var(--ease); overscroll-behavior: contain;
 }
 .sheet > * { flex-shrink: 0; }
+.sheet > .text-input, .sheet > input { flex: 0 0 auto; }   /* .text-input has flex: 1 for rows; in the sheet's column that squashed it */
 .sheet::before { content: ""; align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line); flex: 0 0 auto; }
 .sheet-wrap.open .scrim { opacity: 1; }
 .sheet-wrap.open .sheet { transform: none; }

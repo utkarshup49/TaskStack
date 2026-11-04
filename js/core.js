@@ -72,6 +72,17 @@ function fmtDeadline(dl) {
   if (diff > 1) return diff + ' days left';
   return (-diff) + (diff === -1 ? ' day late' : ' days late');
 }
+// Dark or white text, whichever reads better on this colour (filled activity chips, ticked habit days).
+function textOn(hex) {
+  const h = hex.replace('#', '');
+  const lin = [0, 2, 4].map(function (i) {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  return lum > 0.4 ? 'var(--text-on-light)' : 'var(--text-on-dark)';
+}
+
 // Box names can be renamed in the Matrix (saved in settings.quadNames, so they sync).
 function quadName(q) { const c = state.settings.quadNames && state.settings.quadNames[q]; return (c && c.name) || QUADS[q - 1].name; }
 function quadSub(q) { const c = state.settings.quadNames && state.settings.quadNames[q]; return c && typeof c.sub === 'string' ? c.sub : QUADS[q - 1].sub; }

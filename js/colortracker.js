@@ -73,17 +73,6 @@ function colorDistance(a, b) {
   return Math.sqrt((2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db) / 3;
 }
 
-// Dark or white text, whichever reads better on this colour (for a filled activity chip).
-function textOn(hex) {
-  const h = hex.replace('#', '');
-  const lin = [0, 2, 4].map(function (i) {
-    const c = parseInt(h.slice(i, i + 2), 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  });
-  const lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
-  return lum > 0.4 ? 'var(--text-on-light)' : 'var(--text-on-dark)';
-}
-
 // ---------- the timeline ----------
 // Non-overlapping pieces inside [from, to). If two devices painted the same minutes, the newer edit wins.
 function segmentsIn(from, to) {

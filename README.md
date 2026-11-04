@@ -12,7 +12,7 @@ An Eisenhower matrix, pomodoro timer and habit tracker in one app. It runs on Wi
 - **Deadlines**: separate from the planned date ("3 days left", "2 days late").
 - **Matrix**: fills the screen (each box scrolls on its own); a **+** on each box opens an add pop-up with date, time and deadline; tap a box's title to rename it; tick animation, swipe right = done, swipe left = delete, hold a task and drag it to another box, quick add that understands `tomorrow 5pm !1 #college`, due dates, checklists, notes, tags, collapsed "Done" list per box, and a "Not sorted" tray for tasks that aren't in a box yet.
 - **Focus**: say what you'll do before, note what you did after, a plant that grows while you focus, background sounds (brown noise, rain, waves), 7-day chart, screen stays awake.
-- **Habits**: colour per habit, strength score (forgives a missed day), 17-week heatmap, best streak, milestone celebrations.
+- **Habits**: colour per habit, strength score (forgives a missed day), best streak, milestone celebrations. Tap a habit for stat cards, a month calendar you can tick in (back-to-back days join into a streak band) and a 12-month bar chart.
 - **ColorTracker**: paint your day hour by hour; a striped **One-off** colour for rare things (exam, trip) that asks for a name each time and lists each name separately; strokes never cover logged time; tap a block to stretch, lock, recolour or delete it; sleep-to-sleep and 24-hour views of the same data; warning when two activity colours look alike.
 - **Sheets** close with a swipe down or the phone's back button.
 - **Command bar**: `Ctrl+K` (or the search button) to add tasks, jump to sections, tick habits, start focus.
