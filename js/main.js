@@ -276,6 +276,7 @@ document.addEventListener('pointerdown', function unlock() { audio(); document.r
 $('today').textContent = new Date().toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
 if (!storageOk) $('storeNote').hidden = false;
 if (state.timer.running && timeLeft() <= 0) finishTimer(false);   // a session ended while the app was closed
+runStacks();                                                         // stacking repeats: add copies whose day has come
 renderAll();
 view = '';
 showView(location.hash.slice(1) || 'tasks');

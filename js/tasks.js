@@ -45,6 +45,7 @@ function addFromList() {
   const p = parseQuickAdd(raw);
   const due = p.due !== null ? p.due : listDate;
   const task = newTask(p.title || raw, p.q || listQ, { due: due, hasTime: p.due !== null && p.hasTime, tags: p.tags });
+  if (p.repeat) setupRepeat(task, p.repeat);
   snapshot('Added task');
   state.tasks.push(task);
   save();
@@ -57,8 +58,9 @@ function addFromList() {
     li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     if (li.animate) li.animate([{ transform: 'scale(0.94)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 280, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
   }
-  if (due !== null && midnight(due) > addDays(midnight(now()), 1)) toast('Added for ' + fmtDue(due, task.hasTime));
-  input.focus();
+  if (task.repeat) explainNewRepeat(task);
+  else if (due !== null && midnight(due) > addDays(midnight(now()), 1)) toast('Added for ' + fmtDue(due, task.hasTime));
+  if (!task.repeat || state.ui.repeatExplainOff) input.focus();
 }
 
 function groupHTML(title, sub, tasks, opts) {
@@ -75,7 +77,8 @@ function groupHTML(title, sub, tasks, opts) {
 function renderTaskList() {
   const today = midnight(now());
   const all = liveTasks();
-  const open = all.filter(function (t) { return !t.done; });
+  const heads = stackHeads();
+  const open = all.filter(function (t) { return !t.done && !stackHidden(t, heads); });   // stacked copies show once, as "3 stacked"
   const dayOf = function (t) { const d = taskDate(t); return d === null ? null : midnight(d); };
   let html = '';
 

@@ -172,6 +172,7 @@ function normalize(s) {
     if (x.due === undefined) x.due = null;
     if (x.deadline === undefined) x.deadline = null;
     if (!x.q) x.q = null;
+    if (x.repeat === undefined) x.repeat = null;
   });
   s.habits.forEach(function (h, i) { if (!h.color) h.color = HABIT_COLORS[i % HABIT_COLORS.length]; if (!h.done) h.done = {}; });
   s.version = 2;
@@ -445,7 +446,10 @@ const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'se
 
 function parseQuickAdd(text) {
   let s = ' ' + text + ' ';
-  const out = { title: '', q: null, tags: [], date: null, time: null, tonight: false };
+  const out = { title: '', q: null, tags: [], date: null, time: null, tonight: false, repeat: null };
+  // repeat words first ("every mon", "every 4 days after completion"), so the date rules below don't read "mon" as a date
+  const rp = typeof parseRepeat === 'function' ? parseRepeat(s) : null;
+  if (rp) { s = rp.s; out.repeat = rp.rule; }
   const today = midnight(now());
 
   // !1 to !4 = quadrant
@@ -518,6 +522,7 @@ function parseQuickAdd(text) {
 function quickAddChips(p) {
   const chips = [];
   if (p.due !== null) chips.push(fmtDue(p.due, p.hasTime));
+  if (p.repeat) chips.push('↻ ' + repeatLabel(rpNorm(p.repeat, p.due !== null ? p.due : midnight(now()))));
   if (p.q) chips.push(quadName(p.q));
   p.tags.forEach(function (t) { chips.push('#' + t); });
   return chips;

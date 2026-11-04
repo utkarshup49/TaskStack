@@ -7,6 +7,7 @@ An Eisenhower matrix, pomodoro timer and habit tracker in one app. It runs on Wi
 ## Features (v0.3)
 
 - **Look and feel**: a signature colour per section (Matrix indigo, Focus orange, Habits green, ColorTracker violet), tuned dark mode, spring animations, sounds and vibration (both switchable in Settings), Undo on every toast.
+- **Repeating tasks**: type it (`every mon`, `every 2 weeks`, `every 4 days after completion`, `every 2nd sat`, `every 10th`, `every last working day`) or use the Repeat picker. Three ways to come back: on a schedule, after you finish, or stack up (a new copy each time even if unfinished, max 5, shown as one row). After adding, a box explains exactly when it comes back.
 - **Tasks** (main view): a normal to-do list grouped by date: Overdue (with "Move to today"), Today (plus every task with no date), Tomorrow, the next days, Later, Completed today. Quick-add row with date and box pickers. Each task has a box button (or hold the task) to sort it into the matrix.
 - **Calendar**: six views: Day, 3 days and Week (hour grid: timed tasks sit at their time, tap an empty slot to add a task there), 2 weeks and Month (task names on a laptop, coloured dots on a phone), and Year (all 12 months). Days off are shaded (Sat + Sun by default; change in Settings). Swipe or use the arrow keys to move.
 - **Deadlines**: separate from the planned date ("3 days left", "2 days late").
@@ -83,8 +84,8 @@ python -m http.server 8000
 
 ## Roadmap
 
-1. Repeating tasks
-2. Reminders
+1. Reminders
+2. Plan vs actual
 3. Habit stats (monthly heatmap)
 4. Android / iPad store apps via Capacitor
 

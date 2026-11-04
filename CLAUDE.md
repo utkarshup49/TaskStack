@@ -29,6 +29,8 @@ css/app.css            design system: colour tokens, dark mode, animations, all 
 js/core.js             helpers, saved data (load/save/normalize), merge for sync, undo, toast,
                        sounds + vibration, bottom sheet (swipe-down + back button), box menu,
                        quick-add parser (parseQuickAdd)
+js/repeat.js           repeating tasks: rule maths, "every ..." parser, Repeat picker, stacking copies,
+                       the "how it comes back" explanation
 js/matrix.js           shared task rows (taskHTML), tick/swipe/hold-drag gestures,
                        task details sheet, Eisenhower matrix + "Not sorted" tray,
                        per-box add pop-up (+) and rename (...)
@@ -45,7 +47,7 @@ sw.js                  service worker (offline)
 manifest.webmanifest   install-as-app info
 ```
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, matrix, tasks, calendar, focus, habits, colortracker, sync, main. Top-level names must be unique across files.
+core, repeat, matrix, tasks, calendar, focus, habits, colortracker, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -61,6 +63,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - **Every edit must bump `updatedAt`** (habit ticks: `done[day].at`), or sync won't see it.
 - `timer` and `ui` stay on the device and are never uploaded. Sync's own info (token, file id) is in localStorage key `taskstack.sync`.
 - Calendar: `settings.offDays` = weekdays shaded as days off (0 = Sun … 6 = Sat, default [0, 6]; syncs). `ui.calMode` = the view (device-only). Timed tasks are drawn 1 hour tall (tasks have no duration yet).
+- Repeating tasks: `task.repeat` = { unit day|week|month|year, every, days[], monthBy date|nth|workday, monthDay (-1 = last), nth (-1 = last), wd, mode fixed|after|stack, start, until }. fixed/after: ticking logs `task.history` and moves the date (never onto a past day). stack: one copy per date, same `seriesId`, id `seriesId_YYYY-MM-DD`, max 5 open; lists show only the oldest open copy with a "N stacked" button. Use `setupRepeat()` when adding, `applyTaskRepeat()` when editing.
 - Box names: `quadName(q)` / `quadSub(q)` (core.js), renamable, stored in `settings.quadNames` so they sync. Never read `QUADS[i].name` directly for display.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes`.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.
@@ -84,7 +87,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - One continuous timeline; "Sleep to sleep" and "24-hour" are two views of it. A sleep of 3 h+ starts a new day; sleeps < 1 h apart merge; a day longer than 36 h is split at midnight and marked estimated.
 
 ## Roadmap (next, in order)
-1. Repeating tasks
+1. ~~Repeating tasks~~ (done: repeat.js)
 2. Reminders / notifications
 3. ~~Google Drive sync~~ (done: sync.js, file `TaskStack/taskstack-data.json` in the user's Drive)
 4. Plan vs actual: time-block tasks on a day timeline and compare with ColorTracker

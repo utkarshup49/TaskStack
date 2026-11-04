@@ -45,7 +45,8 @@ function addSheetHTML() {
     '<p class="label">Deadline</p>' +
     '<div class="daterow">' + pick('adl', 'none', 'None', d.deadline) + pick('adl', 3, 'In 3 days', d.deadline) + pick('adl', 7, 'In a week', d.deadline) +
       '<input type="date" id="addDeadline" value="' + (d.deadline ? dayKey(d.deadline) : '') + '" aria-label="Deadline"></div>' +
-    '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm #college</b>.</p>' +
+    '<p class="label">Repeat</p>' + repeatEditorHTML(d.repeat ? rpNorm(d.repeat, d.date !== null ? d.date : midnight(now())) : null) +
+    '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm #college</b> or <b>every 4 days after completion</b>.</p>' +
     '<p class="status" id="addStatus" role="status"></p>' +
     '<div class="row"><button class="btn" data-action="close">Done</button></div>';
 }
@@ -53,7 +54,7 @@ function addSheetHTML() {
 function openAddSheet(q, preset) {
   preset = preset || {};
   if (q) addQ = q;
-  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null };
+  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null };
   openSheet({ type: 'add' }, addSheetHTML());
   setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
 }
@@ -86,6 +87,8 @@ function addFromSheet() {
     hasTime = !!d.time;
   }
   const task = newTask(p.title || raw, p.q || d.q, { due: due, hasTime: hasTime, deadline: d.deadline, tags: p.tags });
+  const rule = p.repeat || d.repeat;
+  if (rule) setupRepeat(task, rule);
   snapshot('Added task');
   state.tasks.push(task);
   save();
@@ -94,6 +97,7 @@ function addFromSheet() {
   input.value = '';
   renderAddParse();
   $('addStatus').textContent = 'Added "' + shortTitle(task.title) + '" to ' + boxName(task.q) + (task.due !== null ? ', ' + fmtDue(task.due, task.hasTime) : '') + '. Add another, or press Done.';
+  if (task.repeat) $('addStatus').innerHTML = esc($('addStatus').textContent) + '<span class="rp-explain">' + describeRepeat(task.repeat, task.due) + '</span>';
   const li = document.querySelector('#matrixGrid .task[data-id="' + task.id + '"]');
   if (li) {
     li.scrollIntoView({ block: 'nearest' });
@@ -166,8 +170,10 @@ function taskHTML(t, opts) {
     const d = t.subtasks.filter(function (s) { return s.done; }).length;
     meta.push('<span class="chip">' + LIST_SVG + d + '/' + t.subtasks.length + '</span>');
   }
+  if (t.repeat) meta.push('<span class="chip rep">' + REPEAT_SVG + esc(repeatLabel(t.repeat)) + '</span>');
   t.tags.forEach(function (tag) { meta.push('<span class="chip">#' + esc(tag) + '</span>'); });
   const poms = pomCount(t.id);
+  const stacked = !opts.nostack && t.seriesId && !t.done ? openStackCopies(t.seriesId).length : 0;
   if (poms) meta.push('<span class="chip">' + poms + ' pom</span>');
   const q = t.q || 0;
   return '<li class="task q' + q + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
@@ -176,18 +182,21 @@ function taskHTML(t, opts) {
       '<button class="check" data-action="toggle" data-id="' + t.id + '" aria-label="' + (t.done ? 'Mark not done' : 'Mark done') + '">' + CHECK_SVG + '</button>' +
       '<button class="tbody" data-action="open" data-id="' + t.id + '"><span class="ttl">' + esc(t.title) + (t.example ? '<span class="eg">example</span>' : '') + '</span>' +
       (meta.length ? '<span class="meta">' + meta.join('') + '</span>' : '') + '</button>' +
+      (stacked > 1 ? '<button class="stackbtn' + (stacked >= STACK_MAX ? ' full' : '') + '" data-action="stackopen" data-id="' + t.seriesId + '" aria-label="' + stacked + ' copies stacked">' + STACK_SVG + stacked + '</button>' : '') +
       (opts.box ? '<button class="boxbtn q' + q + '" data-action="boxmenu" data-id="' + t.id + '" aria-label="Box: ' + boxName(t.q) + '"><i></i><span>' + (t.q ? esc(quadName(t.q)) : 'Sort') + '</span></button>' : '') +
     '</div></li>';
 }
 // Redraw every view that shows tasks.
 function renderTaskViews() {
+  refreshStackSheet();
   renderMatrix();
   if (typeof renderTaskList === 'function') renderTaskList();
   if (typeof renderCalendar === 'function') renderCalendar();
   afterTaskChange();
 }
 function renderMatrix() {
-  const tasks = liveTasks();
+  const heads = stackHeads();
+  const tasks = liveTasks().filter(function (t) { return !stackHidden(t, heads); });
   const unsorted = sortOpen(tasks.filter(function (t) { return !t.q && !t.done; }));
   $('tray').hidden = !unsorted.length;
   $('tray').innerHTML = '<p class="tray-head"><b>Not sorted · ' + unsorted.length + '</b> Hold one and drag it into a box, or tap its button.</p>' +
@@ -224,6 +233,7 @@ function afterTaskChange() { if (typeof renderTaskSelect === 'function') renderT
 function toggleTask(id, fromSwipe) {
   const t = findTask(id);
   if (!t) return;
+  if (!t.done && repeatsInPlace(t)) { completeRepeating(t, fromSwipe); return; }
   if (t.done) {
     snapshot('Marked not done');
     t.done = false; t.doneAt = null; t.updatedAt = now();
@@ -433,6 +443,9 @@ function taskSheetHTML(t) {
       '<input type="date" id="tDeadline" value="' + (t.deadline ? dayKey(t.deadline) : '') + '" aria-label="Deadline">' +
       (t.deadline ? '<button class="btn small" data-action="tdl" data-d="clear">Remove</button>' : '') +
     '</div>' +
+    '<p class="label">Repeat' + (t.repeat ? ' · ' + esc(repeatLabel(t.repeat)) : '') + '</p>' +
+    repeatEditorHTML(t.repeat, t.due) +
+    (repeatsInPlace(t) ? '<div class="row"><button class="btn small" data-action="rpskip">Skip this one</button></div>' : '') +
     '<p class="label">Checklist</p>' +
     '<ul class="subtasks">' + t.subtasks.map(function (s) {
       return '<li><input type="checkbox" data-sub="' + s.id + '"' + (s.done ? ' checked' : '') + ' aria-label="Done"><input class="text-input" data-subtext="' + s.id + '" value="' + esc(s.title) + '" aria-label="Step"><button class="x" data-action="tsubdel" data-sub="' + s.id + '" aria-label="Remove step">×</button></li>';

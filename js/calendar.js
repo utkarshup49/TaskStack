@@ -288,6 +288,7 @@ function addFromCalendar() {
   const p = parseQuickAdd(raw);
   const due = calDue(p, raw);
   const task = newTask(p.title || raw, p.q, { due: due, hasTime: p.hasTime, tags: p.tags });
+  if (p.repeat) setupRepeat(task, p.repeat);
   snapshot('Added task');
   state.tasks.push(task);
   save();
@@ -298,7 +299,7 @@ function addFromCalendar() {
   sound('soft');
   const li = document.querySelector('#calList .task[data-id="' + task.id + '"]');
   if (li && li.animate) li.animate([{ transform: 'scale(0.94)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 280, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
-  input.focus();
+  if (task.repeat) explainNewRepeat(task); else input.focus();
 }
 
 // ---------- actions ----------

@@ -592,6 +592,36 @@ body[data-section="colortracker"] .sync-btn[data-s="reconnect"] { --rb: color-mi
 }
 .boxbtn i { width: 8px; height: 8px; border-radius: 50%; background: var(--qc); }
 .boxbtn.q0 { border-style: dashed; color: var(--muted); background: var(--surface); }
+/* repeating tasks */
+.chip.rep { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.stackbtn {
+  flex: 0 0 auto; align-self: center; height: 28px; padding: 0 9px 0 7px; margin-right: 4px; border-radius: 999px; display: flex; align-items: center; gap: 4px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); font-size: 12px; font-weight: 700;
+}
+.stackbtn svg { width: 14px; height: 14px; }
+.stackbtn.full { border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
+.stack-title { display: flex; align-items: center; gap: 8px; }
+.stack-title svg { width: 20px; height: 20px; color: var(--accent); flex: 0 0 auto; }
+.stack-title .count { font-family: var(--body); font-size: 13px; font-weight: 600; }
+.note.stack-full { margin: 0; background: color-mix(in srgb, var(--danger) 12%, var(--surface)); }
+.rp-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.rp-mode { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); min-width: 0; }
+.rp-mode b { font-size: 13.5px; }
+.rp-mode span { font-size: 11.5px; color: var(--muted); line-height: 1.25; }
+.rp-mode.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.rp-every { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rp-every > span { font-size: 13px; font-weight: 600; color: var(--muted); }
+.rp-every input[type="number"] { width: 64px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); padding: 0 10px; font-family: var(--mono); }
+.rp-every input[type="date"] { height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); padding: 0 10px; }
+.rp-by { align-self: flex-start; }
+.rp-days .pick { min-width: 48px; justify-content: center; }
+.rp-explain { display: block; font-size: 13.5px; line-height: 1.45; padding: 10px 12px; border-radius: 10px; color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-left: 3px solid var(--accent); }
+.rp-explain b { font-weight: 600; }
+.status .rp-explain { margin-top: 8px; font-weight: 400; }
+.rp-dont { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.rp-dont input { width: 18px; height: 18px; accent-color: var(--accent); }
+@media (max-width: 480px) { .rp-modes { grid-template-columns: 1fr; } }
 .boxmenu {
   position: fixed; z-index: 55; width: 250px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22); padding: 8px; display: flex; flex-direction: column; gap: 2px; animation: pop 0.18s var(--ease);
