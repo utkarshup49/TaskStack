@@ -59,6 +59,11 @@ function fmtDue(due, hasTime) {
 }
 // The date a task shows up on: its planned date, or its deadline when it has no planned date.
 function taskDate(t) { return t.due !== null && t.due !== undefined ? t.due : (t.deadline || null); }
+// Tasks planned more than a week ahead are "scheduled": the Calendar shows them, but the Matrix hides
+// them and the Tasks list folds them away until their week comes, so they can't be ticked by accident.
+// (Only the planned date counts: a task with just a far deadline stays visible, since you work towards it.)
+const SOON_DAYS = 6;
+function isFarOff(t) { return !t.done && t.due !== null && t.due !== undefined && midnight(t.due) > addDays(midnight(now()), SOON_DAYS); }
 function isOverdue(task) {
   const d = taskDate(task);
   if (d === null || task.done) return false;

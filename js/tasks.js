@@ -1,7 +1,7 @@
 /* =========================================================
    Tasks: the main to-do list, grouped by date.
    Overdue · Today (plus everything with no date) · Tomorrow ·
-   the next 5 days · Later · Completed today.
+   the next 5 days · Scheduled (folded, more than a week away) · Completed today.
    Every row has a box button to sort it into the matrix.
    ========================================================= */
 
@@ -99,7 +99,13 @@ function renderTaskList() {
   }
   const later = open.filter(function (t) { return dayOf(t) !== null && dayOf(t) > addDays(today, 6); })
     .sort(function (a, b) { return taskDate(a) - taskDate(b); });
-  if (later.length) html += groupHTML('Later', '', later);
+  if (later.length) {                               // folded away so they can't be ticked by accident
+    const show = !!state.ui.showScheduled;
+    const first = new Date(taskDate(later[0])).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+    html += '<section class="lgroup scheduled"><button class="done-toggle" data-action="showscheduled" aria-expanded="' + show + '">' + CHEVRON_SVG +
+      'Scheduled · ' + later.length + '<span class="small"> next: ' + first + ' · each moves up a week before</span></button>' +
+      (show ? '<ul class="tasks list">' + later.map(function (t) { return taskHTML(t, { box: true }); }).join('') + '</ul>' : '') + '</section>';
+  }
 
   const doneToday = all.filter(function (t) { return t.done && t.doneAt && midnight(t.doneAt) === today; })
     .sort(function (a, b) { return b.doneAt - a.doneAt; });
@@ -118,6 +124,7 @@ actions.ldate = function (el) {
   renderListPick();
 };
 actions.lbox = function (el) { const q = Number(el.dataset.q); listQ = q || null; renderListPick(); };
+actions.showscheduled = function () { state.ui.showScheduled = !state.ui.showScheduled; save(); renderTaskList(); };
 actions.showdonelist = function () { state.ui.showDoneList = !state.ui.showDoneList; save(); renderTaskList(); };
 actions.movetoday = function () {
   const today = midnight(now());

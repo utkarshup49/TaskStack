@@ -67,6 +67,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Box names: `quadName(q)` / `quadSub(q)` (core.js), renamable, stored in `settings.quadNames` so they sync. Never read `QUADS[i].name` directly for display.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes`.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.
+- Far-off tasks (`isFarOff(t)`: planned date more than 6 days ahead): hidden from the Matrix (a note under it counts them), folded into a collapsed "Scheduled" group in Tasks, always shown in the Calendar. Ticking one asks "Done already?" first (`askDoneEarly`), because one stray tick on a repeating task silently moves it a whole month on. A task with only a far deadline stays visible.
 - Snapshot before a change (`snapshot('label')`) so Undo works; show `toast(msg, { undo: true })` for anything destructive.
 
 ## Design rules

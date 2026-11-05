@@ -196,7 +196,13 @@ function renderTaskViews() {
 }
 function renderMatrix() {
   const heads = stackHeads();
-  const tasks = liveTasks().filter(function (t) { return !stackHidden(t, heads); });
+  const tasks = liveTasks().filter(function (t) { return !stackHidden(t, heads) && !isFarOff(t); });
+  const later = liveTasks().filter(function (t) { return !stackHidden(t, heads) && isFarOff(t); });
+  let note = $('matrixLater');
+  if (!note) { note = document.createElement('p'); note.id = 'matrixLater'; note.className = 'small matrix-later'; $('matrixGrid').after(note); }
+  note.hidden = !later.length;
+  note.innerHTML = later.length ? later.length + (later.length === 1 ? ' task is' : ' tasks are') + ' planned more than a week ahead. ' +
+    (later.length === 1 ? 'It shows' : 'They show') + ' up here a week before. <button class="linkbtn" data-action="tab" data-view="calendar">See the Calendar</button>' : '';
   const unsorted = sortOpen(tasks.filter(function (t) { return !t.q && !t.done; }));
   $('tray').hidden = !unsorted.length;
   $('tray').innerHTML = '<p class="tray-head"><b>Not sorted · ' + unsorted.length + '</b> Hold one and drag it into a box, or tap its button.</p>' +
@@ -230,9 +236,10 @@ function renderMatrix() {
 function afterTaskChange() { if (typeof renderTaskSelect === 'function') renderTaskSelect(); }
 
 // ---------- actions on a task ----------
-function toggleTask(id, fromSwipe) {
+function toggleTask(id, fromSwipe, early) {
   const t = findTask(id);
   if (!t) return;
+  if (!t.done && isFarOff(t) && !early) { askDoneEarly(t, fromSwipe); return; }   // stop accidental ticks on far-off tasks
   if (!t.done && repeatsInPlace(t)) { completeRepeating(t, fromSwipe); return; }
   if (t.done) {
     snapshot('Marked not done');
@@ -279,6 +286,31 @@ function moveTask(id, q) {
   });
   toast(q ? 'Moved to ' + quadName(q) : 'Moved out of the matrix', { undo: true });
 }
+
+// Ticking a task that's more than a week away asks first. For a repeating task this matters most:
+// one stray tick silently moves it a whole month (or year) on.
+function askDoneEarly(t, fromSwipe) {
+  if (fromSwipe) renderTaskViews();                 // put the swiped row back
+  const days = Math.round((midnight(t.due) - midnight(now())) / DAY);
+  const when = new Date(t.due).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+  let after = '';
+  if (repeatsInPlace(t)) {
+    const next = rpNextDue(t);
+    after = next === null ? 'This is the last one, so it will stop repeating.'
+      : 'The next one would be ' + new Date(next).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + ', and ' + when + ' counts as done.';
+  }
+  haptic([20, 40, 20]);
+  openSheet({ type: 'early', id: t.id },
+    '<h3>Done already?</h3>' +
+    '<p>"' + esc(t.title) + '" is planned for <b>' + when + '</b>, ' + days + ' days from now.</p>' +
+    (after ? '<p class="small">' + esc(after) + '</p>' : '') +
+    '<div class="row"><button class="btn" data-action="close">Not yet</button><button class="btn primary" data-action="earlydone">Yes, done early</button></div>');
+}
+actions.earlydone = function () {
+  const id = sheetCtx && sheetCtx.id;
+  closeSheet();
+  if (id) toggleTask(id, false, true);
+};
 
 // ---------- gestures: swipe and hold-to-drag ----------
 let gest = null;

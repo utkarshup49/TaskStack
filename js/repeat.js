@@ -191,6 +191,21 @@ function parseRepeat(text) {
   take(new RegExp('\\severy\\s(1st|2nd|3rd|4th|first|second|third|fourth|last)\\s(' + RP_WD_RE + ')(?:\\sof\\s(?:the|every)\\smonth)?(?=\\s)', 'i'), function (m, n, w) {
     return { unit: 'month', monthBy: 'nth', nth: RP_NTH[n.toLowerCase()], wd: RP_WD[w.toLowerCase()] };
   });
+  // "every month on the last monday", "monthly on the 2nd friday", "the last monday of every month"
+  take(new RegExp('\\s(?:every\\smonth|each\\smonth|monthly)\\s(?:on\\s)?(?:the\\s)?(1st|2nd|3rd|4th|first|second|third|fourth|last)\\s(' + RP_WD_RE + ')(?=\\s)', 'i'), function (m, n, w) {
+    return { unit: 'month', monthBy: 'nth', nth: RP_NTH[n.toLowerCase()], wd: RP_WD[w.toLowerCase()] };
+  });
+  take(new RegExp('\\s(?:on\\s)?(?:the\\s)?(1st|2nd|3rd|4th|first|second|third|fourth|last)\\s(' + RP_WD_RE + ')\\s(?:of|in)\\s(?:every|each|the)\\smonth(?=\\s)', 'i'), function (m, n, w) {
+    return { unit: 'month', monthBy: 'nth', nth: RP_NTH[n.toLowerCase()], wd: RP_WD[w.toLowerCase()] };
+  });
+  // "every month on the last day", "monthly on the 15th", "on the 15th of every month"
+  take(/\s(?:every\smonth|each\smonth|monthly)\s(?:on\s)?(?:the\s)?last\sday(?=\s)/i, function () { return { unit: 'month', monthBy: 'date', monthDay: -1 }; });
+  take(/\s(?:every\smonth|each\smonth|monthly)\s(?:on\s)?(?:the\s)?(\d{1,2})(?:st|nd|rd|th)?(?=\s)/i, function (m, d) {
+    return { unit: 'month', monthBy: 'date', monthDay: Math.min(31, Math.max(1, Number(d))) };
+  });
+  take(/\s(?:on\s)?(?:the\s)?(\d{1,2})(?:st|nd|rd|th)\s(?:day\s)?of\s(?:every|each)\smonth(?=\s)/i, function (m, d) {
+    return { unit: 'month', monthBy: 'date', monthDay: Math.min(31, Math.max(1, Number(d))) };
+  });
   take(/\severy\s(\d{1,2})(?:st|nd|rd|th)(?:\s(?:day\s)?of\s(?:the|every)\smonth)?(?=\s)/i, function (m, d) {
     return { unit: 'month', monthBy: 'date', monthDay: Math.min(31, Math.max(1, Number(d))) };
   });
