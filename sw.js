@@ -1,6 +1,6 @@
 // Service worker: lets TaskStack open without internet.
 // When you change any file, bump CACHE_NAME (v1 -> v2) so phones pick up the new version.
-const CACHE_NAME = 'taskstack-v17';
+const CACHE_NAME = 'taskstack-v18';
 const FILES = [
   './',
   './index.html',
@@ -8,12 +8,16 @@ const FILES = [
   './css/app.css',
   './js/core.js',
   './js/repeat.js',
+  './js/lists.js',
+  './js/remind.js',
   './js/matrix.js',
   './js/tasks.js',
   './js/calendar.js',
   './js/focus.js',
   './js/habits.js',
   './js/colortracker.js',
+  './js/plan.js',
+  './js/profile.js',
   './js/sync.js',
   './js/main.js',
   './icons/icon-192.png',
@@ -54,6 +58,26 @@ self.addEventListener('fetch', function (event) {
         caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, copy); });
         return response;
       })
-      .catch(function () { return caches.match(event.request); })
+      // offline: a page opened as ./?do=add (home-screen shortcut) still finds the cached page
+      .catch(function () { return caches.match(event.request, { ignoreSearch: event.request.mode === 'navigate' }); })
+  );
+});
+
+// Tapping a reminder notification (or its Done / Snooze button): tell the open app, or open it.
+self.addEventListener('notificationclick', function (event) {
+  const data = event.notification.data || {};
+  const action = event.action || 'open';
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      const msg = { type: 'note', action: action, taskId: data.taskId || null, view: data.view || null };
+      if (list.length) {
+        const c = list[0];
+        c.postMessage(msg);
+        return c.focus ? c.focus() : null;
+      }
+      const q = '?note=' + encodeURIComponent(action) + (data.taskId ? '&task=' + encodeURIComponent(data.taskId) : '') + (data.view ? '&view=' + encodeURIComponent(data.view) : '');
+      return self.clients.openWindow('./' + q + '#' + (data.view || 'tasks'));
+    })
   );
 });

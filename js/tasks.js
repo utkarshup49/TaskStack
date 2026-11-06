@@ -1,7 +1,10 @@
 /* =========================================================
    Tasks: the main to-do list, grouped by date.
-   Overdue · Today (plus everything with no date) · Tomorrow ·
-   the next 5 days · Scheduled (folded, more than a week away) · Completed today.
+   Overdue · Today (plus everything with no date; top 3 first,
+   "This evening" at the bottom) · Tomorrow · the next 5 days ·
+   Scheduled (folded, more than a week away) · Someday (folded) ·
+   Completed today · a link to the Logbook.
+   Only the lists picked in the list bar are shown.
    Every row has a box button to sort it into the matrix.
    ========================================================= */
 
@@ -46,6 +49,7 @@ function addFromList() {
   const due = p.due !== null ? p.due : listDate;
   const task = newTask(p.title || raw, p.q || listQ, { due: due, hasTime: p.due !== null && p.hasTime, tags: p.tags });
   if (p.repeat) setupRepeat(task, p.repeat);
+  finishNewTask(task, p);
   snapshot('Added task');
   state.tasks.push(task);
   save();
@@ -59,18 +63,23 @@ function addFromList() {
     if (li.animate) li.animate([{ transform: 'scale(0.94)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 280, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
   }
   if (task.repeat) explainNewRepeat(task);
+  else if (!listVisible(task)) toast('Added to ' + listOf(task).name + ' (hidden by the list filter)');
+  else if (task.someday) toast('Added to Someday, at the bottom of the list');
   else if (due !== null && midnight(due) > addDays(midnight(now()), 1)) toast('Added for ' + fmtDue(due, task.hasTime));
   if (!task.repeat || state.ui.repeatExplainOff) input.focus();
 }
 
 function groupHTML(title, sub, tasks, opts) {
   opts = opts || {};
-  const rows = tasks.length
+  let rows = tasks.length
     ? tasks.map(function (t) { return taskHTML(t, { box: true, day: opts.day }); }).join('')
     : '<li class="empty">' + (opts.empty || 'Nothing here.') + '</li>';
+  if (opts.evening && opts.evening.length) {         // Today: "This evening" sits at the bottom of the day
+    rows = (tasks.length ? rows : '') + '<li class="subhead">This evening</li>' + opts.evening.map(function (t) { return taskHTML(t, { box: true, day: opts.day }); }).join('');
+  }
   return '<section class="lgroup' + (opts.cls ? ' ' + opts.cls : '') + '">' +
     '<header><div><h3>' + title + '</h3>' + (sub ? '<span class="small">' + sub + '</span>' : '') + '</div>' +
-    (opts.action || '') + '<span class="count">' + tasks.length + '</span></header>' +
+    (opts.action || '') + '<span class="count">' + (tasks.length + (opts.evening ? opts.evening.length : 0)) + '</span></header>' +
     '<ul class="tasks list">' + rows + '</ul></section>';
 }
 
@@ -78,7 +87,10 @@ function renderTaskList() {
   const today = midnight(now());
   const all = liveTasks();
   const heads = stackHeads();
-  const open = all.filter(function (t) { return !t.done && !stackHidden(t, heads); });   // stacked copies show once, as "3 stacked"
+  const shown = all.filter(function (t) { return listVisible(t); });
+  const notDone = shown.filter(function (t) { return !t.done && !stackHidden(t, heads); });   // stacked copies show once, as "3 stacked"
+  const open = notDone.filter(function (t) { return !t.someday; });
+  const someday = notDone.filter(function (t) { return t.someday; });
   const dayOf = function (t) { const d = taskDate(t); return d === null ? null : midnight(d); };
   let html = '';
 
@@ -88,8 +100,12 @@ function renderTaskList() {
       { cls: 'late', action: '<button class="btn small" data-action="movetoday">Move to today</button>' });
   }
   const todays = open.filter(function (t) { return dayOf(t) === null || dayOf(t) === today; });
-  html += groupHTML('Today', new Date(today).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }), sortByDay(todays),
-    { day: today, empty: 'Nothing for today. Add something above, or enjoy it.' });
+  const isEvening = function (t) { return t.evening || (t.due !== null && t.hasTime && new Date(t.due).getHours() >= 18); };
+  const topFirst = function (list) { return list.filter(isTop).concat(list.filter(function (t) { return !isTop(t); })); };
+  const dayPart = sortByDay(todays.filter(function (t) { return !isEvening(t); }));
+  const evePart = sortByDay(todays.filter(isEvening));
+  html += groupHTML('Today', new Date(today).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }), topFirst(dayPart),
+    { day: today, evening: topFirst(evePart), empty: evePart.length ? 'Nothing before the evening.' : 'Nothing for today. Add something above, or enjoy it.' });
   for (let i = 1; i <= 6; i++) {
     const d = addDays(today, i);
     const list = open.filter(function (t) { return dayOf(t) === d; });
@@ -107,13 +123,21 @@ function renderTaskList() {
       (show ? '<ul class="tasks list">' + later.map(function (t) { return taskHTML(t, { box: true }); }).join('') + '</ul>' : '') + '</section>';
   }
 
-  const doneToday = all.filter(function (t) { return t.done && t.doneAt && midnight(t.doneAt) === today; })
+  if (someday.length) {                             // Things-style: ideas with no date, out of the way
+    const show = !!state.ui.showSomeday;
+    html += '<section class="lgroup someday"><button class="done-toggle" data-action="showsomeday" aria-expanded="' + show + '">' + CHEVRON_SVG +
+      'Someday · ' + someday.length + '<span class="small"> no date, not in Today or the Matrix</span></button>' +
+      (show ? '<ul class="tasks list">' + someday.map(function (t) { return taskHTML(t, { box: true }); }).join('') + '</ul>' : '') + '</section>';
+  }
+
+  const doneToday = shown.filter(function (t) { return t.done && t.doneAt && midnight(t.doneAt) === today; })
     .sort(function (a, b) { return b.doneAt - a.doneAt; });
   if (doneToday.length) {
     const show = !!state.ui.showDoneList;
     html += '<section class="lgroup"><button class="done-toggle" data-action="showdonelist" aria-expanded="' + show + '">' + CHEVRON_SVG + 'Completed today · ' + doneToday.length + '</button>' +
       (show ? '<ul class="tasks list">' + doneToday.map(function (t) { return taskHTML(t, { box: true }); }).join('') + '</ul>' : '') + '</section>';
   }
+  html += '<div class="list-foot"><button class="linkbtn" data-action="logbook">Logbook</button><span class="small">every task you\'ve finished</span></div>';
   $('taskList').innerHTML = html;
 }
 
@@ -125,10 +149,11 @@ actions.ldate = function (el) {
 };
 actions.lbox = function (el) { const q = Number(el.dataset.q); listQ = q || null; renderListPick(); };
 actions.showscheduled = function () { state.ui.showScheduled = !state.ui.showScheduled; save(); renderTaskList(); };
+actions.showsomeday = function () { state.ui.showSomeday = !state.ui.showSomeday; save(); renderTaskList(); };
 actions.showdonelist = function () { state.ui.showDoneList = !state.ui.showDoneList; save(); renderTaskList(); };
 actions.movetoday = function () {
   const today = midnight(now());
-  const late = liveTasks().filter(function (t) { const d = taskDate(t); return !t.done && d !== null && midnight(d) < today; });
+  const late = liveTasks().filter(function (t) { const d = taskDate(t); return !t.done && !t.someday && listVisible(t) && d !== null && midnight(d) < today; });
   if (!late.length) return;
   snapshot('Moved overdue tasks to today');
   late.forEach(function (t) {

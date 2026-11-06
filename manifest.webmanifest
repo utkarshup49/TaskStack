@@ -1,15 +1,63 @@
 {
   "name": "TaskStack",
   "short_name": "TaskStack",
-  "description": "Eisenhower matrix, pomodoro timer and habit tracker in one app.",
+  "description": "To-do list, Eisenhower matrix, calendar, pomodoro, habits and ColorTracker in one app.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f2f3ef",
   "theme_color": "#15171c",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add a task",
+      "short_name": "Add task",
+      "url": "./?do=add#tasks",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Start a focus session",
+      "short_name": "Focus",
+      "url": "./?do=focus#focus",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "ColorTracker",
+      "short_name": "Tracker",
+      "url": "./#colortracker",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

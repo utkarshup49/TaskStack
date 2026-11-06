@@ -15,6 +15,18 @@ const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const FLAG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
 const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const DOTS_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/></svg>';
+const EST_CHOICES = [15, 30, 45, 60, 90, 120, 180];
+
+// Minutes of Focus sessions spent on a task (its "actual" next to the estimate).
+function focusMinutes(taskId) {
+  let m = 0;
+  liveSessions().forEach(function (s) { if (s.taskId === taskId) m += s.minutes; });
+  return m;
+}
+// One of today's top 3 (picked in Plan my day or the task sheet).
+function isTop(t) { return t.top === dayKey(); }
 const ROMAN = ['I', 'II', 'III', 'IV'];
 const EMPTY_TEXT = { 1: 'Nothing urgent. Nice.', 2: 'Plan something that matters.', 3: 'Nothing to hand off.', 4: 'Nothing to drop.' };
 
@@ -36,6 +48,8 @@ function addSheetHTML() {
       '<input id="addTitle" placeholder="What needs doing?" aria-label="Task name" enterkeyhint="done">' +
       '<button class="btn primary" type="submit">Add</button></div>' +
       '<div class="parse" id="addParse" aria-live="polite"></div></form>' +
+    (typeof templateRowHTML === 'function' ? templateRowHTML() : '') +
+    '<p class="label">List</p>' + listPickHTML(d.listId, 'alist') +
     '<p class="label">Box</p><div class="qmove">' + QUADS.map(function (q) {
       return '<button type="button" class="q' + q.q + (d.q === q.q ? ' on' : '') + '" data-action="aq" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
     }).join('') + '<button type="button" class="q0 wide' + (!d.q ? ' on' : '') + '" data-action="aq" data-q="0">Not sorted</button></div>' +
@@ -46,7 +60,7 @@ function addSheetHTML() {
     '<div class="daterow">' + pick('adl', 'none', 'None', d.deadline) + pick('adl', 3, 'In 3 days', d.deadline) + pick('adl', 7, 'In a week', d.deadline) +
       '<input type="date" id="addDeadline" value="' + (d.deadline ? dayKey(d.deadline) : '') + '" aria-label="Deadline"></div>' +
     '<p class="label">Repeat</p>' + repeatEditorHTML(d.repeat ? rpNorm(d.repeat, d.date !== null ? d.date : midnight(now())) : null) +
-    '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm #college</b> or <b>every 4 days after completion</b>.</p>' +
+    '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm /college ~45m</b> or <b>every 4 days after completion</b>.</p>' +
     '<p class="status" id="addStatus" role="status"></p>' +
     '<div class="row"><button class="btn" data-action="close">Done</button></div>';
 }
@@ -54,7 +68,7 @@ function addSheetHTML() {
 function openAddSheet(q, preset) {
   preset = preset || {};
   if (q) addQ = q;
-  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null };
+  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null, listId: defaultListId() };
   openSheet({ type: 'add' }, addSheetHTML());
   setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
 }
@@ -86,9 +100,10 @@ function addFromSheet() {
     due = (d.date !== null ? d.date : midnight(now())) + mins * MIN;
     hasTime = !!d.time;
   }
-  const task = newTask(p.title || raw, p.q || d.q, { due: due, hasTime: hasTime, deadline: d.deadline, tags: p.tags });
+  const task = newTask(p.title || raw, p.q || d.q, { due: due, hasTime: hasTime, deadline: d.deadline, tags: p.tags, listId: d.listId || defaultListId() });
   const rule = p.repeat || d.repeat;
   if (rule) setupRepeat(task, rule);
+  finishNewTask(task, p);
   snapshot('Added task');
   state.tasks.push(task);
   save();
@@ -96,7 +111,7 @@ function addFromSheet() {
   sound('soft');
   input.value = '';
   renderAddParse();
-  $('addStatus').textContent = 'Added "' + shortTitle(task.title) + '" to ' + boxName(task.q) + (task.due !== null ? ', ' + fmtDue(task.due, task.hasTime) : '') + '. Add another, or press Done.';
+  $('addStatus').textContent = 'Added "' + shortTitle(task.title) + '" to ' + listOf(task).name + ' · ' + boxName(task.q) + (task.due !== null ? ', ' + fmtDue(task.due, task.hasTime) : '') + '. Add another, or press Done.';
   if (task.repeat) $('addStatus').innerHTML = esc($('addStatus').textContent) + '<span class="rp-explain">' + describeRepeat(task.repeat, task.due) + '</span>';
   const li = document.querySelector('#matrixGrid .task[data-id="' + task.id + '"]');
   if (li) {
@@ -171,16 +186,22 @@ function taskHTML(t, opts) {
     meta.push('<span class="chip">' + LIST_SVG + d + '/' + t.subtasks.length + '</span>');
   }
   if (t.repeat) meta.push('<span class="chip rep">' + REPEAT_SVG + esc(repeatLabel(t.repeat)) + '</span>');
+  const nextRem = t.done ? null : nextReminder(t);
+  if (nextRem !== null) meta.push('<span class="chip rem" title="Reminder">' + BELL_SVG + esc(midnight(nextRem) === midnight(now()) ? fmtTime(nextRem) : fmtDue(nextRem, true)) + '</span>');
+  const spent = focusMinutes(t.id);
+  if (t.est) meta.push('<span class="chip' + (spent > t.est ? ' late' : '') + '" title="Focused / estimated">' + CLOCK_SVG + (spent ? fmtEst(spent) + ' / ' : '~') + esc(fmtEst(t.est)) + '</span>');
+  else if (spent) meta.push('<span class="chip" title="Time focused">' + CLOCK_SVG + fmtEst(spent) + '</span>');
+  if (t.someday && !t.done) meta.push('<span class="chip">Someday</span>');
+  if (listFilter().length !== 1 && !opts.nolist) { const l = listOf(t); meta.push('<span class="chip lst" style="--lc:' + l.color + '"><i></i>' + esc(l.name) + '</span>'); }
   t.tags.forEach(function (tag) { meta.push('<span class="chip">#' + esc(tag) + '</span>'); });
-  const poms = pomCount(t.id);
   const stacked = !opts.nostack && t.seriesId && !t.done ? openStackCopies(t.seriesId).length : 0;
-  if (poms) meta.push('<span class="chip">' + poms + ' pom</span>');
   const q = t.q || 0;
-  return '<li class="task q' + q + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
+  const top = isTop(t) && !t.done;
+  return '<li class="task q' + q + (t.done ? ' done' : '') + (top ? ' top' : '') + '" data-id="' + t.id + '" style="--lc:' + listOf(t).color + '">' +
     '<div class="task-bg" aria-hidden="true"><span class="bg-done">' + (t.done ? 'Not done' : 'Done') + '</span><span class="bg-del">Delete</span></div>' +
     '<div class="task-inner">' +
       '<button class="check" data-action="toggle" data-id="' + t.id + '" aria-label="' + (t.done ? 'Mark not done' : 'Mark done') + '">' + CHECK_SVG + '</button>' +
-      '<button class="tbody" data-action="open" data-id="' + t.id + '"><span class="ttl">' + esc(t.title) + (t.example ? '<span class="eg">example</span>' : '') + '</span>' +
+      '<button class="tbody" data-action="open" data-id="' + t.id + '"><span class="ttl">' + (top ? '<span class="star" title="Top 3 today">' + STAR_SVG + '</span>' : '') + esc(t.title) + (t.example ? '<span class="eg">example</span>' : '') + '</span>' +
       (meta.length ? '<span class="meta">' + meta.join('') + '</span>' : '') + '</button>' +
       (stacked > 1 ? '<button class="stackbtn' + (stacked >= STACK_MAX ? ' full' : '') + '" data-action="stackopen" data-id="' + t.seriesId + '" aria-label="' + stacked + ' copies stacked">' + STACK_SVG + stacked + '</button>' : '') +
       (opts.box ? '<button class="boxbtn q' + q + '" data-action="boxmenu" data-id="' + t.id + '" aria-label="Box: ' + boxName(t.q) + '"><i></i><span>' + (t.q ? esc(quadName(t.q)) : 'Sort') + '</span></button>' : '') +
@@ -189,6 +210,8 @@ function taskHTML(t, opts) {
 // Redraw every view that shows tasks.
 function renderTaskViews() {
   refreshStackSheet();
+  renderListBars();
+  if (typeof renderPlanBits === 'function') renderPlanBits();
   renderMatrix();
   if (typeof renderTaskList === 'function') renderTaskList();
   if (typeof renderCalendar === 'function') renderCalendar();
@@ -196,8 +219,9 @@ function renderTaskViews() {
 }
 function renderMatrix() {
   const heads = stackHeads();
-  const tasks = liveTasks().filter(function (t) { return !stackHidden(t, heads) && !isFarOff(t); });
-  const later = liveTasks().filter(function (t) { return !stackHidden(t, heads) && isFarOff(t); });
+  const shown = liveTasks().filter(function (t) { return !stackHidden(t, heads) && listVisible(t) && !(t.someday && !t.done); });
+  const tasks = shown.filter(function (t) { return !isFarOff(t); });
+  const later = shown.filter(function (t) { return isFarOff(t); });
   let note = $('matrixLater');
   if (!note) { note = document.createElement('p'); note.id = 'matrixLater'; note.className = 'small matrix-later'; $('matrixGrid').after(note); }
   note.hidden = !later.length;
@@ -457,6 +481,7 @@ function taskSheetHTML(t) {
   const timeVal = t.due && t.hasTime ? String(new Date(t.due).getHours()).padStart(2, '0') + ':' + String(new Date(t.due).getMinutes()).padStart(2, '0') : '';
   return '<h3>Task</h3>' +
     '<input class="text-input" id="tTitle" value="' + esc(t.title) + '" aria-label="Task name">' +
+    '<p class="label">List</p>' + listPickHTML(listOf(t).id, 'tlist') +
     '<p class="label">Eisenhower box</p><div class="qmove">' + QUADS.map(function (q) {
       return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="tmove" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
     }).join('') + '<button class="q0 wide' + (!t.q ? ' on' : '') + '" data-action="tmove" data-q="0">Not sorted</button></div>' +
@@ -468,6 +493,12 @@ function taskSheetHTML(t) {
       (t.due ? '<button class="btn small" data-action="tdue" data-d="clear">No date</button>' : '') +
     '</div>' +
     '<div class="daterow"><input type="date" id="tDate" value="' + dateVal + '" aria-label="Date"><input type="time" id="tTime" value="' + timeVal + '" aria-label="Time"></div>' +
+    '<div class="daterow">' +
+      '<button class="pick' + (isTop(t) ? ' on' : '') + '" data-action="ttop" aria-pressed="' + isTop(t) + '">' + STAR_SVG + 'Top 3 today</button>' +
+      '<button class="pick' + (t.evening ? ' on' : '') + '" data-action="tevening" aria-pressed="' + t.evening + '">This evening</button>' +
+      '<button class="pick' + (t.someday ? ' on' : '') + '" data-action="tsomeday" aria-pressed="' + t.someday + '">Someday</button>' +
+    '</div>' +
+    (t.someday ? '<p class="small">Someday: no date, kept out of Today and the Matrix. Find it at the bottom of Tasks.</p>' : '') +
     '<p class="label">Deadline' + (t.deadline ? ' · ' + esc(new Date(t.deadline).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + ' (' + esc(fmtDeadline(t.deadline)) + ')' : '') + '</p>' +
     '<div class="daterow">' +
       '<button class="btn small" data-action="tdl" data-d="3">In 3 days</button>' +
@@ -475,6 +506,11 @@ function taskSheetHTML(t) {
       '<input type="date" id="tDeadline" value="' + (t.deadline ? dayKey(t.deadline) : '') + '" aria-label="Deadline">' +
       (t.deadline ? '<button class="btn small" data-action="tdl" data-d="clear">Remove</button>' : '') +
     '</div>' +
+    remindersHTML(t) +
+    '<p class="label">Time it needs' + (focusMinutes(t.id) ? ' · focused ' + fmtEst(focusMinutes(t.id)) + ' so far' : '') + '</p>' +
+    '<div class="daterow">' + EST_CHOICES.map(function (m) {
+      return '<button class="pick' + (t.est === m ? ' on' : '') + '" data-action="test" data-m="' + m + '">' + fmtEst(m) + '</button>';
+    }).join('') + (t.est ? '<button class="pick" data-action="test" data-m="0">None</button>' : '') + '</div>' +
     '<p class="label">Repeat' + (t.repeat ? ' · ' + esc(repeatLabel(t.repeat)) : '') + '</p>' +
     repeatEditorHTML(t.repeat, t.due) +
     (repeatsInPlace(t) ? '<div class="row"><button class="btn small" data-action="rpskip">Skip this one</button></div>' : '') +
@@ -487,7 +523,7 @@ function taskSheetHTML(t) {
     '<textarea class="text-input" id="tNotes" placeholder="Anything to remember">' + esc(t.notes) + '</textarea>' +
     '<p class="label">Tags</p>' +
     '<input class="text-input" id="tTags" value="' + esc(t.tags.join(', ')) + '" placeholder="college, exam">' +
-    '<div class="row"><button class="btn primary" data-action="tfocus">Focus on this</button></div>' +
+    '<div class="row"><button class="btn" data-action="tsavetemplate">Save as template</button><button class="btn primary" data-action="tfocus">Focus on this</button></div>' +
     '<div class="row"><button class="btn danger" data-action="tdelete">Delete</button><button class="btn" data-action="close">Done</button></div>';
 }
 function openTask(id) {
@@ -525,6 +561,7 @@ $('sheet').addEventListener('change', function (e) {
       const mins = tm ? Number(tm.slice(0, 2)) * 60 + Number(tm.slice(3, 5)) : 0;
       t.due = base + mins * MIN;
       t.hasTime = !!tm;
+      t.someday = false;
     }
     taskChanged(t); refreshTaskSheet();
   }
@@ -551,6 +588,7 @@ $('sheet').addEventListener('keydown', function (e) {
 
 // ---------- click actions ----------
 actions.addhere = function (el) { openAddSheet(Number(el.dataset.q)); };
+actions.alist = function (el) { addDraft.listId = el.dataset.id; refreshAddSheet(); };
 actions.aq = function (el) { addDraft.q = Number(el.dataset.q) || null; if (addDraft.q) addQ = addDraft.q; refreshAddSheet(); };
 actions.adate = function (el) { addDraft.date = el.dataset.d === 'none' ? null : addDays(midnight(now()), Number(el.dataset.d)); if (addDraft.date === null) addDraft.time = ''; refreshAddSheet(); };
 actions.adl = function (el) { addDraft.deadline = el.dataset.d === 'none' ? null : addDays(midnight(now()), Number(el.dataset.d)); refreshAddSheet(); };
@@ -567,6 +605,49 @@ actions.quadreset = function (el) { saveQuadName(Number(el.dataset.q), null); };
 actions.toggle = function (el) { toggleTask(el.dataset.id); };
 actions.open = function (el) { if (now() < suppressClickUntil) return; openTask(el.dataset.id); };
 actions.showdone = function (el) { const q = el.dataset.q; state.ui.showDone[q] = !state.ui.showDone[q]; save(); renderMatrix(); };
+actions.tlist = function (el) {
+  const t = sheetTask();
+  if (!t || t.listId === el.dataset.id) return;
+  snapshot('Moved to another list');
+  t.listId = el.dataset.id;
+  taskChanged(t); refreshTaskSheet();
+  if (!listVisible(t)) toast('Moved to ' + listOf(t).name + '. It\'s hidden by the list filter.', { undo: true });
+};
+actions.ttop = function () {
+  const t = sheetTask();
+  if (!t) return;
+  if (isTop(t)) t.top = null;
+  else {
+    const tops = liveTasks().filter(function (x) { return isTop(x) && !x.done; });
+    if (tops.length >= 3) { toast('You already have 3 top tasks today. Unstar one first.'); return; }
+    t.top = dayKey();
+    if (t.someday) t.someday = false;
+    if (t.due !== null && midnight(t.due) > midnight(now())) t.due = midnight(now()) + (t.due - midnight(t.due));   // a future task moves to today
+  }
+  taskChanged(t); refreshTaskSheet();
+};
+actions.tevening = function () {
+  const t = sheetTask();
+  if (!t) return;
+  t.evening = !t.evening;
+  if (t.evening && t.someday) { t.someday = false; t.due = midnight(now()); t.hasTime = false; }
+  taskChanged(t); refreshTaskSheet();
+};
+actions.tsomeday = function () {
+  const t = sheetTask();
+  if (!t) return;
+  snapshot(t.someday ? 'Picked up from Someday' : 'Moved to Someday');
+  t.someday = !t.someday;
+  if (t.someday) { t.due = null; t.hasTime = false; t.top = null; t.evening = false; }
+  taskChanged(t); refreshTaskSheet();
+};
+actions.test = function (el) {
+  const t = sheetTask();
+  if (!t) return;
+  const m = Number(el.dataset.m);
+  t.est = m && t.est !== m ? m : null;
+  taskChanged(t); refreshTaskSheet();
+};
 actions.tmove = function (el) { const t = sheetTask(); if (!t) return; moveTask(t.id, Number(el.dataset.q)); refreshTaskSheet(); };
 actions.tdl = function (el) {
   const t = sheetTask();
@@ -582,7 +663,7 @@ actions.tdue = function (el) {
   if (!t) return;
   snapshot('Changed due date');
   if (el.dataset.d === 'clear') { t.due = null; t.hasTime = false; }
-  else { t.due = addDays(midnight(now()), Number(el.dataset.d)); t.hasTime = false; }
+  else { t.due = addDays(midnight(now()), Number(el.dataset.d)); t.hasTime = false; t.someday = false; }
   taskChanged(t); refreshTaskSheet();
 };
 actions.tsubdel = function (el) {

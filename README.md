@@ -1,10 +1,20 @@
 # TaskStack
 
-An Eisenhower matrix, pomodoro timer and habit tracker in one app. It runs on Windows, Android and iPad from one codebase.
+A to-do list, Eisenhower matrix, calendar, pomodoro timer, habit tracker and ColorTracker in one app. It runs on Windows, Android and iPad from one codebase.
 
 **Live app:** https://utkarshup49.github.io/TaskStack/
 
-## Features (v0.3)
+## Features (v0.9)
+
+- **Lists**: College, Extracurricular, Projects, Self-growth, Personal (add, rename, recolour, reorder, delete your own). A chip row on Tasks, Matrix and Calendar picks what you see: tap a list for only it, hold (or Ctrl-click) to see several. Each task carries its list's colour. Type `/college` when adding.
+- **Reminders** (in the app): at the task's time, N minutes / a day before, before a deadline, or an exact time; new timed tasks get one automatically (changeable in the profile). A reminder sheet with Done / Snooze / Tomorrow; on Android and Windows a notification with Done and Snooze buttons. Works while the app is open or recently used.
+- **Plan your day / Wrap up / Weekly review**: a banner on Tasks in the morning, evening and on Sunday. Sort what's left over, pick a top 3, add time estimates (warns past your daily hours), note how the day went, review the week.
+- **Top 3, This evening, Someday** (Things-style): stars on today's most important tasks; an evening part of Today; a folded Someday group for ideas with no date.
+- **Time estimates**: type `~45m`; the row shows focused time against the estimate.
+- **Logbook** (everything finished, searchable), **Countdowns** (days until exams and events), **Templates** (save a task with its checklist and reuse it).
+- **Profile** (avatar, top right): name and Google photo, level and XP, daily goal ring and streak, this week's numbers, goals, reminder settings, show/hide sections, download a backup or a CSV, restore, delete everything, install tips, shortcuts, what's new.
+- **Focus extras**: a "Got distracted" counter and this week's focus time per list.
+- **Voice add** (mic next to the task box, where the browser supports it), **home-screen shortcuts** (long-press the installed icon: Add task, Focus, Tracker), **keyboard**: `1`–`6` switch sections, `?` lists the shortcuts.
 
 - **Look and feel**: a signature colour per section (Matrix indigo, Focus orange, Habits green, ColorTracker violet), tuned dark mode, spring animations, sounds and vibration (both switchable in Settings), Undo on every toast.
 - **Repeating tasks**: type it (`every mon`, `every 2 weeks`, `every 4 days after completion`, `every 2nd sat`, `every 10th`, `every last working day`) or use the Repeat picker. Three ways to come back: on a schedule, after you finish, or stack up (a new copy each time even if unfinished, max 5, shown as one row). After adding, a box explains exactly when it comes back.

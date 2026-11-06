@@ -1,12 +1,17 @@
 /* =========================================================
    main: switching sections, settings, the Ctrl+K command bar,
-   keyboard shortcuts, and starting the app.
+   keyboard shortcuts, voice add, home-screen shortcuts, and
+   starting the app.
    ========================================================= */
 
 const VIEWS = ['tasks', 'calendar', 'matrix', 'focus', 'habits', 'colortracker'];
 let view = 'tasks';
 
 function renderAll() {
+  renderListBars();
+  renderPlanBits();
+  renderAvatar();
+  applySections();
   renderListPick();
   renderListParse();
   renderTaskList();
@@ -28,7 +33,7 @@ function applyTheme() {
 }
 
 function showView(v) {
-  if (VIEWS.indexOf(v) === -1) v = 'tasks';
+  if (VIEWS.indexOf(v) === -1 || (state.settings.hiddenTabs || []).indexOf(v) !== -1) v = 'tasks';
   const changed = v !== view;
   view = v;
   VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== v; });
@@ -193,14 +198,32 @@ function paletteItems(q) {
   const cmds = [
     { label: state.timer.running ? 'Pause timer' : 'Start a focus session', hint: 'Focus', run: function () { showView('focus'); if (!state.timer.running && state.timer.mode !== 'focus') setMode('focus'); startPause(); } },
     { label: 'Paint in ColorTracker', hint: 'Pen on', run: function () { showView('colortracker'); ctSel = null; ctMode = 'paint'; renderColor(); } },
+    { label: 'Plan my day', hint: 'Top 3, estimates', run: function () { showView('tasks'); actions.planday(); } },
+    { label: 'Wrap up the day', hint: 'Evening', run: function () { showView('tasks'); actions.wrapday(); } },
+    { label: 'Weekly review', hint: 'Sunday', run: function () { showView('tasks'); actions.weekreview(); } },
+    { label: 'Logbook', hint: 'Finished tasks', run: function () { actions.logbook(); } },
+    { label: 'Countdowns', hint: 'Exams, events', run: function () { actions.countdowns(); } },
+    { label: 'Edit lists', hint: 'College, Projects…', run: function () { openListsSheet(); } },
+    { label: 'Show all lists', hint: 'List filter', run: function () { setListFilter([]); } },
+    { label: 'Profile', hint: 'Stats, goals, data', run: function () { openProfile(); } },
+    { label: 'Keyboard shortcuts', hint: '?', run: function () { actions.shortcuts(); } },
     { label: 'Undo last change', hint: 'Ctrl Z', run: undo },
     { label: 'Sync now', hint: 'Google Drive', run: function () { if (sync.signedIn) syncNow(false); else actions.settings(); } },
     { label: 'Settings', hint: 'Sync, sounds, theme, backup', run: function () { actions.settings(); } }
   ];
   cmds.forEach(function (c) { if (match(c.label)) items.push(c); });
+  liveLists().forEach(function (l) {
+    if (ql && match('list ' + l.name)) items.push({ label: 'Show only ' + l.name, hint: 'List', run: function () { setListFilter([l.id]); } });
+  });
+  liveTemplates().forEach(function (x) {
+    if (ql && match('template ' + x.name)) items.push({ label: 'New from template: ' + x.name, hint: 'Template', run: function () { showView('tasks'); taskFromTemplate(x); toast('Added "' + shortTitle(x.task.title) + '" from a template'); } });
+  });
   if (ql) {
-    liveTasks().filter(function (t) { return t.title.toLowerCase().indexOf(ql) !== -1 || t.tags.join(' ').indexOf(ql) !== -1; }).slice(0, 6).forEach(function (t) {
-      items.push({ label: t.title, hint: (t.done ? 'Done · ' : '') + boxName(t.q), run: function () { openTask(t.id); } });
+    liveTasks().filter(function (t) {
+      return t.title.toLowerCase().indexOf(ql) !== -1 || t.tags.join(' ').indexOf(ql) !== -1 || t.notes.toLowerCase().indexOf(ql) !== -1 ||
+        t.subtasks.some(function (st) { return st.title.toLowerCase().indexOf(ql) !== -1; });
+    }).slice(0, 6).forEach(function (t) {
+      items.push({ label: t.title, hint: (t.done ? 'Done · ' : t.someday ? 'Someday · ' : '') + listOf(t).name + ' · ' + boxName(t.q), run: function () { openTask(t.id); } });
     });
     liveHabits().filter(function (h) { return h.name.toLowerCase().indexOf(ql) !== -1; }).slice(0, 4).forEach(function (h) {
       const done = isOn(h, dayKey());
@@ -253,9 +276,17 @@ document.addEventListener('keydown', function (e) {
   }
   if (typing || sheetCtx || !$('paletteWrap').hidden) return;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
-  if (mod || e.altKey) return;
+  if (mod || (e.altKey && !/^Digit[1-6]$/.test(e.code || ''))) return;
   const k = e.key.toLowerCase();
   if (k === '/') { e.preventDefault(); openPalette(); return; }
+  if (e.key === '?') { e.preventDefault(); actions.shortcuts(); return; }
+  // 1-6 switch sections (in ColorTracker the digits pick colours, so use Alt + digit there)
+  const digit = /^Digit[1-6]$/.test(e.code || '') ? Number(e.code.slice(5)) : 0;
+  if (digit && (view !== 'colortracker' || e.altKey)) {
+    const visible = VIEWS.filter(function (v) { return (state.settings.hiddenTabs || []).indexOf(v) === -1; });
+    if (visible[digit - 1]) { e.preventDefault(); showView(visible[digit - 1]); }
+    return;
+  }
   if (k === 'n') { e.preventDefault(); if (view === 'matrix') openAddSheet(addQ); else if (view === 'calendar') { if (TIMED_MODES[calMode()]) actions.caladd(); else $('calInput').focus(); } else { showView('tasks'); $('taskInput').focus(); } return; }
   if (view === 'calendar' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { calStep(e.key === 'ArrowLeft' ? -1 : 1); return; }
   if (view === 'colortracker') {
@@ -268,6 +299,36 @@ document.addEventListener('keydown', function (e) {
     else if (e.key === 'ArrowRight') ctStep(1);
   }
 });
+
+// ---------- voice: say a task (Chrome / Edge / Android; hidden where the browser can't) ----------
+let voiceRec = null;
+function setupVoiceAdd() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  $('micBtn').hidden = false;
+}
+actions.voiceadd = function () {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  if (voiceRec) { voiceRec.stop(); return; }
+  try {
+    voiceRec = new SR();
+    voiceRec.lang = navigator.language || 'en-IN';
+    voiceRec.interimResults = true;
+    voiceRec.maxAlternatives = 1;
+    $('micBtn').classList.add('on');
+    voiceRec.onresult = function (ev) {
+      let text = '';
+      for (let i = 0; i < ev.results.length; i++) text += ev.results[i][0].transcript;
+      $('taskInput').value = text.trim();
+      renderListParse();
+    };
+    voiceRec.onerror = function (ev) { if (ev.error === 'not-allowed') toast('Allow the microphone for this site to add tasks by voice.'); };
+    voiceRec.onend = function () { voiceRec = null; $('micBtn').classList.remove('on'); if ($('taskInput').value.trim()) $('taskInput').focus(); };
+    voiceRec.start();
+    haptic(10);
+  } catch (e) { voiceRec = null; $('micBtn').classList.remove('on'); }
+};
 
 // unlock audio on the first touch (browsers need a tap before they play sound)
 document.addEventListener('pointerdown', function unlock() { audio(); document.removeEventListener('pointerdown', unlock); });
@@ -282,6 +343,20 @@ view = '';
 showView(location.hash.slice(1) || 'tasks');
 save();
 startSync();
+startReminders();
+setupVoiceAdd();
+// Home-screen shortcuts (long-press the app icon): ?do=add opens the add box, ?do=focus starts a session.
+(function homeShortcut() {
+  const p = new URLSearchParams(location.search);
+  const what = p.get('do');
+  if (!what) return;
+  try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+  if (what === 'add') { showView('tasks'); setTimeout(function () { $('taskInput').focus(); }, 200); }
+  else if (what === 'focus') { showView('focus'); if (!state.timer.running) { if (state.timer.mode !== 'focus') setMode('focus'); startPause(); } }
+})();
+// Quietly re-check the date-based bits (banner, Today) when the day changes or the app comes back.
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { renderPlanBits(); if (view === 'tasks') renderTaskList(); } });
+setInterval(function () { if (!sheetCtx) renderPlanBits(); }, 5 * 60000);
 
 // offline support + "Install app"
 if ('serviceWorker' in navigator) {

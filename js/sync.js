@@ -44,15 +44,16 @@ function syncPayload() {
   return {
     version: 2, savedAt: now(),
     tasks: state.tasks, habits: state.habits, sessions: state.sessions,
-    settings: state.settings, categories: state.categories, ranges: state.ranges
+    settings: state.settings, categories: state.categories, ranges: state.ranges,
+    lists: state.lists, days: state.days, countdowns: state.countdowns, templates: state.templates
   };
 }
 // Same items with the same edit times = same fingerprint, whatever order they're in.
 // Used to skip uploads when nothing changed, and to spot when a merge added something.
 function syncFingerprint(s) {
   const parts = [];
-  ['tasks', 'sessions', 'categories', 'ranges'].forEach(function (k) {
-    (s[k] || []).forEach(function (x) { parts.push(k[0] + x.id + '@' + (x.updatedAt || 0)); });
+  ['tasks', 'sessions', 'categories', 'ranges', 'lists', 'days', 'countdowns', 'templates'].forEach(function (k) {
+    (s[k] || []).forEach(function (x) { parts.push(k + ':' + x.id + '@' + (x.updatedAt || 0)); });
   });
   (s.habits || []).forEach(function (h) {
     parts.push('h' + h.id + '@' + (h.updatedAt || 0));
@@ -341,6 +342,8 @@ actions.syncsignout = function () {
   sync = {};
   saveSync();
   setSyncStatus('off');
+  if (typeof renderAvatar === 'function') renderAvatar();
+  if (typeof refreshProfile === 'function') refreshProfile();
   toast('Signed out. Your data stays on this device.');
 };
 actions.syncpromptno = function () { state.ui.syncPromptDone = true; save(); updateSyncUI(); };
@@ -349,7 +352,13 @@ actions.syncpromptno = function () { state.ui.syncPromptDone = true; save(); upd
 async function fetchEmail() {
   try {
     const info = await driveJSON('https://www.googleapis.com/oauth2/v3/userinfo');
-    if (info.email) { sync.email = info.email; saveSync(); updateSyncUI(); }
+    if (info.email) sync.email = info.email;
+    if (info.name) sync.name = info.name;          // only sent if Google shares it; the profile falls back to initials
+    if (info.picture) sync.picture = info.picture;
+    sync.infoAt = now();
+    saveSync();
+    updateSyncUI();
+    if (typeof renderAvatar === 'function') renderAvatar();
   } catch (e) {}
 }
 function startSync() {
@@ -362,7 +371,7 @@ function startSync() {
   }
   if (!sync.signedIn) return;
   if (!tokenOk()) renewToken(true);
-  else syncNow(false);
+  else { syncNow(false); if (!sync.infoAt) fetchEmail(); }    // older sign-ins: fetch the name / photo for the profile once
   setInterval(function () { if (document.visibilityState === 'visible') syncNow(false); }, SYNC_POLL);
   document.addEventListener('visibilitychange', function () {
     if (!sync.signedIn) return;

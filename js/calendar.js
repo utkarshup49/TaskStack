@@ -8,6 +8,7 @@
      a phone. Tap a day to see its tasks in the side card.
    - Year: all 12 months, just the calendar. Tap a day to see it.
    Days off (Sat + Sun unless changed in Settings) are shaded.
+   Only the lists picked in the list bar are shown; each task carries its list's colour.
    Weeks start on Monday.
    ========================================================= */
 
@@ -35,7 +36,7 @@ function tasksByDay() {
   const map = {};
   liveTasks().forEach(function (t) {
     const d = taskDate(t);
-    if (d === null) return;
+    if (d === null || !listVisible(t)) return;
     const k = midnight(d);
     (map[k] = map[k] || []).push(t);
   });
@@ -118,7 +119,7 @@ function chipHTML(t, d, tag) {
   const time = isTimedOn(t, d) ? '<em>' + fmtTime(t.due) + '</em>' : '';
   const flag = t.deadline && midnight(t.deadline) === d && t.due === null ? '<i class="dlflag">' + FLAG_SVG + '</i>' : '';
   const attrs = tag === 'button' ? ' data-action="open" data-id="' + t.id + '"' : '';
-  return '<' + tag + ' class="cchip q' + (t.q || 0) + (t.done ? ' done' : '') + '"' + attrs + '>' + flag + time + esc(t.title) + '</' + tag + '>';
+  return '<' + tag + ' class="cchip q' + (t.q || 0) + (t.done ? ' done' : '') + '" style="--lc:' + listOf(t).color + '"' + attrs + '>' + flag + time + esc(t.title) + '</' + tag + '>';
 }
 
 // ---------- 2 weeks and Month ----------
@@ -223,7 +224,7 @@ function renderTimeGrid(p) {
     layoutLanes(items);
     let blocks = items.map(function (it) {
       const t = it.t;
-      return '<div class="tg-task q' + (t.q || 0) + (t.done ? ' done' : '') + '" style="top:' + (it.s / 60 * HOUR_PX) + 'px;height:' + Math.max(24, (it.e - it.s) / 60 * HOUR_PX - 2) + 'px;' +
+      return '<div class="tg-task q' + (t.q || 0) + (t.done ? ' done' : '') + '" style="--lc:' + listOf(t).color + ';top:' + (it.s / 60 * HOUR_PX) + 'px;height:' + Math.max(24, (it.e - it.s) / 60 * HOUR_PX - 2) + 'px;' +
         'left:calc(' + it.lane + ' * 100% / ' + it.n + ');width:calc(100% / ' + it.n + ' - 4px)">' +
         '<button class="tg-check" data-action="toggle" data-id="' + t.id + '" aria-label="' + (t.done ? 'Mark not done' : 'Mark done') + '"></button>' +
         '<button class="tg-open" data-action="open" data-id="' + t.id + '"><span class="tt">' + esc(t.title) + '</span><span class="tm">' + fmtTime(t.due) + '</span></button></div>';
@@ -250,7 +251,7 @@ function renderDayCard() {
   const today = midnight(now());
   const map = tasksByDay();
   const list = (map[calSel] || []).slice();
-  if (calSel === today) liveTasks().forEach(function (t) { if (taskDate(t) === null && !t.done) list.push(t); });
+  if (calSel === today) liveTasks().forEach(function (t) { if (taskDate(t) === null && !t.done && !t.someday && listVisible(t)) list.push(t); });
   const open = sortByDay(list.filter(function (t) { return !t.done; }));
   const done = list.filter(function (t) { return t.done; });
   const label = calSel === today ? 'Today' : (calSel === addDays(today, 1) ? 'Tomorrow' : dayName(calSel, 'long'));
@@ -289,6 +290,7 @@ function addFromCalendar() {
   const due = calDue(p, raw);
   const task = newTask(p.title || raw, p.q, { due: due, hasTime: p.hasTime, tags: p.tags });
   if (p.repeat) setupRepeat(task, p.repeat);
+  finishNewTask(task, Object.assign({}, p, { someday: false }));
   snapshot('Added task');
   state.tasks.push(task);
   save();

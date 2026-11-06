@@ -1,7 +1,8 @@
 /* =========================================================
    Focus: pomodoro timer with intent before, reflection after,
    a plant that grows while you focus, background sounds,
-   a 7-day chart, and the screen kept awake while it runs.
+   a 7-day chart, this week's minutes by list, a "Got distracted"
+   counter, and the screen kept awake while it runs.
    ========================================================= */
 
 const RING = 565.49;          // circumference of the timer circle (2 * PI * 90)
@@ -70,6 +71,8 @@ function renderFocus() {
   if (document.activeElement !== $('intentInput')) $('intentInput').value = tm.intent || '';
   $('soundSelect').value = state.ui.ambient || 'off';
   $('plant').style.display = isFocus ? '' : 'none';
+  $('distractBtn').hidden = !(isFocus && tm.running);
+  $('distractCount').textContent = tm.distractions ? '· ' + tm.distractions : '';
   renderTaskSelect();
 
   const today = liveSessions().filter(function (s) { return s.day === dayKey(); });
@@ -81,12 +84,13 @@ function renderFocus() {
   for (let i = 0; i < 4; i++) dots += '<i class="' + (i < filled ? 'on' : '') + '"></i>';
   $('dots').innerHTML = dots;
   renderFocusChart();
+  renderFocusByList();
 
   $('sessionLog').innerHTML = today.length
     ? today.slice().reverse().map(function (s) {
         const t = s.taskId ? findTask(s.taskId) : null;
         const title = s.intent || (t ? t.title : 'Focus session');
-        return '<li><div class="what"><span>' + esc(title) + ' · ' + s.minutes + ' min</span>' +
+        return '<li><div class="what"><span>' + esc(title) + ' · ' + s.minutes + ' min' + (s.distractions ? ' · ' + s.distractions + ' distracted' : '') + '</span>' +
           (s.note ? '<em>' + esc(s.note) + '</em>' : '') + '</div><time>' + fmtTime(s.endedAt) + '</time></li>';
       }).join('')
     : '<li><span class="small">No sessions yet. Say what you\'ll get done, then press Start.</span></li>';
@@ -120,6 +124,7 @@ function setMode(mode) {
   tm.mode = mode;
   tm.running = false;
   tm.remaining = modeMinutes(mode) * MIN;
+  tm.distractions = 0;
   stopAmbient();
   keepAwake(false);
   save();
@@ -154,7 +159,9 @@ function finishTimer(skipped) {
   if (tm.mode === 'focus') {
     if (!skipped) {
       const t = now();
-      const s = { id: uid(), taskId: tm.taskId, minutes: state.settings.focus, endedAt: t, day: dayKey(), intent: tm.intent || '', note: '', updatedAt: t, deleted: false };
+      const task = tm.taskId ? findTask(tm.taskId) : null;
+      const s = { id: uid(), taskId: tm.taskId, minutes: state.settings.focus, endedAt: t, day: dayKey(), intent: tm.intent || '', note: '',
+        distractions: tm.distractions || 0, listId: task ? task.listId : null, updatedAt: t, deleted: false };
       state.sessions.push(s);
       sessionId = s.id;
       tm.count = (tm.count || 0) + 1;
@@ -179,6 +186,41 @@ setInterval(function () {
     document.title = fmtClock(timeLeft()) + ' · TaskStack';
   }
 }, 250);
+
+// Focus minutes this week (Monday on), one bar per list. Sessions without a task count as "No task".
+function renderFocusByList() {
+  const from = dayKey(weekStart(now()));
+  const sums = {};
+  let total = 0;
+  liveSessions().forEach(function (s) {
+    if (s.day < from) return;
+    const t = s.taskId ? findTask(s.taskId) : null;
+    const id = s.listId || (t ? t.listId : '') || '';
+    sums[id] = (sums[id] || 0) + s.minutes;
+    total += s.minutes;
+  });
+  $('focusListCard').hidden = !total;
+  if (!total) return;
+  const rows = Object.keys(sums).map(function (id) {
+    const l = id ? findList(id) : null;
+    return { name: l ? l.name : 'No task', color: l ? l.color : 'var(--muted)', m: sums[id] };
+  }).sort(function (a, b) { return b.m - a.m; });
+  const max = rows[0].m;
+  $('focusByList').innerHTML = rows.map(function (r) {
+    return '<li style="--lc:' + r.color + ';--w:' + (r.m / max).toFixed(3) + '"><span>' + esc(r.name) + '</span><b>' + fmtEst(r.m) + '</b><i></i></li>';
+  }).join('');
+}
+
+// "Got distracted": a tap during a focus session counts it (TickTick-style). Saved with the session.
+actions.distracted = function () {
+  const tm = state.timer;
+  if (!tm.running || tm.mode !== 'focus') return;
+  tm.distractions = (tm.distractions || 0) + 1;
+  save();
+  haptic(10);
+  $('distractCount').textContent = '· ' + tm.distractions;
+  toast('Noted. Back to it: ' + fmtClock(timeLeft()) + ' left.');
+};
 
 // ---------- reflection after a session ----------
 function askReflection(sessionId) {

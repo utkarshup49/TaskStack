@@ -111,11 +111,37 @@ function defaultCategories() {
 // Each block of it gets its own name, asked for when you paint it.
 const ONEOFF_CAT = { id: 'oneoff', name: 'One-off', color: '#22d3ee', oneoff: true };
 
+// Lists (life areas). Fixed ids + updatedAt 1, so two devices that both start with them don't
+// make doubles, and any real edit (rename, recolour, delete) synced from another device wins.
+const DEFAULT_LISTS = [
+  { id: 'personal', name: 'Personal', color: '#ea580c' },
+  { id: 'college', name: 'College', color: '#7c3aed' },
+  { id: 'extra', name: 'Extracurricular', color: '#db2777' },
+  { id: 'projects', name: 'Projects', color: '#0891b2' },
+  { id: 'growth', name: 'Self-growth', color: '#16a34a' }
+];
+function defaultLists() {
+  return DEFAULT_LISTS.map(function (l, i) { return Object.assign({}, l, { order: i, updatedAt: 1, deleted: false }); });
+}
+// Settings added after the first version. normalize() fills in any that an older copy doesn't have.
+const SETTING_DEFAULTS = {
+  dailyGoal: 5,          // tasks a day (profile ring + streak)
+  workHours: 6,          // hours you can really plan into a day (Plan my day warns past this)
+  remindDefault: 0,      // new tasks with a time get a reminder this many minutes before (-1 = none)
+  remindHour: 9,         // reminders for tasks with a date but no time fire at this hour
+  defaultList: 'personal',
+  profileName: '',
+  hiddenTabs: [],        // sections switched off in the profile
+  nudges: false          // morning "plan your day" / evening "wrap up" notifications
+};
+
 function newTask(title, q, extra) {
   const t = now();
   return Object.assign({
     id: uid(), title: title, q: q || null, done: false, doneAt: null, due: null, hasTime: false, deadline: null,
-    notes: '', subtasks: [], tags: [], createdAt: t, updatedAt: t, deleted: false
+    notes: '', subtasks: [], tags: [], createdAt: t, updatedAt: t, deleted: false,
+    listId: typeof defaultListId === 'function' ? defaultListId() : 'personal',
+    reminders: [], someday: false, evening: false, est: null, top: null
   }, extra || {});
 }
 
@@ -130,16 +156,17 @@ function exampleState() {
   return {
     version: 2,
     tasks: [
-      task('Submit lab record', 1, { due: midnight(t), tags: ['college'] }),
-      task('Revise for tomorrow\'s quiz', 1, { subtasks: [{ id: uid(), title: 'Unit 3 notes', done: true }, { id: uid(), title: 'Past paper', done: false }] }),
-      task('Build habit tracker screen', 2),
-      task('Plan next week', 2, { due: addDays(midnight(t), 3) }),
-      task('Mini project report', 2, { deadline: addDays(midnight(t), 6) }),
+      task('Submit lab record', 1, { due: midnight(t), listId: 'college' }),
+      task('Revise for tomorrow\'s quiz', 1, { listId: 'college', est: 60, subtasks: [{ id: uid(), title: 'Unit 3 notes', done: true }, { id: uid(), title: 'Past paper', done: false }] }),
+      task('Build habit tracker screen', 2, { listId: 'projects', est: 90 }),
+      task('Plan next week', 2, { due: addDays(midnight(t), 3), listId: 'growth' }),
+      task('Mini project report', 2, { deadline: addDays(midnight(t), 6), listId: 'college' }),
       task('Buy notebook', null, { due: addDays(midnight(t), 1) }),
-      task('Read one research paper', 2, { done: true, doneAt: t }),
-      task('Reply to group chat', 3),
+      task('Read one research paper', 2, { done: true, doneAt: t, listId: 'growth' }),
+      task('Reply to group chat', 3, { listId: 'extra' }),
       task('Book train tickets', 3),
-      task('Reorganise desktop icons', 4)
+      task('Reorganise desktop icons', 4),
+      task('Learn to play the guitar', null, { someday: true, listId: 'growth' })
     ],
     habits: [
       habit('Workout 30 min', HABIT_COLORS[3], [1, 2, 3, 5, 6, 8, 9, 10, 12]),
@@ -147,11 +174,15 @@ function exampleState() {
       habit('No phone after 11 pm', HABIT_COLORS[4], [2, 3, 7])
     ],
     sessions: [],
-    settings: { focus: 25, short: 5, long: 15, quadNames: {}, offDays: [0, 6], napHours: 3.5, updatedAt: t },
-    timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * MIN, taskId: null, count: 0, intent: '' },
+    settings: Object.assign({ focus: 25, short: 5, long: 15, quadNames: {}, offDays: [0, 6], napHours: 3.5, updatedAt: t }, JSON.parse(JSON.stringify(SETTING_DEFAULTS))),
+    timer: { mode: 'focus', running: false, endsAt: 0, remaining: 25 * MIN, taskId: null, count: 0, intent: '', distractions: 0 },
     categories: defaultCategories(),
     ranges: [],
-    ui: { ctView: 'sleep', sound: true, haptics: true, ambient: 'off', showDone: {}, listQ: null }
+    lists: defaultLists(),
+    days: [],          // one entry per day (id "2026-11-06") or week (id "w2026-11-02"): plan / wrap-up notes
+    countdowns: [],    // { id, title, date }
+    templates: [],     // { id, name, task: { title, q, listId, est, tags, notes, subtasks } }
+    ui: { ctView: 'sleep', sound: true, haptics: true, ambient: 'off', showDone: {}, listQ: null, listFilter: [], dismissed: {} }
   };
 }
 
@@ -164,8 +195,21 @@ function normalize(s) {
   s.settings = s.settings || base.settings;
   if (!s.settings.quadNames || typeof s.settings.quadNames !== 'object') s.settings.quadNames = {};
   if (!Array.isArray(s.settings.offDays)) s.settings.offDays = [0, 6];
-  if (!(s.settings.napHours >= 0.5 && s.settings.napHours <= 6)) s.settings.napHours = 3.5;   // ColorTracker: shorter sleeps are naps   // days shaded in the Calendar (0 = Sun, 6 = Sat)
+  if (!(s.settings.napHours >= 0.5 && s.settings.napHours <= 6)) s.settings.napHours = 3.5;   // ColorTracker: shorter sleeps are naps
+  for (const k in SETTING_DEFAULTS) {
+    if (s.settings[k] === undefined || s.settings[k] === null) s.settings[k] = JSON.parse(JSON.stringify(SETTING_DEFAULTS[k]));
+  }
+  if (!Array.isArray(s.settings.hiddenTabs)) s.settings.hiddenTabs = [];
   s.timer = Object.assign({}, base.timer, s.timer || {});
+  // Lists: older data has none, so it gets the defaults. Keep at least one list alive.
+  s.lists = Array.isArray(s.lists) ? s.lists : defaultLists();
+  if (!s.lists.some(function (l) { return !l.deleted; })) {
+    const p = s.lists.find(function (l) { return l.id === 'personal'; });
+    if (p) { p.deleted = false; p.updatedAt = now(); } else s.lists.push(Object.assign(defaultLists()[0], { updatedAt: now() }));
+  }
+  s.days = Array.isArray(s.days) ? s.days : [];
+  s.countdowns = Array.isArray(s.countdowns) ? s.countdowns : [];
+  s.templates = Array.isArray(s.templates) ? s.templates : [];
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
   // Older data has no One-off activity: add it. updatedAt 1 so any real edit synced from another device wins.
   if (!s.categories.some(function (c) { return c.id === ONEOFF_CAT.id; })) s.categories.push(Object.assign({}, ONEOFF_CAT, { updatedAt: 1, deleted: false }));
@@ -179,7 +223,15 @@ function normalize(s) {
     if (x.deadline === undefined) x.deadline = null;
     if (!x.q) x.q = null;
     if (x.repeat === undefined) x.repeat = null;
+    if (!x.listId) x.listId = 'personal';
+    if (!Array.isArray(x.reminders)) x.reminders = [];
+    if (typeof x.someday !== 'boolean') x.someday = false;
+    if (typeof x.evening !== 'boolean') x.evening = false;
+    if (x.est === undefined) x.est = null;
+    if (x.top === undefined) x.top = null;
   });
+  if (!s.ui.listFilter || !Array.isArray(s.ui.listFilter)) s.ui.listFilter = [];
+  if (!s.ui.dismissed || typeof s.ui.dismissed !== 'object') s.ui.dismissed = {};
   s.habits.forEach(function (h, i) { if (!h.color) h.color = HABIT_COLORS[i % HABIT_COLORS.length]; if (!h.done) h.done = {}; });
   s.version = 2;
   return s;
@@ -243,12 +295,16 @@ function mergeState(local, incoming) {
     timer: local.timer,               // the running timer belongs to this device
     categories: mergeById(local.categories, incoming.categories || []),
     ranges: mergeById(local.ranges, incoming.ranges || []),
+    lists: mergeById(local.lists || [], incoming.lists || []),
+    days: mergeById(local.days || [], incoming.days || []),
+    countdowns: mergeById(local.countdowns || [], incoming.countdowns || []),
+    templates: mergeById(local.templates || [], incoming.templates || []),
     ui: local.ui                      // view choices belong to this device
   };
 }
 
 // ---------- undo (one stack for the whole app) ----------
-const UNDO_KEYS = ['tasks', 'habits', 'sessions', 'ranges', 'categories'];
+const UNDO_KEYS = ['tasks', 'habits', 'sessions', 'ranges', 'categories', 'lists', 'days', 'countdowns', 'templates'];
 const undoStack = [];
 function snapshot(label) {
   const snap = { label: label };
@@ -452,7 +508,7 @@ const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'se
 
 function parseQuickAdd(text) {
   let s = ' ' + text + ' ';
-  const out = { title: '', q: null, tags: [], date: null, time: null, tonight: false, repeat: null };
+  const out = { title: '', q: null, tags: [], date: null, time: null, tonight: false, repeat: null, listId: null, est: null, someday: false };
   // repeat words first ("every mon", "every 4 days after completion"), so the date rules below don't read "mon" as a date
   const rp = typeof parseRepeat === 'function' ? parseRepeat(s) : null;
   if (rp) { s = rp.s; out.repeat = rp.rule; }
@@ -462,6 +518,23 @@ function parseQuickAdd(text) {
   s = s.replace(/\s!([1-4])(?=\s)/, function (m, n) { out.q = Number(n); return ' '; });
   // #tags
   s = s.replace(/\s#([A-Za-z0-9_\-]+)(?=\s)/g, function (m, tag) { out.tags.push(tag.toLowerCase()); return ' '; });
+  // /college = which list (matched by the start of a list's name; an unknown word stays in the title)
+  s = s.replace(/\s\/([A-Za-z][A-Za-z0-9_\-]*)(?=\s)/, function (m, word) {
+    const l = typeof listByToken === 'function' ? listByToken(word) : null;
+    if (!l) return m;
+    out.listId = l.id;
+    return ' ';
+  });
+  // ~30m, ~1h, ~1.5h, ~1h30m, ~45 = how long you think it takes
+  s = s.replace(/\s~(\d+(?:\.\d+)?)\s?(h|hr|hrs|m|min|mins)?(?:(\d+)\s?m(?:in)?)?(?=\s)/i, function (m, n, unit, extra) {
+    let mins = /^h/i.test(unit || '') ? Number(n) * 60 + Number(extra || 0) : Number(n);
+    mins = Math.round(mins);
+    if (!(mins >= 1 && mins <= 24 * 60)) return m;
+    out.est = mins;
+    return ' ';
+  });
+  // "someday": no date, kept out of Today and the Matrix until you pick it up
+  s = s.replace(/\s(someday|some day)(?=\s)/i, function () { out.someday = true; return ' '; });
   // time: 5pm, 5:30 pm, 17:30
   s = s.replace(/\s(?:at\s)?(\d{1,2})(?::(\d{2}))?\s?(am|pm)(?=\s)/i, function (m, h, mm, ap) {
     let hour = Number(h) % 12;
@@ -530,6 +603,27 @@ function quickAddChips(p) {
   if (p.due !== null) chips.push(fmtDue(p.due, p.hasTime));
   if (p.repeat) chips.push('↻ ' + repeatLabel(rpNorm(p.repeat, p.due !== null ? p.due : midnight(now()))));
   if (p.q) chips.push(quadName(p.q));
+  if (p.listId && typeof findList === 'function' && findList(p.listId)) chips.push('List: ' + findList(p.listId).name);
+  if (p.est) chips.push('~' + fmtEst(p.est));
+  if (p.someday) chips.push('Someday');
   p.tags.forEach(function (t) { chips.push('#' + t); });
   return chips;
+}
+// 45 -> "45m", 90 -> "1h 30m", 120 -> "2h"
+function fmtEst(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h ? h + 'h' + (m ? ' ' + m + 'm' : '') : m + 'm';
+}
+
+// Everything the quick-add sentence can set beyond title/date/box, applied to a brand-new task:
+// its list, estimate, Someday, and the default reminder for tasks with a time.
+function finishNewTask(task, p) {
+  if (p && p.listId) task.listId = p.listId;
+  if (p && p.est) task.est = p.est;
+  if (p && p.someday) { task.someday = true; task.due = null; task.hasTime = false; }
+  const def = state.settings.remindDefault;
+  if (task.due !== null && task.hasTime && def >= 0 && !task.reminders.length) {
+    task.reminders.push({ id: uid(), type: 'due', mins: def });
+  }
+  return task;
 }

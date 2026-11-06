@@ -33,9 +33,7 @@
     <button class="icon-btn" data-action="palette" aria-label="Search and commands (Ctrl+K)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     </button>
-    <button class="icon-btn" data-action="settings" aria-label="Settings and backup">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-    </button>
+    <button class="avatar-btn" id="avatarBtn" data-action="profile" aria-label="Your profile and settings"></button>
   </div>
 </header>
 <p id="storeNote" class="note" hidden>This browser isn't saving data. Open Settings and copy a backup before you close the page.</p>
@@ -48,20 +46,27 @@
 <main id="main">
   <!-- TASKS (main list) -->
   <section id="view-tasks" class="view">
+    <div class="listbar" id="listbarTasks" role="group" aria-label="Lists to show"></div>
+    <div id="planBanner"></div>
+    <div class="cdstrip" id="countdownStrip" hidden></div>
     <form id="taskForm" class="add" autocomplete="off">
       <div class="add-row">
-        <input id="taskInput" placeholder="Add a task (try &quot;fri 5pm !2 #college&quot;)" aria-label="New task" enterkeyhint="done">
+        <input id="taskInput" placeholder="Add a task (try &quot;fri 5pm !2 /college&quot;)" aria-label="New task" enterkeyhint="done">
+        <button class="icon-btn mic" id="micBtn" type="button" data-action="voiceadd" aria-label="Say a task" title="Say a task" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
         <button class="btn primary" type="submit">Add</button>
       </div>
       <div class="parse" id="taskParse" aria-live="polite"></div>
       <div id="taskPick"></div>
     </form>
     <div id="taskList"></div>
-    <p class="small">Tasks with no date stay in Today. Tap the box button on a task (or hold the task) to sort it into the matrix. Swipe right to finish, left to delete.</p>
+    <p class="small">Tasks with no date stay in Today. Tap the box button on a task (or hold the task) to sort it into the matrix. Swipe right to finish, left to delete. Type <b>/college</b> for a list, <b>~45m</b> for how long it takes, <b>someday</b> to park it.</p>
   </section>
 
   <!-- CALENDAR -->
   <section id="view-calendar" class="view" hidden>
+    <div class="listbar" id="listbarCal" role="group" aria-label="Lists to show"></div>
     <div class="cal-top">
       <div class="cal-head">
         <h2 id="calTitle"></h2>
@@ -88,6 +93,7 @@
 
   <!-- MATRIX -->
   <section id="view-matrix" class="view" hidden>
+    <div class="listbar" id="listbarMatrix" role="group" aria-label="Lists to show"></div>
     <div class="tray" id="tray" hidden></div>
     <div class="matrix" id="matrixGrid"></div>
   </section>
@@ -142,6 +148,7 @@
         <button class="btn go" id="startBtn" data-action="startpause">Start</button>
         <button class="btn" data-action="skip">Skip</button>
       </div>
+      <button class="btn distract" id="distractBtn" data-action="distracted" hidden>Got distracted <span id="distractCount"></span></button>
       <div class="card">
         <div class="stats">
           <div class="stat"><b id="statCount">0</b><span>sessions today</span></div>
@@ -149,6 +156,10 @@
           <div class="dots" id="dots" aria-label="Progress to long break"></div>
         </div>
         <div class="chart" id="focusChart"></div>
+      </div>
+      <div class="card" id="focusListCard" hidden>
+        <h3>This week by list</h3>
+        <ul class="bylist" id="focusByList"></ul>
       </div>
       <div class="card">
         <h3>Today's sessions</h3>
@@ -279,12 +290,16 @@
 
 <script src="js/core.js"></script>
 <script src="js/repeat.js"></script>
+<script src="js/lists.js"></script>
+<script src="js/remind.js"></script>
 <script src="js/matrix.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/focus.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/colortracker.js"></script>
+<script src="js/plan.js"></script>
+<script src="js/profile.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/main.js"></script>
 </body>
