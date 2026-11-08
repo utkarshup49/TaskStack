@@ -235,8 +235,15 @@ function applyRemote(remote, firstTime) {
     remote.tasks.concat(remote.habits).forEach(function (x) { ids[x.id] = true; });
     state.tasks = state.tasks.filter(function (x) { return !x.example || ids[x.id]; });
     state.habits = state.habits.filter(function (x) { return !x.example || ids[x.id]; });
+    // Default activities this device made but never touched or painted with don't get added to an
+    // account that already has its own activities (so your list doesn't suddenly gain "Social").
+    const remoteHasCats = remote.categories.some(function (r) { return !r.deleted; });
+    const used = {};
+    state.ranges.forEach(function (r) { if (!r.deleted) used[r.cat] = true; });
     state.categories = state.categories.filter(function (c) {
-      return !remote.categories.some(function (r) { return r.id === c.id; });
+      if (remote.categories.some(function (r) { return r.id === c.id; })) return false;
+      const untouchedDefault = c.bornAt && c.updatedAt === c.bornAt && !used[c.id];
+      return !(remoteHasCats && untouchedDefault);
     });
     state.settings = remote.settings;
   }

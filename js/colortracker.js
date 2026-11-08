@@ -22,7 +22,7 @@ const CT_SPARE_COLORS = ['#7c3aed', '#0ea5e9', '#f97316', '#14b8a6', '#a16207', 
 const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 const UNLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.8-1.2"/></svg>';
 
-let ctBrush = 'study';   // selected colour (activity id)
+let ctBrush = 'work';    // selected colour (activity id)
 let ctMode = null;       // null = pen off (page scrolls, taps select) | 'paint'. Turns off after one stroke.
 let ctSel = null;        // id of the selected block
 let ctAnchor = null;     // a moment inside the day on screen; null = today

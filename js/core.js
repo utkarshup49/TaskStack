@@ -94,18 +94,30 @@ function quadSub(q) { const c = state.settings.quadNames && state.settings.quadN
 function boxName(q) { return q ? quadName(q) : 'Not sorted'; }
 
 // ---------- saved data ----------
+// The 10 activities a new user starts with: things almost everyone does. Specific ones
+// (College, Office, a project) are added by the user. Each already has its kind for Stats.
+// bornAt = when it was made: while updatedAt still equals it, it's an untouched default
+// (first sync drops those if the account already has its own activities).
 function defaultCategories() {
   const t = now();
   return [
-    { id: 'sleep', name: 'Sleep', color: '#6b6b6b', sleep: true },
-    { id: 'study', name: 'College Study', color: '#6cbf3a' },
-    { id: 'college', name: 'College', color: '#0f766e' },
-    { id: 'extra', name: 'Extra-curricular', color: '#ec4899' },
-    { id: 'essentials', name: 'Essentials', color: '#facc15' },
-    { id: 'planned', name: 'Planned', color: '#7c3a12' },
-    { id: 'waste', name: 'Waste', color: '#dc2626' },
+    { id: 'sleep', name: 'Sleep', color: '#6b6b6b', sleep: true, kind: 'sleep' },
+    { id: 'work', name: 'Work / Study', color: '#16a34a', kind: 'productive', sub: 'study' },
+    { id: 'essentials', name: 'Essentials', color: '#facc15', kind: 'selfcare' },
+    { id: 'meals', name: 'Meals', color: '#92400e', kind: 'selfcare' },
+    { id: 'workout', name: 'Workout', color: '#f97316', kind: 'workout' },
+    { id: 'social', name: 'Social', color: '#ec4899', kind: 'social' },
+    { id: 'leisure', name: 'Leisure', color: '#8b5cf6', kind: 'leisure' },
+    { id: 'rest', name: 'Rest / Break', color: '#2563eb', kind: 'leisure' },
+    { id: 'waste', name: 'Time waste', color: '#dc2626', kind: 'waste' },
     ONEOFF_CAT
-  ].map(function (c) { c = Object.assign({}, c); c.updatedAt = t; c.deleted = false; return c; });
+  ].map(function (c) {
+    c = Object.assign({}, c);
+    c.updatedAt = t; c.bornAt = t; c.deleted = false;
+    c.kind = c.kind || (c.oneoff ? 'other' : undefined);
+    c.kindSure = true;
+    return c;
+  });
 }
 // ColorTracker's "One-off": one striped colour for things that don't happen often (an exam, a trip).
 // Each block of it gets its own name, asked for when you paint it.
