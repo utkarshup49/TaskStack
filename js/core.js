@@ -132,7 +132,17 @@ const SETTING_DEFAULTS = {
   defaultList: 'personal',
   profileName: '',
   hiddenTabs: [],        // sections switched off in the profile
-  nudges: false          // morning "plan your day" / evening "wrap up" notifications
+  nudges: false,         // morning "plan your day" / evening "wrap up" notifications
+  // ColorTracker stats (v0.10)
+  sleepNeed: 7.5,        // hours a night (sleep debt, scores)
+  ctNudge: 0,            // remind to log after this many hours with nothing logged (0 = off)
+  ctGoals: [],           // { id, target (kind), op 'min'|'max', mins, per 'day'|'week' }
+  ctBedBy: 0,            // "in bed by" goal, minutes after midnight of the evening before (1500 = 1 am); 0 = none
+  ctIdeal: null,         // { blocks: [{ s, e, cat }] (minutes from midnight), from: dayKey }
+  ctChallenges: [],      // { id, type, start: dayKey }
+  ctBadges: [],          // { type, won: dayKey }
+  dayTemplates: [],      // { id, name, blocks: [{ s, e, cat }] }
+  ctKindsReviewed: false
 };
 
 function newTask(title, q, extra) {
@@ -182,6 +192,7 @@ function exampleState() {
     days: [],          // one entry per day (id "2026-11-06") or week (id "w2026-11-02"): plan / wrap-up notes
     countdowns: [],    // { id, title, date }
     templates: [],     // { id, name, task: { title, q, listId, est, tags, notes, subtasks } }
+    periods: [],       // ColorTracker periods to compare: { id, name, start: "YYYY-MM-DD", end }
     ui: { ctView: 'sleep', sound: true, haptics: true, ambient: 'off', showDone: {}, listQ: null, listFilter: [], dismissed: {} }
   };
 }
@@ -210,6 +221,8 @@ function normalize(s) {
   s.days = Array.isArray(s.days) ? s.days : [];
   s.countdowns = Array.isArray(s.countdowns) ? s.countdowns : [];
   s.templates = Array.isArray(s.templates) ? s.templates : [];
+  s.periods = Array.isArray(s.periods) ? s.periods : [];
+  ['ctGoals', 'ctChallenges', 'ctBadges', 'dayTemplates'].forEach(function (k) { if (!Array.isArray(s.settings[k])) s.settings[k] = []; });
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
   // Older data has no One-off activity: add it. updatedAt 1 so any real edit synced from another device wins.
   if (!s.categories.some(function (c) { return c.id === ONEOFF_CAT.id; })) s.categories.push(Object.assign({}, ONEOFF_CAT, { updatedAt: 1, deleted: false }));
@@ -299,12 +312,13 @@ function mergeState(local, incoming) {
     days: mergeById(local.days || [], incoming.days || []),
     countdowns: mergeById(local.countdowns || [], incoming.countdowns || []),
     templates: mergeById(local.templates || [], incoming.templates || []),
+    periods: mergeById(local.periods || [], incoming.periods || []),
     ui: local.ui                      // view choices belong to this device
   };
 }
 
 // ---------- undo (one stack for the whole app) ----------
-const UNDO_KEYS = ['tasks', 'habits', 'sessions', 'ranges', 'categories', 'lists', 'days', 'countdowns', 'templates'];
+const UNDO_KEYS = ['tasks', 'habits', 'sessions', 'ranges', 'categories', 'lists', 'days', 'countdowns', 'templates', 'periods'];
 const undoStack = [];
 function snapshot(label) {
   const snap = { label: label };

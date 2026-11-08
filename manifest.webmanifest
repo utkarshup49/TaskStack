@@ -49,9 +49,9 @@
       ]
     },
     {
-      "name": "ColorTracker",
-      "short_name": "Tracker",
-      "url": "./#colortracker",
+      "name": "Log time",
+      "short_name": "Log time",
+      "url": "./?do=log#colortracker",
       "icons": [
         {
           "src": "icons/icon-192.png",

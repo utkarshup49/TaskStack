@@ -114,6 +114,7 @@ function profileHTML() {
       tile('logbook', 'Logbook', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M8 9l2 2 4-4"/></svg>') +
       tile('listsedit', 'Lists', LIST_SVG) +
       tile('countdowns', 'Countdowns', CLOCK_SVG) +
+      tile('timestats', 'Time stats', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>') +
       tile('settings', 'Settings', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>') +
       tile('shortcuts', 'Shortcuts', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>') +
     '</div>' +
@@ -172,6 +173,7 @@ function saveProfileName() {
 
 // ---------- buttons ----------
 actions.profile = function () { openProfile(); };
+actions.timestats = function () { closeSheet(); showView('colortracker'); setCtPage('stats', 'overview'); };
 actions.pstep = function (el) {
   const k = el.dataset.k;
   const lim = { dailyGoal: [1, 30], workHours: [1, 16], remindHour: [5, 22] }[k];

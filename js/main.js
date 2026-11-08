@@ -33,6 +33,12 @@ function applyTheme() {
 }
 
 function showView(v) {
+  // "colortracker/stats/sleep" = ColorTracker opened on its Stats page
+  if (v && v.indexOf('/') !== -1) {
+    const parts = v.split('/');
+    v = parts[0];
+    if (v === 'colortracker' && parts[1] === 'stats') openCtStatsFromHash(parts[2]);
+  }
   if (VIEWS.indexOf(v) === -1 || (state.settings.hiddenTabs || []).indexOf(v) !== -1) v = 'tasks';
   const changed = v !== view;
   view = v;
@@ -51,7 +57,7 @@ function showView(v) {
     $('main').scrollTop = 0;
   }
   closeBoxMenu();
-  if (!sheetCtx && !(history.state && history.state.overlay)) { try { history.replaceState(null, '', '#' + v); } catch (e) {} }
+  if (!sheetCtx && !(history.state && history.state.overlay)) { try { history.replaceState(null, '', '#' + v + (v === 'colortracker' && ctPage === 'stats' ? '/stats/' + ctTab : '')); } catch (e) {} }
   if (v === 'tasks') renderTaskList();
   if (v === 'calendar') renderCalendar();
   if (v === 'focus') renderFocus();
@@ -206,6 +212,10 @@ function paletteItems(q) {
     { label: 'Edit lists', hint: 'College, Projects…', run: function () { openListsSheet(); } },
     { label: 'Show all lists', hint: 'List filter', run: function () { setListFilter([]); } },
     { label: 'Profile', hint: 'Stats, goals, data', run: function () { openProfile(); } },
+    { label: 'ColorTracker stats', hint: 'Where your time goes', run: function () { showView('colortracker'); setCtPage('stats', 'overview'); } },
+    { label: 'Sleep stats', hint: 'ColorTracker', run: function () { showView('colortracker'); setCtPage('stats', 'sleep'); } },
+    { label: 'Fill the gaps in today', hint: 'ColorTracker', run: function () { showView('colortracker'); setTimeout(function () { actions.ctgaps(); }, 250); } },
+    { label: 'Going to sleep', hint: 'ColorTracker live', run: function () { showView('colortracker'); actions.ctsleepNow(); } },
     { label: 'Keyboard shortcuts', hint: '?', run: function () { actions.shortcuts(); } },
     { label: 'Undo last change', hint: 'Ctrl Z', run: undo },
     { label: 'Sync now', hint: 'Google Drive', run: function () { if (sync.signedIn) syncNow(false); else actions.settings(); } },
@@ -352,6 +362,7 @@ setupVoiceAdd();
   if (!what) return;
   try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
   if (what === 'add') { showView('tasks'); setTimeout(function () { $('taskInput').focus(); }, 200); }
+  else if (what === 'log') { showView('colortracker'); setTimeout(function () { actions.ctgaps(); }, 300); }
   else if (what === 'focus') { showView('focus'); if (!state.timer.running) { if (state.timer.mode !== 'focus') setMode('focus'); startPause(); } }
 })();
 // Quietly re-check the date-based bits (banner, Today) when the day changes or the app comes back.

@@ -45,14 +45,14 @@ function syncPayload() {
     version: 2, savedAt: now(),
     tasks: state.tasks, habits: state.habits, sessions: state.sessions,
     settings: state.settings, categories: state.categories, ranges: state.ranges,
-    lists: state.lists, days: state.days, countdowns: state.countdowns, templates: state.templates
+    lists: state.lists, days: state.days, countdowns: state.countdowns, templates: state.templates, periods: state.periods
   };
 }
 // Same items with the same edit times = same fingerprint, whatever order they're in.
 // Used to skip uploads when nothing changed, and to spot when a merge added something.
 function syncFingerprint(s) {
   const parts = [];
-  ['tasks', 'sessions', 'categories', 'ranges', 'lists', 'days', 'countdowns', 'templates'].forEach(function (k) {
+  ['tasks', 'sessions', 'categories', 'ranges', 'lists', 'days', 'countdowns', 'templates', 'periods'].forEach(function (k) {
     (s[k] || []).forEach(function (x) { parts.push(k + ':' + x.id + '@' + (x.updatedAt || 0)); });
   });
   (s.habits || []).forEach(function (h) {

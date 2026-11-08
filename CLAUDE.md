@@ -45,6 +45,15 @@ js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound
 js/habits.js           habits, strength score, milestones; details sheet with stat cards,
                        a tickable month calendar (streaks join into bands) and a 12-month chart
 js/colortracker.js     ColorTracker (paint the day hour by hour)
+js/kinds.js            smart categories: every activity gets a kind (sleep, productive, workout, selfcare,
+                       social, leisure, waste, travel, other) from an English + Hinglish word list;
+                       unclear names are asked once; review sheet; value −2..+2; productive sub-kind; list link
+js/ctstats.js          ColorTracker stats engine (numbers only): ctStats(from, to) → days, sleep, productive,
+                       waste, other kinds, links, typical day, recipe, transitions, trends, plan vs actual, scores
+js/ctview.js           Paint | Stats switch, Stats page (6 tabs + range), day card, insights + unlock ladder,
+                       weekly report, Wrapped (+ PNG), Year in pixels, periods, records
+js/ctlog.js            live mode / going to sleep, gaps + smart fill, copy yesterday, day templates, notes + 👍/👎,
+                       gap reminders, goals + budgets, ideal day, 7-day challenges, CSV export, month poster
 js/plan.js             banner, Plan your day, Wrap up, Weekly review, Logbook, Countdowns, Templates,
                        day notes (state.days), completionsByDay()
 js/profile.js          avatar + profile sheet: stats, level/XP, goals, reminder settings, sections on/off,
@@ -55,7 +64,7 @@ sw.js                  service worker (offline)
 manifest.webmanifest   install-as-app info
 ```
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, focus, habits, colortracker, plan, profile, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -80,6 +89,12 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Someday tasks have no date and are hidden from Today, the Matrix and Calendar (a folded group at the bottom of Tasks). Setting a date clears `someday`.
 - `state.days`: { id: "YYYY-MM-DD" (planned, wrapped, mood 1-5, note) or "wYYYY-MM-DD" = week starting that Monday (reviewed, note) }. The future Journal should build on this.
 - Sessions also store `distractions` and `listId`.
+- ColorTracker stats (v0.10): category gets `kind, sub, value, listId, kindSure, kindSet`; range gets `note, worth (1/-1)`.
+  `state.periods` = { id, name, start, end } (YYYY-MM-DD). Settings: sleepNeed, ctNudge, ctGoals, ctBedBy (late minutes: 1500 = 1 am),
+  ctIdeal, ctChallenges, ctBadges, dayTemplates, ctKindsReviewed. Device-only ui: ctRange, ctLive {cat,start}, ctSeen, ctRecords.
+  Stats days are calendar days; a night belongs to the day you woke up; a day counts once ≥ 50% painted (today never).
+  Unlock ladder by all-time days with 12h+ painted: 1 / 3 / 7 / 14 / 30 / 90. renderColor() is wrapped in ctview.js
+  (draws the Stats page or the Paint page + day card + live block). Meal stats only appear if an activity name looks like a meal.
 - Settings added in v0.9 live in `SETTING_DEFAULTS` (core.js): dailyGoal, workHours, remindDefault, remindHour, defaultList, profileName, hiddenTabs, nudges.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.
 - Far-off tasks (`isFarOff(t)`: planned date more than 6 days ahead): hidden from the Matrix (a note under it counts them), folded into a collapsed "Scheduled" group in Tasks, always shown in the Calendar. Ticking one asks "Done already?" first (`askDoneEarly`), because one stray tick on a repeating task silently moves it a whole month on. A task with only a far deadline stays visible.

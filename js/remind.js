@@ -87,6 +87,7 @@ function checkReminders() {
     });
   });
   checkNudges(from, to);
+  if (typeof ctGapNudge === 'function') ctGapNudge();
   fired.last = to;
   saveFired();
   if (due.length) announceReminders(due);

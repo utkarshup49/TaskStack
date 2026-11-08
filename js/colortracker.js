@@ -420,7 +420,8 @@ function renderCtSummary() {
     const locked = r && r.locked;
     const nap = r && isNap(r, mains);
     return '<li style="--ec:' + catColor(s.cat) + '">' +
-      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(r ? rangeName(r) : catName(s.cat)) + (isOneOff(s.cat) ? ' <small class="tag">one-off</small>' : '') + (nap ? ' <small class="tag">nap</small>' : '') + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
+      '<button class="what" data-action="ctselect" data-id="' + s.id + '"><span>' + esc(r ? rangeName(r) : catName(s.cat)) + (isOneOff(s.cat) ? ' <small class="tag">one-off</small>' : '') + (nap ? ' <small class="tag">nap</small>' : '') +
+        (r && r.worth ? ' ' + (r.worth > 0 ? '👍' : '👎') : '') + (r && r.note ? '<small class="enote">' + esc(r.note) + '</small>' : '') + '</span><time>' + fmtTime(s.start) + ' – ' + fmtTime(s.end) + ' · ' + fmtDur(s.end - s.start) + (locked ? ' · locked' : '') + '</time></button>' +
       (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
   }).join('') : '<li class="small">Painted blocks show up here with exact times.</li>';
 }
@@ -639,16 +640,19 @@ $('sheet').addEventListener('keydown', function (e) {
 // ---------- activities sheet (with a warning when two colours look alike) ----------
 function activitiesSheetHTML() {
   const cats = liveCats();
+  ensureKinds();
+  const ask = cats.filter(function (c) { return !c.kindSure; });
   return '<h3>ColorTracker settings</h3>' + napSliderHTML() +
     '<h3>Activities</h3>' +
-    '<p class="small">Each activity is a paint colour.</p>' +
+    '<p class="small">Each activity is a paint colour. The chip says how it counts in Stats; tap it to change.</p>' +
+    (ask.length ? '<p class="note">' + ask.length + ' activit' + (ask.length === 1 ? 'y' : 'ies') + ' marked <b>?</b> need a quick answer so the stats come out right.</p>' : '') +
     cats.map(function (c) {
       const twin = cats.find(function (o) { return o.id !== c.id && colorDistance(o.color, c.color) < 50; });
       return '<div class="act-row">' +
         '<input type="color" value="' + c.color + '" data-cat="' + c.id + '" data-field="color" aria-label="Colour for ' + esc(c.name) + '">' +
         '<input class="text-input" value="' + esc(c.name) + '" data-cat="' + c.id + '" data-field="name" aria-label="Activity name">' +
         (c.sleep ? '<span class="small">Sleep</span>' : '<button class="btn danger" data-action="delcat" data-id="' + c.id + '">Delete</button>') +
-        '</div>' + (twin ? '<p class="clash">Looks a lot like ' + esc(twin.name) + '. Pick a more different colour.</p>' : '') +
+        '</div><div class="act-kind">' + kindChipHTML(c) + '</div>' + (kindEditId === c.id ? kindEditorHTML(c) : '') + (twin ? '<p class="clash">Looks a lot like ' + esc(twin.name) + '. Pick a more different colour.</p>' : '') +
         (c.oneoff ? '<p class="small act-note">For rare things (exams, trips). It\'s striped, and asks for a name each time you paint it.</p>' : '');
     }).join('') +
     '<div class="row"><button class="btn" data-action="addcat">Add activity</button><button class="btn primary" data-action="close">Done</button></div>';
@@ -682,7 +686,11 @@ $('sheet').addEventListener('change', function (e) {
   if (!sheetCtx || sheetCtx.type !== 'activities' || !e.target.dataset.cat) return;
   const c = findCat(e.target.dataset.cat);
   const v = e.target.value.trim();
-  if (c && v) { c[e.target.dataset.field] = v; c.updatedAt = now(); save(); renderColor(); refreshSheet(activitiesSheetHTML()); }
+  if (c && v) {
+    c[e.target.dataset.field] = v;
+    if (e.target.dataset.field === 'name') rekindAfterRename(c);    // "New activity" → "Gym" becomes Workout by itself
+    c.updatedAt = now(); save(); renderColor(); refreshSheet(activitiesSheetHTML());
+  }
 });
 
 // ---------- actions ----------
@@ -704,7 +712,7 @@ actions.ctacts = function () { openSheet({ type: 'activities' }, activitiesSheet
 actions.addcat = function () {
   const used = liveCats().map(function (c) { return c.color; });
   const color = CT_SPARE_COLORS.find(function (c) { return used.every(function (u) { return colorDistance(u, c) >= 50; }); }) || CT_SPARE_COLORS[0];
-  state.categories.push({ id: uid(), name: 'New activity', color: color, updatedAt: now(), deleted: false });
+  state.categories.push({ id: uid(), name: 'New activity', color: color, kind: 'other', kindSure: false, updatedAt: now(), deleted: false });
   save(); renderColor(); refreshSheet(activitiesSheetHTML());
 };
 actions.delcat = function (el) {

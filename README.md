@@ -4,7 +4,10 @@ A to-do list, Eisenhower matrix, calendar, pomodoro timer, habit tracker and Col
 
 **Live app:** https://utkarshup49.github.io/TaskStack/
 
-## Features (v0.9)
+## Features (v0.10)
+
+- **ColorTracker Stats** (Paint | Stats switch): activities are grouped automatically into kinds (Sleep, Productive, Workout, Self-care, Social, Leisure, Time waste, Travel), even with Hinglish names. Six tabs: Overview (scores, daily insights, where your time goes, this week vs last/best, goals, ideal day, challenges), Sleep (every night charted, longest/shortest, bedtime and wake-up, regularity score, social jetlag, chronotype, sleep debt, naps, broken nights), Productive (golden hours heatmap, deep-work blocks, early-start effect, plan vs actual), Waste (danger hours, triggers, cost per year), Workout & more (WHO 150-minute bar, meals if you log them, social, travel, routine score, unlogged time), Patterns (links between days, typical day, best-day recipe, what leads to what, records, trends, periods). Stats unlock as you log more days.
+- **Faster logging**: day card with a 24h ring, live "Now doing…" and "Going to sleep / I'm up", fill gaps with a smart guess, copy yesterday, day templates, notes and 👍/👎 on blocks, reminders to log every 2–3 hours, weekly report, monthly Wrapped image, Year in pixels, CSV export, printable month.
 
 - **Lists**: College, Extracurricular, Projects, Self-growth, Personal (add, rename, recolour, reorder, delete your own). A chip row on Tasks, Matrix and Calendar picks what you see: tap a list for only it, hold (or Ctrl-click) to see several. Each task carries its list's colour. Type `/college` when adding.
 - **Reminders** (in the app): at the task's time, N minutes / a day before, before a deadline, or an exact time; new timed tasks get one automatically (changeable in the profile). A reminder sheet with Done / Snooze / Tomorrow; on Android and Windows a notification with Done and Snooze buttons. Works while the app is open or recently used.

@@ -214,6 +214,7 @@ function wrapSheetHTML() {
       '<div><b>' + ticked + '<small>/' + habits.length + '</small></b><span>habits</span></div>' +
     '</div>' +
     (done >= goal ? '<p class="note good">Daily goal reached. Nice.</p>' : '') +
+    (typeof ctWrapHTML === 'function' ? ctWrapHTML() : '') +
     (left.length ? '<p class="label">Still open · ' + left.length + '</p><ul class="planlist">' + left.map(function (t) {
       return planRow(t, moveBtns(t, ['tomorrow', 'someday']));
     }).join('') + '</ul><button class="btn small" data-action="wrapallmove">Move all to tomorrow</button>' : '<p class="small">Nothing left open for today.</p>') +
@@ -297,6 +298,7 @@ function reviewSheetHTML() {
       return planRow(t, moveBtns(t, ['nextweek']) + '<button class="btn small danger" data-action="pldelete" data-id="' + t.id + '" aria-label="Delete">×</button>');
     }).join('') + '</ul>';
   }
+  if (liveRanges().length) html += '<button class="btn small" data-action="ctweekreport">📊 ColorTracker report for last week</button>';
   html += '<p class="label">Top 3 for next week</p>' +
     '<textarea class="text-input" id="reviewNote" placeholder="1. \n2. \n3. ">' + esc(entry.note || '') + '</textarea>' +
     '<div class="row"><button class="btn" data-action="close">Later</button><button class="btn primary" data-action="reviewfinish">Finish review</button></div>';
