@@ -1286,3 +1286,15 @@ details.st-more > *:not(summary) { margin-top: 10px; }
   .st-tile b { font-size: 18px; }
   .trend > span { width: 110px; }
 }
+/* v0.10.1: one smooth scroll on phones (no sticky, blurred tools bar), Stats header + swipe */
+@media (max-width: 899px) {
+  .ct-tools { position: static; margin: 0; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: none; }
+  .st-tabs { position: static; }
+}
+.st-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.st-top > span { font-family: var(--display); font-weight: 700; font-size: 17px; }
+.st-top .btn svg { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
+.st-body.from-right { animation: stIn 0.22s var(--ease); --sx: 28px; }
+.st-body.from-left { animation: stIn 0.22s var(--ease); --sx: -28px; }
+@keyframes stIn { from { opacity: 0.3; transform: translateX(var(--sx)); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .st-body.from-right, .st-body.from-left { animation: none; } }

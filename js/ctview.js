@@ -45,7 +45,7 @@ function tile(label, value, sub, explain, cls) {
 }
 function card(title, inner, extra) { return '<section class="st-card' + (extra ? ' ' + extra : '') + '"><h3>' + title + '</h3>' + inner + '</section>'; }
 function locked(level, have, what) {
-  return '<div class="st-lock"><b>🔒 ' + what + '</b><span>Unlocks after ' + level + ' logged days. You have ' + have + '. ' + (level - have) + ' to go.</span>' +
+  return '<div class="st-lock"><b>🔒 ' + what + '</b><span>Unlocks after ' + level + ' logged days. You\'ve logged ' + have + (have === 1 ? ' day' : ' days') + ', so ' + (level - have) + ' more to go.</span>' +
     '<i style="--p:' + Math.min(1, have / level).toFixed(2) + '"></i></div>';
 }
 function arrow(diff, goodIsUp) {
@@ -266,8 +266,6 @@ function setCtPage(p, tab) {
   if (p === 'paint' && wasStats && history.state && history.state.overlay === 'ctstats') { ignorePop++; history.back(); }
   renderColor();
   $('main').scrollTop = 0;
-  // the first time, check how activities were sorted into kinds
-  if (p === 'stats' && !state.settings.ctKindsReviewed && liveCats().length) setTimeout(function () { if (!sheetCtx) actions.kindreview(); }, 350);
 }
 window.addEventListener('popstate', function () {
   if (ctPage === 'stats' && !(history.state && history.state.overlay === 'ctstats') && !sheetCtx) {
@@ -278,6 +276,37 @@ window.addEventListener('popstate', function () {
 actions.ctpage = function (el) { setCtPage(el.dataset.p, el.dataset.tab); };
 actions.cttab = function (el) { ctTab = el.dataset.t; try { history.replaceState(history.state, '', '#colortracker/stats/' + ctTab); } catch (e) {} renderCtStats(true); $('main').scrollTop = 0; };
 actions.ctrange = function (el) { state.ui.ctRange = el.dataset.r; save(); renderCtStats(true); };
+// Swipe left / right anywhere on the Stats page to move between tabs
+// (not on rows that scroll sideways themselves: the range chips, tabs, heatmaps, pixels).
+function goCtTab(dir) {
+  const i = CT_TABS.findIndex(function (t) { return t[0] === ctTab; });
+  const j = i + dir;
+  if (j < 0 || j >= CT_TABS.length) return;
+  ctTab = CT_TABS[j][0];
+  try { history.replaceState(history.state, '', '#colortracker/stats/' + ctTab); } catch (e) {}
+  renderCtStats(true);
+  const body = $('ctStats').querySelector('.st-body');
+  if (body) body.classList.add(dir > 0 ? 'from-right' : 'from-left');
+  const tab = $('ctStats').querySelector('.st-tabs .on');
+  if (tab) tab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  $('main').scrollTop = 0;
+  haptic(6);
+}
+(function statsSwipe() {
+  let sw = null;
+  const el = $('ctStats');
+  el.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1 || e.target.closest('.st-ranges, .st-tabs, .heat, .pixels, input, textarea')) { sw = null; return; }
+    sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+  }, { passive: true });
+  el.addEventListener('touchend', function (e) {
+    if (!sw) return;
+    const dx = e.changedTouches[0].clientX - sw.x, dy = e.changedTouches[0].clientY - sw.y;
+    const quick = Date.now() - sw.t < 700;
+    sw = null;
+    if (quick && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) goCtTab(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
 // Opened from the address (#colortracker/stats/sleep) on start-up.
 function openCtStatsFromHash(tab) {
   ctPage = 'stats';
@@ -304,14 +333,16 @@ function renderCtStats(force) {
   const L = R.allDaysLogged;
   const ranges = [['7', '7 days'], ['30', '30 days'], ['90', '90 days'], ['all', 'All']].concat(livePeriods().map(function (p) { return ['p:' + p.id, p.name]; }));
   const cur = state.ui.ctRange || '30';
-  let html = '<div class="st-ranges">' + ranges.map(function (r) {
+  let html = '<div class="st-top"><span>' + esc(range.label) + '</span><button class="btn small btn-accent" data-action="kindreview">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Activities</button></div>' +
+    '<div class="st-ranges">' + ranges.map(function (r) {
     return '<button class="pick' + (cur === r[0] ? ' on' : '') + '" data-action="ctrange" data-r="' + r[0] + '">' + esc(r[1]) + '</button>';
   }).join('') + '<button class="pick" data-action="ctperiods">+ Period</button></div>' +
     '<nav class="st-tabs" role="tablist">' + CT_TABS.map(function (t) {
       return '<button role="tab" aria-selected="' + (ctTab === t[0]) + '" class="' + (ctTab === t[0] ? 'on' : '') + '" data-action="cttab" data-t="' + t[0] + '">' + t[1] + '</button>';
     }).join('') + '</nav>';
   const ask = needsKind();
-  if (ask.length) html += '<p class="note">' + ask.length + ' activit' + (ask.length === 1 ? 'y needs' : 'ies need') + ' a kind (Productive, Leisure…) for the stats to be right. <button class="linkbtn" data-action="kindreview">Sort them</button></p>';
+  if (ask.length) html += '<p class="note">' + ask.length + ' activit' + (ask.length === 1 ? 'y needs' : 'ies need') + ' a kind (Productive, Leisure…) for the stats to be right. Tap <b>Activities</b> above to sort them.</p>';
   if (!liveRanges().length) html += '<p class="note">Nothing painted yet. Paint a day on the Paint page and your stats start here.</p>';
   const tabs = { overview: statsOverview, sleep: statsSleep, productive: statsProductive, waste: statsWaste, more: statsMore, patterns: statsPatterns };
   html += '<div class="st-body">' + tabs[ctTab](R, L, range) + '</div>' +

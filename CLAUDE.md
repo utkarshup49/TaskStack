@@ -95,6 +95,8 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
   Stats days are calendar days; a night belongs to the day you woke up; a day counts once ≥ 50% painted (today never).
   Unlock ladder by all-time days with 12h+ painted: 1 / 3 / 7 / 14 / 30 / 90. renderColor() is wrapped in ctview.js
   (draws the Stats page or the Paint page + day card + live block). Meal stats only appear if an activity name looks like a meal.
+  Paint page order: tools + grid first, then the day card, then the side cards. On phones the tools bar is NOT sticky (one smooth scroll).
+  Stats: swipe left/right switches tabs; "Activities" (top right) opens the kinds sheet. It never pops up by itself.
 - Settings added in v0.9 live in `SETTING_DEFAULTS` (core.js): dailyGoal, workHours, remindDefault, remindHour, defaultList, profileName, hiddenTabs, nudges.
 - Tasks with no date show in Today. `taskDate(t)` = due, or deadline if there's no due.
 - Far-off tasks (`isFarOff(t)`: planned date more than 6 days ahead): hidden from the Matrix (a note under it counts them), folded into a collapsed "Scheduled" group in Tasks, always shown in the Calendar. Ticking one asks "Done already?" first (`askDoneEarly`), because one stray tick on a repeating task silently moves it a whole month on. A task with only a far deadline stays visible.
