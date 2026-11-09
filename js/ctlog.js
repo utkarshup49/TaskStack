@@ -151,7 +151,8 @@ function dayMenuHTML() {
     '<button class="btn small" data-action="ctgaps">🧩 Fill the gaps</button>' +
     '<button class="btn small" data-action="ctsavetpl">💾 Save this day as a template</button>' +
     '<button class="btn small" data-action="ctsaveideal">⭐ Save this day as my ideal day</button>' +
-    '<button class="btn small" data-action="ctgoals">🎯 Goals and budgets</button></div>' +
+    '<button class="btn small" data-action="ctgoals">🎯 Goals and budgets</button>' +
+    '<button class="btn small" data-action="ctexport">📤 Export my time log (for AI, JSON, CSV)</button></div>' +
     (tpls.length ? '<p class="label">Paste a template into this day</p><ul class="tpllist">' + tpls.map(function (x) {
       return '<li><span>' + esc(x.name) + '<small>' + x.blocks.length + ' blocks</small></span><button class="btn small" data-action="ctusetpl" data-id="' + x.id + '">Use</button>' +
         '<button class="icon-btn sm danger" data-action="ctdeltpl" data-id="' + x.id + '" aria-label="Delete">×</button></li>';
@@ -470,15 +471,6 @@ actions.ctchalstop = function (el) {
 };
 
 // ---------- export and print ----------
-actions.ctexport = function () {
-  function cell(v) { v = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-  const rows = [['Start', 'End', 'Minutes', 'Activity', 'Kind', 'Name (one-off)', 'Note', 'Worth it']];
-  liveRanges().slice().sort(function (a, b) { return a.start - b.start; }).forEach(function (r) {
-    rows.push([new Date(r.start).toISOString(), new Date(r.end).toISOString(), Math.round((r.end - r.start) / MIN), catName(r.cat), kindInfo(segKind(r)).name, r.label || '', r.note || '', r.worth > 0 ? 'yes' : r.worth < 0 ? 'no' : '']);
-  });
-  downloadFile('taskstack-colortracker-' + dayKey() + '.csv', rows.map(function (r) { return r.map(cell).join(','); }).join('\n'), 'text/csv');
-  toast('Every block downloaded as a CSV.');
-};
 // A printable month: one 24 h strip per day, in each activity's colour.
 actions.ctposter = function () {
   const t = new Date(now());

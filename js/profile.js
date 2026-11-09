@@ -9,8 +9,10 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.13';
+const APP_VERSION = '0.14';
 const WHATS_NEW = [
+  'ColorTracker: export your time log for an AI. Pick 7, 15, 30… up to 365 days, as easy text (with your question on top), JSON or CSV. Copy or download.',
+  'Removed "Delete all my data" for now, so nobody can wipe their data by accident.',
   'Laptop Tasks: the list on the left, and on the right Today (progress, Top 3, habits, timeline) or a small calendar. Tasks open beside the list.',
   'Drag a task onto an hour of today\'s timeline, or onto a day. New Board view: Today, Tomorrow, each day, Later and Someday as columns.',
   'Habits: a tile per habit with its last 21 days, each day labelled.',
@@ -149,9 +151,8 @@ function profileHTML() {
       return '<li><span>' + esc(x.name) + '<small>' + (x.task.subtasks.length ? x.task.subtasks.length + ' steps' : 'no steps') + '</small></span><button class="icon-btn sm danger" data-action="tpldelete" data-id="' + x.id + '" aria-label="Delete template">×</button></li>';
     }).join('') + '</ul>' : '') +
     '<p class="label">Your data</p>' +
-    '<div class="row"><button class="btn small" data-action="pexport">Download backup</button><button class="btn small" data-action="pcsv">Tasks as CSV</button><button class="btn small" data-action="pimport">Restore a backup</button></div>' +
+    '<div class="row"><button class="btn small" data-action="pexport">Download backup</button><button class="btn small" data-action="pcsv">Tasks as CSV</button><button class="btn small" data-action="ctexport">ColorTracker log (for AI)</button><button class="btn small" data-action="pimport">Restore a backup</button></div>' +
     '<input type="file" id="importFile" accept=".json,application/json" hidden>' +
-    '<button class="btn small danger" data-action="pwipe">Delete all my data…</button>' +
     installTipHTML() +
     '<p class="label">What\'s new in ' + APP_VERSION + '</p><ul class="whatsnew">' + WHATS_NEW.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' +
     '<p class="small">TaskStack ' + APP_VERSION + ' · your data stays on your devices and in your own Google Drive.</p>' +
@@ -283,25 +284,6 @@ $('sheet').addEventListener('change', function (e) {
   };
   reader.readAsText(e.target.files[0]);
 });
-actions.pwipe = function () {
-  openSheet({ type: 'wipe' }, '<h3>Delete all your data?</h3>' +
-    '<p>This deletes every task, habit, focus session, ColorTracker entry, countdown, template and note' + (sync.signedIn ? ', on every device that syncs with your Google Drive' : '') + '. Your lists and settings stay.</p>' +
-    '<p class="small">Download a backup first if you might want it back. Type <b>DELETE</b> to confirm.</p>' +
-    '<input class="text-input" id="wipeConfirm" autocomplete="off" aria-label="Type DELETE to confirm">' +
-    '<div class="row"><button class="btn" data-action="close">Cancel</button><button class="btn danger" data-action="pwipego">Delete everything</button></div>');
-};
-actions.pwipego = function () {
-  if (($('wipeConfirm').value || '').trim().toUpperCase() !== 'DELETE') { toast('Type DELETE to confirm.'); $('wipeConfirm').focus(); return; }
-  const t = now();
-  snapshot('Deleted all data');
-  ['tasks', 'habits', 'sessions', 'ranges', 'countdowns', 'templates', 'days'].forEach(function (k) {
-    state[k].forEach(function (x) { if (!x.deleted) { x.deleted = true; x.updatedAt = t; } });
-  });
-  save();
-  closeSheet();
-  renderAll();
-  toast('Everything deleted.', { undo: true });
-};
 $('sheet').addEventListener('keydown', function (e) {
   if (e.key === 'Enter' && e.target.id === 'profileName') { e.preventDefault(); saveProfileName(); e.target.blur(); toast('Name saved'); }
 });

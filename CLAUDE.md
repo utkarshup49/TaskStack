@@ -60,10 +60,11 @@ js/ctview.js           Paint | Stats switch, Stats page (7 tabs incl. Compare + 
                        weekly report, Wrapped (+ PNG), Year in pixels, periods, records
 js/ctlog.js            live mode / going to sleep, gaps + smart fill, copy yesterday, day templates, notes + 👍/👎,
                        gap reminders, goals + budgets, ideal day, 7-day challenges, CSV export, month poster
+js/ctexport.js         Export my time log: last N days (1–365) as AI-ready text (+ your question), JSON or CSV; copy / download
 js/plan.js             banner, Plan your day, Wrap up, Weekly review, Logbook, Countdowns, Templates,
                        day notes (state.days), completionsByDay()
 js/profile.js          avatar + profile sheet: stats, level/XP, goals, reminder settings, sections on/off,
-                       download/restore/CSV/delete-all, shortcuts sheet, what's new
+                       download/restore/CSV, shortcuts sheet (no delete-all: removed on purpose in v0.14), what's new
 js/sync.js             Google sign-in (redirect, no server) + Google Drive sync
 js/main.js             section switching, settings sheet, Ctrl+K command bar, keyboard, start-up
 sw.js                  service worker (offline)
@@ -73,7 +74,7 @@ manifest.webmanifest   install-as-app info
 `grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
 and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, ctexport, plan, profile, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change

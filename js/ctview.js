@@ -410,7 +410,7 @@ function statsOverview(R, L, range) {
     '<button class="btn small" data-action="ctwrapped">🎁 Monthly Wrapped</button>' +
     '<button class="btn small" data-action="ctpixels">🟩 Year in pixels</button>' +
     '<button class="btn small" data-action="kindreview">🏷 How activities count</button>' +
-    '<button class="btn small" data-action="ctexport">⬇ Export CSV</button>' +
+    '<button class="btn small" data-action="ctexport">📤 Export my time log (AI / JSON / CSV)</button>' +
     '<button class="btn small" data-action="ctposter">🖨 Print month</button></div>');
   return h;
 }

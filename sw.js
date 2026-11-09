@@ -1,6 +1,6 @@
 // Service worker: lets TaskStack open without internet.
 // When you change any file, bump CACHE_NAME (v1 -> v2) so phones pick up the new version.
-const CACHE_NAME = 'taskstack-v25';
+const CACHE_NAME = 'taskstack-v26';
 const FILES = [
   './',
   './index.html',
@@ -19,7 +19,7 @@ const FILES = [
   './js/kinds.js',
   './js/ctstats.js',
   './js/ctview.js',
-  './js/ctlog.js',
+  './js/ctlog.js', './js/ctexport.js',
   './js/plan.js',
   './js/profile.js',
   './js/sync.js',
