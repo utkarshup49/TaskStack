@@ -44,8 +44,10 @@ js/calendar.js         Calendar drawing: Agenda / Day / 3 days / Week (hour grid
                        week numbers; side card + phone day sheet (calPeekHTML)
 js/calplus.js          Calendar moving + finding: drag (move / resize / range-add), move mode, drawer
                        (no date / overdue), View options sheet, search, jump to date, zoom, swipe
+js/tasksplus.js        Tasks on a big screen: side panel (Today: progress, Top 3, habits, timeline | Calendar: month,
+                       next 7 days), task details docked in the panel, Board layout, HTML5 drag and drop
 js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound, 7-day chart
-js/habits.js           habits, strength score, milestones; details sheet with stat cards,
+js/habits.js           habits as tiles (last 21 days each), strength score, milestones; details sheet with stat cards,
                        a tickable month calendar (streaks join into bands) and a 12-month chart
 js/colortracker.js     ColorTracker (paint the day hour by hour)
 js/kinds.js            smart categories: every activity gets a kind (sleep, productive, workout, selfcare,
@@ -53,7 +55,8 @@ js/kinds.js            smart categories: every activity gets a kind (sleep, prod
                        unclear names are asked once; review sheet; value −2..+2; productive sub-kind; list link
 js/ctstats.js          ColorTracker stats engine (numbers only): ctStats(from, to) → days, sleep, productive,
                        waste, other kinds, links, typical day, recipe, transitions, trends, plan vs actual, scores
-js/ctview.js           Paint | Stats switch, Stats page (6 tabs + range), day card, insights + unlock ladder,
+js/ctview.js           Paint | Stats switch, Stats page (7 tabs incl. Compare + range; laptop: left rail with tabs + key
+                       numbers, right rail with today so far + insights + records, cards in CSS columns), day card, insights + unlock ladder,
                        weekly report, Wrapped (+ PNG), Year in pixels, periods, records
 js/ctlog.js            live mode / going to sleep, gaps + smart fill, copy yesterday, day templates, notes + 👍/👎,
                        gap reminders, goals + budgets, ideal day, 7-day challenges, CSV export, month poster
@@ -70,7 +73,7 @@ manifest.webmanifest   install-as-app info
 `grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
 and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, calplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -101,6 +104,11 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
   It pushes a hidden `draft: true` task so the normal task sheet works on it; `liveTasks()` skips drafts. "Add task" / Enter / closing with a name
   removes `draft`; Cancel or no name removes it from `state.tasks`. normalize() cleans up drafts left by a closed app.
 - Task sheet: a sticky top bar (`.tsh-bar`) holds Mark done, Delete, Close (or Cancel / Add task for a draft). Use `.tsh-bar` for other long sheets too.
+- Tasks on a laptop (v0.13, tasksplus.js): 1100px+ in List layout = list left, panel right. Opening a task there "docks" it: the same `#sheet`
+  element is moved into `#taskPaneDock` and `sheetCtx.docked = true`, so every sheet listener keeps working. `openSheet`/`closeSheet` are wrapped
+  (opening any other sheet undocks first). Use `sheetOpen()` (core.js) instead of `!!sheetCtx` when asking "is a pop-up in the way?".
+  Layout: `ui.taskLayout` 'list' | 'board' (board 900px+), `ui.taskPane` 'today' | 'cal'. Drop targets carry `data-tpdrop` ("day:<ms>", nodate, later, someday);
+  the timeline is `.tpt-grid`. Habits: `HABIT_DAYS = 21`, tile classes `.htile` / `.h21*`.
 - Theme: the sun/moon button in the top bar (`actions.themetoggle`, `isDark()`); Settings has System / Light / Dark. Settings opens from the gear in the profile (`.psettings`).
 - Lists: `state.lists` = { id, name, color, order }. Default ids personal/college/extra/projects/growth with updatedAt 1 (so devices don't duplicate them). `listOf(t)` always returns a live list. The filter is `ui.listFilter` (device-only, shared by Tasks/Matrix/Calendar); views use `listVisible(t)`. New tasks go to `defaultListId()` (the one list being viewed, else `settings.defaultList`).
 - Reminders: `task.reminders` = { id, type 'due' (mins before its time, or before `settings.remindHour` on its day) | 'dl' (mins before remindHour on the deadline day) | 'abs' (at) , snooze? }. `reminderAt(t, r)` gives the moment. What fired is device-only in localStorage `taskstack.fired`. Only works while the app is open/recent; Telegram/web push need a server (not built yet).

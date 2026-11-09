@@ -131,7 +131,7 @@ function googleSignIn(mode) {
 function canLeavePage() {
   const a = document.activeElement;
   const typing = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
-  return document.visibilityState === 'visible' && !sheetCtx && $('paletteWrap').hidden && !ctDrag && !amb && !typing;
+  return document.visibilityState === 'visible' && !sheetOpen() && $('paletteWrap').hidden && !ctDrag && !amb && !typing;
 }
 // The 1-hour sign-in ran out. auto = the app just opened or came back on screen (user isn't mid-tap).
 function renewToken(auto) {

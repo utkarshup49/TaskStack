@@ -50,6 +50,7 @@
 <main id="main">
   <!-- TASKS (main list) -->
   <section id="view-tasks" class="view">
+   <div class="tasks-main" id="tasksMain">
     <div class="listbar" id="listbarTasks" role="group" aria-label="Lists to show"></div>
     <div id="planBanner"></div>
     <div class="cdstrip" id="countdownStrip" hidden></div>
@@ -65,8 +66,17 @@
       <div class="parse" id="taskParse" aria-live="polite"></div>
       <div id="taskPick"></div>
     </form>
+    <div class="seg tlayout" id="taskLayout" role="group" aria-label="Layout">
+      <button data-action="tlayout" data-l="list">List</button><button data-action="tlayout" data-l="board">Board</button>
+    </div>
     <div id="taskList"></div>
+    <div class="tboard" id="taskBoard" hidden></div>
     <p class="small">Tasks with no date stay in Today. Tap the box button on a task (or hold the task) to sort it into the matrix. Swipe right to finish, left to delete. Type <b>/college</b> for a list, <b>~45m</b> for how long it takes, <b>someday</b> to park it.</p>
+   </div>
+   <aside class="task-pane" id="taskPane" hidden aria-label="Today, calendar and task details">
+     <div id="taskPaneBody"></div>
+     <div id="taskPaneDock"></div>
+   </aside>
   </section>
 
   <!-- CALENDAR -->
@@ -189,7 +199,7 @@
         </div>
       </form>
       <div class="hgrid" id="habitGrid"></div>
-      <p class="small">Tap a square to tick a day. Tap a habit for its colour, year heatmap and stats. Strength rises with every tick and falls slowly when you miss, so one bad day never wipes you out.</p>
+      <p class="small">Each habit shows its last 21 days, today last. Tap a day to tick it. Tap a habit's name for its colour, year heatmap and stats. Strength rises with every tick and falls slowly when you miss, so one bad day never wipes you out.</p>
     </div>
   </section>
 
@@ -315,6 +325,7 @@
 <script src="js/tasks.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/calplus.js"></script>
+<script src="js/tasksplus.js"></script>
 <script src="js/focus.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/colortracker.js"></script>

@@ -146,8 +146,8 @@ function repeatGhosts(from, to) {
 
 // ---------- ColorTracker and habits on the calendar ----------
 // A thin bar of what you painted that day, in proportion to the 24 hours.
-function ctStripHTML(d, today, cls) {
-  if (state.settings.calCt === false || d > today || typeof segmentsIn !== 'function') return '';
+function ctStripHTML(d, today, cls, force) {
+  if ((state.settings.calCt === false && !force) || d > today || typeof segmentsIn !== 'function') return '';
   const segs = segmentsIn(d, Math.min(addDays(d, 1), now()));
   if (!segs.length) return '';
   return '<span class="' + (cls || 'cstrip') + '" aria-hidden="true">' + segs.map(function (s) {

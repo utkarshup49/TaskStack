@@ -308,7 +308,7 @@ document.addEventListener('keydown', function (e) {
     if (sheetCtx) { closeSheet(); return; }
     if (view === 'colortracker' && (ctSel || ctMode)) { ctSel = null; ctMode = null; renderColor(); return; }
   }
-  if (typing || sheetCtx || !$('paletteWrap').hidden) return;
+  if (typing || sheetOpen() || !$('paletteWrap').hidden) return;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
   if (mod || (e.altKey && !/^Digit[1-6]$/.test(e.code || ''))) return;
   const k = e.key.toLowerCase();
@@ -396,7 +396,7 @@ setupVoiceAdd();
 })();
 // Quietly re-check the date-based bits (banner, Today) when the day changes or the app comes back.
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { renderPlanBits(); if (view === 'tasks') renderTaskList(); } });
-setInterval(function () { if (!sheetCtx) renderPlanBits(); }, 5 * 60000);
+setInterval(function () { if (!sheetOpen()) renderPlanBits(); }, 5 * 60000);
 
 // offline support + "Install app"
 if ('serviceWorker' in navigator) {

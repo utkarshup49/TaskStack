@@ -18,7 +18,7 @@ let ctPage = 'paint';            // 'paint' | 'stats'
 let ctTab = 'overview';
 let ctStatsKey = '';             // what the stats page was last drawn from (skip needless redraws)
 let ctStatsAt = 0;
-const CT_TABS = [['overview', 'Overview'], ['sleep', 'Sleep'], ['productive', 'Productive'], ['waste', 'Waste'], ['more', 'Workout & more'], ['patterns', 'Patterns']];
+const CT_TABS = [['overview', 'Overview'], ['sleep', 'Sleep'], ['productive', 'Productive'], ['waste', 'Waste'], ['more', 'Workout & more'], ['patterns', 'Patterns'], ['compare', 'Compare']];
 const UNLOCKS = [[1, 'Day ring and totals'], [3, 'Averages and "vs your normal"'], [7, 'Weekly report, sleep regularity, golden and danger hours'],
   [14, 'Weekday patterns, typical day'], [30, 'Links between days, chronotype, records'], [90, 'Long-term trends and yearly projection']];
 const DOW_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -333,21 +333,30 @@ function renderCtStats(force) {
   const L = R.allDaysLogged;
   const ranges = [['7', '7 days'], ['30', '30 days'], ['90', '90 days'], ['all', 'All']].concat(livePeriods().map(function (p) { return ['p:' + p.id, p.name]; }));
   const cur = state.ui.ctRange || '30';
-  let html = '<div class="st-top"><span>' + esc(range.label) + '</span><button class="btn small btn-accent" data-action="kindreview">' +
+  // Left side: range, tabs and (on a laptop) the key numbers. Middle: the tab's cards (in columns on a laptop).
+  // Right side (laptop): today so far + insights.
+  let left = '<div class="st-top"><span>' + esc(range.label) + '</span><button class="btn small btn-accent" data-action="kindreview">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Activities</button></div>' +
     '<div class="st-ranges">' + ranges.map(function (r) {
     return '<button class="pick' + (cur === r[0] ? ' on' : '') + '" data-action="ctrange" data-r="' + r[0] + '">' + esc(r[1]) + '</button>';
   }).join('') + '<button class="pick" data-action="ctperiods">+ Period</button></div>' +
     '<nav class="st-tabs" role="tablist">' + CT_TABS.map(function (t) {
       return '<button role="tab" aria-selected="' + (ctTab === t[0]) + '" class="' + (ctTab === t[0] ? 'on' : '') + '" data-action="cttab" data-t="' + t[0] + '">' + t[1] + '</button>';
-    }).join('') + '</nav>';
+    }).join('') + '</nav>' + stKeyNumbersHTML(R, range);
+  let mid = '';
   const ask = needsKind();
-  if (ask.length) html += '<p class="note">' + ask.length + ' activit' + (ask.length === 1 ? 'y needs' : 'ies need') + ' a kind (Productive, Leisure…) for the stats to be right. Tap <b>Activities</b> above to sort them.</p>';
-  if (!liveRanges().length) html += '<p class="note">Nothing painted yet. Paint a day on the Paint page and your stats start here.</p>';
-  const tabs = { overview: statsOverview, sleep: statsSleep, productive: statsProductive, waste: statsWaste, more: statsMore, patterns: statsPatterns };
-  html += '<div class="st-body">' + tabs[ctTab](R, L, range) + '</div>' +
+  if (ask.length) mid += '<p class="note">' + ask.length + ' activit' + (ask.length === 1 ? 'y needs' : 'ies need') + ' a kind (Productive, Leisure…) for the stats to be right. Tap <b>Activities</b> above to sort them.</p>';
+  if (!liveRanges().length) mid += '<p class="note">Nothing painted yet. Paint a day on the Paint page and your stats start here.</p>';
+  const tabs = { overview: statsOverview, sleep: statsSleep, productive: statsProductive, waste: statsWaste, more: statsMore, patterns: statsPatterns, compare: statsCompare };
+  mid += '<div class="st-body">' + tabs[ctTab](R, L, range) + '</div>' +
     '<p class="small st-private">🔒 All of this is worked out on your device. Your time log stays on your devices and in your own Google Drive.</p>';
+  const html = '<div class="st-layout"><aside class="st-left">' + left + '</aside><div class="st-main">' + mid + '</div>' +
+    '<aside class="st-right">' + stRightHTML(R, L) + '</aside></div>';
   $('ctStats').innerHTML = html;
+  // charts that need room (heatmaps, schedules, tables, year in pixels) span every column on a laptop
+  $('ctStats').querySelectorAll('.st-body > .st-card, .st-body > .st-lock').forEach(function (c) {
+    if (c.querySelector('.heat, .sched-bars, .pixels, .drift, .st-table, .cmp-bars, .trend, .kbar')) c.classList.add('st-wide');
+  });
   checkNewRecords(R);
   save();
 }
@@ -372,7 +381,7 @@ function statsOverview(R, L, range) {
   // insights
   if (L >= 3) {
     const ins = todaysInsights(R, 3);
-    if (ins.length) h += card('Today\'s insights', '<ul class="ins-list">' + ins.map(insightHTML).join('') + '</ul>');
+    if (ins.length) h += card('Today\'s insights', '<ul class="ins-list">' + ins.map(insightHTML).join('') + '</ul>', 'st-narrowonly');   // on a laptop they're in the right column
   }
   // where the time goes
   if (L >= 1) {
@@ -395,6 +404,7 @@ function statsOverview(R, L, range) {
   h += idealCardHTML(R, L);
   h += challengesCardHTML();
   if (R.unusual) h += card('Unusual day', '<p>Yesterday: <b>' + fmtMins(R.unusual.val) + '</b> of ' + kindInfo(R.unusual.kind).name.toLowerCase() + '. You usually do ' + fmtMins(R.unusual.usual) + '.</p>');
+  h += card('Year in pixels <small>(every square is a day)</small>', pixelsModeHTML() + pixelsGridHTML(), 'st-onlywide');
   h += card('Reports', '<div class="st-btns">' +
     (L >= 7 ? '<button class="btn small" data-action="ctweekreport">📊 Weekly report</button>' : '') +
     '<button class="btn small" data-action="ctwrapped">🎁 Monthly Wrapped</button>' +
@@ -791,6 +801,13 @@ actions.ctwrapimg = function () {
 };
 let pixelsMode = 'score';
 function pixelsHTML() {
+  return '<h3>Year in pixels</h3><p class="small">Every square is a day (columns are weeks). Days less than half painted stay grey.</p>' +
+    pixelsModeHTML() + pixelsGridHTML() + '<div class="row"><button class="btn" data-action="close">Close</button></div>';
+}
+function pixelsModeHTML() {
+  return '<div class="seg"><button class="' + (pixelsMode === 'score' ? 'on' : '') + '" data-action="ctpixmode" data-m="score">Day score</button><button class="' + (pixelsMode === 'kind' ? 'on' : '') + '" data-action="ctpixmode" data-m="kind">Main activity</button></div>';
+}
+function pixelsGridHTML() {
   const end = midnight(now());
   const start = addDays(weekStart(addDays(end, -364)), 0);
   const days = buildDays(start, addDays(end, 1));
@@ -813,12 +830,10 @@ function pixelsHTML() {
     }
     html += '<i style="background:' + color + '" title="' + title + '"></i>';
   });
-  return '<h3>Year in pixels</h3><p class="small">Every square is a day (columns are weeks). Days less than half painted stay grey.</p>' +
-    '<div class="seg"><button class="' + (pixelsMode === 'score' ? 'on' : '') + '" data-action="ctpixmode" data-m="score">Day score</button><button class="' + (pixelsMode === 'kind' ? 'on' : '') + '" data-action="ctpixmode" data-m="kind">Main activity</button></div>' +
-    html + '</div><div class="row"><button class="btn" data-action="close">Close</button></div>';
+  return html + '</div>';
 }
 actions.ctpixels = function () { openSheet({ type: 'pixels' }, pixelsHTML()); };
-actions.ctpixmode = function (el) { pixelsMode = el.dataset.m; refreshSheet(pixelsHTML()); };
+actions.ctpixmode = function (el) { pixelsMode = el.dataset.m; if (sheetCtx && sheetCtx.type === 'pixels') refreshSheet(pixelsHTML()); else renderCtStats(true); };
 function periodsHTML() {
   return '<h3>Periods</h3><p class="small">Tag a stretch of days (Exams, Holidays, Internship) to compare it. Each one shows up as a range at the top of Stats.</p>' +
     (livePeriods().length ? '<ul class="cdlist">' + livePeriods().map(function (p) {
@@ -856,3 +871,107 @@ actions.ctneedset = function (el) {
   toast('Sleep need set to ' + fmtMins(sleepNeed()));
 };
 actions.ctrested = function (el) { setDay(dayKey(), { rested: Number(el.dataset.v) }); renderCtStats(true); toast('Noted. Thanks!'); };
+
+// ---------- laptop side rails (v0.13) ----------
+// Key numbers under the tabs: averages for the range, with arrows against the range before it.
+function stKeyNumbersHTML(R, range) {
+  const len = Math.max(1, Math.round((range.to - range.from) / DAY));
+  const P = ctStats(addDays(range.from, -len), range.from);
+  function row(label, val, pval, fmt, goodUp, color) {
+    let d = '';
+    if (val !== null && pval !== null && P.n >= 3 && R.n >= 3) {
+      const diff = val - pval;
+      if (Math.abs(diff) >= (fmt === 'num' ? 1 : 5)) d = '<em class="' + ((diff > 0) === goodUp ? 'good' : 'bad') + '">' + (diff > 0 ? '↑' : '↓') + (fmt === 'num' ? Math.abs(Math.round(diff)) : fmtMins(Math.abs(diff))) + '</em>';
+    }
+    return '<li' + (color ? ' style="--kc:' + color + '"' : '') + '><span>' + label + '</span><b>' + (val === null ? '–' : fmt === 'num' ? Math.round(val) : fmtMins(val)) + '</b>' + d + '</li>';
+  }
+  return '<div class="st-keys"><p class="label">Per day · ' + esc(range.label.toLowerCase()) + '</p><ul>' +
+    row('Day score', R.dayScoreAvg, P.dayScoreAvg, 'num', true) +
+    row('Sleep', R.sleep.count ? R.sleep.avg : null, P.sleep.count ? P.sleep.avg : null, 'min', true, kindInfo('sleep').color) +
+    row('Productive', R.n ? R.avg.productive : null, P.n ? P.avg.productive : null, 'min', true, kindInfo('productive').color) +
+    row('Workout', R.n ? R.avg.workout : null, P.n ? P.avg.workout : null, 'min', true, kindInfo('workout').color) +
+    row('Wasted', R.n ? R.avg.waste : null, P.n ? P.avg.waste : null, 'min', false, kindInfo('waste').color) +
+    '</ul><p class="small">' + R.n + ' logged ' + (R.n === 1 ? 'day' : 'days') + '. Arrows: vs the ' + len + ' days before.</p></div>';
+}
+// Right rail: today so far (a live bar + totals by kind) and insights.
+function stRightHTML(R, L) {
+  const today = midnight(now());
+  const segs = segmentsIn(today, now());
+  const by = {};
+  segs.forEach(function (x) { const k = catKind(x.cat); by[k] = (by[k] || 0) + (x.end - x.start) / MIN; });
+  const kinds = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; });
+  const live = state.ui.ctLive && findCat(state.ui.ctLive.cat) ? state.ui.ctLive : null;
+  let h = '<section class="st-card"><h3>Today so far</h3>' +
+    (live ? '<p class="small">Now: <b style="color:' + catColor(live.cat) + '">' + esc(catName(live.cat)) + '</b> since ' + fmtTime(live.start) + '</p>' : '') +
+    (segs.length ? ctStripHTML(today, today, 'cstrip big', true) +
+      '<ul class="klist">' + kinds.map(function (k) { return '<li>' + kindDot(k) + '<span>' + kindInfo(k).name + '</span><b>' + fmtMins(by[k]) + '</b></li>'; }).join('') + '</ul>'
+      : '<p class="small">Nothing painted today yet.</p>') +
+    '<button class="btn small" data-action="ctpage" data-p="paint">Paint today</button></section>';
+  if (L >= 3) {
+    const all = ctInsights(R).slice(0, 6);
+    if (all.length) h += card('Insights', '<ul class="ins-list">' + all.map(insightHTML).join('') + '</ul>');
+  } else h += locked(3, L, 'Insights');
+  h += recordsHTML();
+  return h;
+}
+
+// ---------- Compare: two ranges side by side ----------
+function cmpRangeB(range) {
+  const len = Math.max(1, Math.round((range.to - range.from) / DAY));
+  const pick = state.ui.ctCmp || 'prev';
+  if (pick === 'month') return { from: addMonths(range.from, -1), to: addMonths(range.to, -1), label: 'A month earlier' };
+  if (pick === 'year') return { from: addMonths(range.from, -12), to: addMonths(range.to, -12), label: 'A year earlier' };
+  if (pick.indexOf('p:') === 0) {
+    const p = livePeriods().find(function (x) { return x.id === pick.slice(2); });
+    if (p) return { from: new Date(p.start + 'T00:00').getTime(), to: addDays(new Date(p.end + 'T00:00').getTime(), 1), label: p.name };
+  }
+  return { from: addDays(range.from, -len), to: range.from, label: 'The ' + len + ' days before' };
+}
+function statsCompare(R, L, range) {
+  const B = cmpRangeB(range);
+  const RB = ctStats(B.from, B.to);
+  const pick = state.ui.ctCmp || 'prev';
+  const opts = [['prev', 'Just before'], ['month', 'A month earlier'], ['year', 'A year earlier']].concat(livePeriods().map(function (p) { return ['p:' + p.id, p.name]; }));
+  function fmtRange(r) { return new Date(r.from).toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' – ' + new Date(addDays(r.to, -1)).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }); }
+  // one row: value A, value B, and the change (green when it moved the good way)
+  function row(label, a, b, kind, goodUp, color) {
+    function f(v) { return v === null || v === undefined || isNaN(v) ? '–' : kind === 'clock' ? fmtClockMins(v) : kind === 'num' ? (Math.round(v * 10) / 10) : fmtMins(v); }
+    let d = '<td class="cmp-d">–</td>';
+    if (a !== null && b !== null && a !== undefined && b !== undefined && !isNaN(a) && !isNaN(b)) {
+      const diff = a - b;
+      const small = kind === 'num' ? Math.abs(diff) < 0.5 : Math.abs(diff) < 5;
+      const txt = kind === 'clock' ? fmtMins(Math.abs(diff)) + (diff > 0 ? ' later' : ' earlier') : (diff > 0 ? '+' : '−') + (kind === 'num' ? Math.abs(Math.round(diff * 10) / 10) : fmtMins(Math.abs(diff)));
+      const cls = small || goodUp === null ? 'flat' : ((diff > 0) === goodUp ? 'good' : 'bad');
+      d = '<td class="cmp-d ' + cls + '">' + (small ? 'same' : txt) + '</td>';
+    }
+    return '<tr><th>' + (color ? '<i class="kd" style="background:' + color + '"></i>' : '') + label + '</th><td>' + f(a) + '</td><td>' + f(b) + '</td>' + d + '</tr>';
+  }
+  function sec(title) { return '<tr class="cmp-sec"><th colspan="4">' + title + '</th></tr>'; }
+  const kinds = KIND_IDS.filter(function (k) { return k !== 'sleep' && (R.avg[k] >= 1 || RB.avg[k] >= 1); });
+  const good = { productive: true, workout: true, waste: false, selfcare: null, social: null, leisure: null, travel: null, other: null };
+  let rows = sec('Scores') +
+    row('Day score', R.dayScoreAvg, RB.dayScoreAvg, 'num', true) +
+    row('Sleep score', R.sleepScore, RB.sleepScore, 'num', true) +
+    row('Focus score', R.focusScore, RB.focusScore, 'num', true) +
+    row('Day value', R.valueAvg, RB.valueAvg, 'num', true) +
+    sec('Sleep') +
+    row('Sleep a night', R.sleep.count ? R.sleep.avg : null, RB.sleep.count ? RB.sleep.avg : null, 'min', true, kindInfo('sleep').color) +
+    row('Bedtime', R.sleep.count ? R.sleep.bed : null, RB.sleep.count ? RB.sleep.bed : null, 'clock', false) +
+    row('Wake up', R.sleep.count ? R.sleep.wake : null, RB.sleep.count ? RB.sleep.wake : null, 'clock', null) +
+    sec('Per day') +
+    kinds.map(function (k) { return row(kindInfo(k).name, R.n ? R.avg[k] : null, RB.n ? RB.avg[k] : null, 'min', good[k] === undefined ? null : good[k], kindInfo(k).color); }).join('') +
+    row('Deep-work blocks', R.n ? R.prod.deepPerDay : null, RB.n ? RB.prod.deepPerDay : null, 'num', true) +
+    row('Not logged', R.n ? R.avg.unlogged : null, RB.n ? RB.avg.unlogged : null, 'min', false);
+  function bar(S) {
+    const ks = KIND_IDS.concat(['unlogged']).filter(function (k) { return S.avg[k] >= 1; });
+    return '<div class="kbar">' + ks.map(function (k) { return '<span style="flex:' + S.avg[k].toFixed(1) + ';background:' + kindInfo(k).color + '" title="' + kindInfo(k).name + ' ' + fmtMins(S.avg[k]) + '"></span>'; }).join('') + '</div>';
+  }
+  return card('Compare with', '<div class="daterow">' + opts.map(function (o) {
+      return '<button class="pick' + (pick === o[0] ? ' on' : '') + '" data-action="ctcmp" data-c="' + o[0] + '">' + esc(o[1]) + '</button>';
+    }).join('') + '</div>' +
+    '<div class="cmp-bars"><div><b>A · ' + esc(range.label) + '</b><span class="small">' + fmtRange(range) + ' · ' + R.n + ' logged days</span>' + (R.n ? bar(R) : '<p class="small">No logged days.</p>') + '</div>' +
+    '<div><b>B · ' + esc(B.label) + '</b><span class="small">' + fmtRange(B) + ' · ' + RB.n + ' logged days</span>' + (RB.n ? bar(RB) : '<p class="small">No logged days.</p>') + '</div></div>') +
+    card('Side by side', '<table class="st-table cmp-table"><thead><tr><th></th><th>A</th><th>B</th><th>A vs B</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      how('Averages per logged day (days at least half painted). Green = moved the good way; grey = no better or worse, just different.'));
+}
+actions.ctcmp = function (el) { state.ui.ctCmp = el.dataset.c; save(); renderCtStats(true); };

@@ -9,8 +9,12 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.12';
+const APP_VERSION = '0.13';
 const WHATS_NEW = [
+  'Laptop Tasks: the list on the left, and on the right Today (progress, Top 3, habits, timeline) or a small calendar. Tasks open beside the list.',
+  'Drag a task onto an hour of today\'s timeline, or onto a day. New Board view: Today, Tomorrow, each day, Later and Someday as columns.',
+  'Habits: a tile per habit with its last 21 days, each day labelled.',
+  'ColorTracker Stats on a laptop: tabs and key numbers on the left, today so far and insights on the right, cards in columns. New Compare tab.',
   'Add a task with every option at once: the + next to Add opens the full task screen (repeat, reminders, steps, notes…).',
   'Task screen: Mark done, Delete and Close sit at the top and stay there while you scroll.',
   'Light / dark switch at the top of the app. Settings now open from the gear in your profile.',

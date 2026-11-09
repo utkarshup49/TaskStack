@@ -224,7 +224,7 @@ actions.distracted = function () {
 
 // ---------- reflection after a session ----------
 function askReflection(sessionId) {
-  if (sheetCtx) return;
+  if (sheetOpen()) return;
   const s = state.sessions.find(function (x) { return x.id === sessionId; });
   const t = s.taskId ? findTask(s.taskId) : null;
   openSheet({ type: 'reflect', id: sessionId },

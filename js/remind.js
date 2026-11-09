@@ -161,7 +161,7 @@ function showReminderSheet() {
   remQueue = remQueue.filter(function (x) { const t = findTask(x.taskId); return t && !t.deleted && !t.done; });
   if (!remQueue.length) { if (sheetCtx && sheetCtx.type === 'remind') closeSheet(); return; }
   if (sheetCtx && sheetCtx.type === 'remind') { refreshSheet(reminderSheetHTML()); return; }
-  if (sheetCtx) {                      // another sheet is open: don't throw away what's being typed
+  if (sheetOpen()) {                   // another sheet is open: don't throw away what's being typed
     const t = findTask(remQueue[remQueue.length - 1].taskId);
     toast('Reminder: ' + shortTitle(t.title) + '. It will show when you close this.');
     return;
@@ -173,7 +173,7 @@ const remCloseSheet = closeSheet;
 closeSheet = function (fromHistory) {
   const wasRemind = sheetCtx && sheetCtx.type === 'remind';
   remCloseSheet(fromHistory);
-  if (!wasRemind && remQueue.length) setTimeout(function () { if (!sheetCtx) showReminderSheet(); }, 380);
+  if (!wasRemind && remQueue.length) setTimeout(function () { if (!sheetOpen()) showReminderSheet(); }, 380);
 };
 function remDoneWith(id) {
   remQueue = remQueue.filter(function (x) { return x.taskId !== id; });

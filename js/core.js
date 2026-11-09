@@ -462,6 +462,8 @@ function refreshSheet(html) {
   $('sheet').innerHTML = html;
   $('sheet').scrollTop = y;
 }
+// A sheet is really open (a task docked in the Tasks side panel doesn't count: it blocks nothing).
+function sheetOpen() { return !!sheetCtx && !sheetCtx.docked; }
 function closeSheet(fromHistory) {
   if (!sheetCtx) return;
   const ctx = sheetCtx;

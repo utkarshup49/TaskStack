@@ -44,31 +44,40 @@ function nextHabitColor() {
   return HABIT_COLORS.find(function (c) { return used.indexOf(c) === -1; }) || HABIT_COLORS[liveHabits().length % HABIT_COLORS.length];
 }
 
+// One tile per habit: the last 21 days (3 rows of 7, oldest first, today last), each day showing its
+// weekday and date, so it's clear which square is which. 21 days because that's how long a habit
+// is said to take to stick. Tiles sit side by side on a laptop and stack on a phone.
+const HABIT_DAYS = 21;
 function renderHabits() {
   const days = [];
-  for (let i = 6; i >= 0; i--) days.push(daysAgo(i));
+  for (let i = HABIT_DAYS - 1; i >= 0; i--) days.push(daysAgo(i));
   const todayKey = dayKey();
-  let html = '<div class="hrow hdays"><span class="hlabel">Last 7 days</span>' +
-    days.map(function (d) {
-      return '<span class="hhead' + (dayKey(d) === todayKey ? ' today' : '') + '">' +
-        d.toLocaleDateString([], { weekday: 'narrow' }) + '<span class="d">' + d.getDate() + '</span></span>';
-    }).join('') + '</div>';
   const habits = liveHabits();
-  if (!habits.length) html += '<div class="hrow"><span class="small">No habits yet. Add one above.</span></div>';
-  habits.forEach(function (h) {
+  if (!habits.length) { $('habitGrid').innerHTML = '<p class="small h21empty">No habits yet. Add one above.</p>'; return; }
+  $('habitGrid').innerHTML = habits.map(function (h) {
     const s = streak(h);
-    html += '<div class="hrow" style="--hc:' + h.color + '">' +
+    const done = days.filter(function (d) { return isOn(h, dayKey(d)); }).length;
+    let lastMonth = -1;
+    const cells = days.map(function (d) {
+      const k = dayKey(d);
+      const on = isOn(h, k);
+      const showMonth = d.getMonth() !== lastMonth;              // month name on the first square and where the month changes
+      lastMonth = d.getMonth();
+      return '<button class="h21cell' + (on ? ' on' : '') + (k === todayKey ? ' today' : '') + (d.getDay() === 0 || d.getDay() === 6 ? ' h21we' : '') +
+        '" data-action="tick" data-id="' + h.id + '" data-day="' + k + '" aria-pressed="' + on + '" aria-label="' + esc(h.name) + ', ' + d.toDateString() + '">' +
+        '<span class="h21wd">' + (k === todayKey ? 'Today' : d.toLocaleDateString([], { weekday: 'short' })) + '</span><b>' + d.getDate() + '</b>' +
+        '<span class="h21mo">' + (showMonth ? d.toLocaleDateString([], { month: 'short' }) : '') + '</span></button>';
+    }).join('');
+    return '<article class="htile" style="--hc:' + h.color + '">' +
       '<button class="hname" data-action="openhabit" data-id="' + h.id + '"><span class="avatar">' + esc(h.name.trim().charAt(0).toUpperCase() || '?') + '</span>' +
-      '<span><strong>' + esc(h.name) + (h.example ? '<span class="eg">example</span>' : '') + '</strong>' +
-      '<small>' + (s ? s + '-day streak' : 'No streak yet') + ' · ' + strength(h) + '%</small></span></button>' +
-      days.map(function (d) {
-        const k = dayKey(d);
-        const on = isOn(h, k);
-        return '<button class="cell' + (on ? ' on' : '') + (k === todayKey ? ' today' : '') + '" data-action="tick" data-id="' + h.id + '" data-day="' + k +
-          '" aria-pressed="' + on + '" aria-label="' + esc(h.name) + ', ' + d.toDateString() + '"></button>';
-      }).join('') + '</div>';
-  });
-  $('habitGrid').innerHTML = html;
+        '<span><strong>' + esc(h.name) + (h.example ? '<span class="eg">example</span>' : '') + '</strong>' +
+        '<small>' + (s ? s + '-day streak' : 'No streak yet') + ' · strength ' + strength(h) + '%</small></span>' +
+        (s ? '<span class="h21fire" title="Current streak">' + FLAME_SVG + s + '</span>' : '') + '</button>' +
+      '<div class="h21days">' + cells + '</div>' +
+      '<div class="h21foot"><div class="h21bar"><i style="width:' + (done / HABIT_DAYS * 100).toFixed(1) + '%"></i></div>' +
+        '<span><b>' + done + '</b> of the last ' + HABIT_DAYS + ' days</span></div>' +
+      '</article>';
+  }).join('');
 }
 
 function tickHabit(id, key) {
@@ -82,7 +91,7 @@ function tickHabit(id, key) {
   save();
   renderHabits();
   if (!was) {
-    const cell = document.querySelector('.cell[data-id="' + id + '"][data-day="' + key + '"]');
+    const cell = document.querySelector('.h21cell[data-id="' + id + '"][data-day="' + key + '"]');
     if (cell) cell.classList.add('pop');
     const after = streak(h);
     if (after > before && MILESTONES.indexOf(after) !== -1) {
