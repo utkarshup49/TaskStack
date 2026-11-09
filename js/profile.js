@@ -41,7 +41,7 @@ function avatarHTML(size) {
     : '';
   const fallback = ini ? '<span>' + esc(ini) + '</span>'
     : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
-  return '<span class="avatar ' + (size || '') + '">' + fallback + face + '</span>';
+  return '<span class="pavatar ' + (size || '') + '">' + fallback + face + '</span>';
 }
 function renderAvatar() {
   const b = $('avatarBtn');

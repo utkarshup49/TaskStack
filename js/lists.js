@@ -135,7 +135,7 @@ function listsSheetHTML() {
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>' +
           '<button class="icon-btn sm danger" data-action="ldelete" data-id="' + l.id + '" aria-label="Delete ' + esc(l.name) + '"' + (lists.length === 1 ? ' disabled' : '') + '>×</button>' +
         '</div>' +
-        (listColorOpen === l.id ? '<div class="swatches">' + LIST_COLORS.map(function (c) {
+        (listColorOpen === l.id ? '<div class="lswatches">' + LIST_COLORS.map(function (c) {
           return '<button class="lswatch' + (c === l.color ? ' on' : '') + '" style="--lc:' + c + '" data-action="lsetcolor" data-id="' + l.id + '" data-c="' + c + '" aria-label="Colour ' + c + '"></button>';
         }).join('') + '</div>' : '') +
       '</li>';

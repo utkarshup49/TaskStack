@@ -63,6 +63,9 @@ js/main.js             section switching, settings sheet, Ctrl+K command bar, ke
 sw.js                  service worker (offline)
 manifest.webmanifest   install-as-app info
 ```
+**Name clashes break things silently** (v0.10 shipped one: ColorTracker's day card replaced the Calendar's). Before committing run
+`grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
+and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
 core, repeat, lists, remind, matrix, tasks, calendar, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.

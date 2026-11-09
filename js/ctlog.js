@@ -447,7 +447,7 @@ function challengesCardHTML() {
     const def = CHALLENGES.find(function (c) { return c.id === ch.type; });
     const res = challengeDays(ch);
     const failed = res.indexOf(false) !== -1;
-    return '<li><span>' + def.name + (failed ? ' <small class="bad">missed a day</small>' : '') + '</span><div class="cdots">' + res.map(function (r) {
+    return '<li><span>' + def.name + (failed ? ' <small class="bad">missed a day</small>' : '') + '</span><div class="chdots">' + res.map(function (r) {
       return '<i class="' + (r === true ? 'ok' : r === false ? 'no' : '') + '">' + (r === true ? '✓' : r === false ? '✗' : '') + '</i>';
     }).join('') + '</div>' + (failed ? '<button class="btn small" data-action="ctchalgo" data-t="' + def.id + '">Restart</button>' : '') +
       '<button class="icon-btn sm" data-action="ctchalstop" data-t="' + def.id + '" aria-label="Stop">×</button></li>';

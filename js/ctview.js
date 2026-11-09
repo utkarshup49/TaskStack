@@ -209,7 +209,7 @@ function loggingStreak() {
   if (today >= 0.8 * (now() - midnight(now()))) n++;
   return n;
 }
-function renderDayCard() {
+function renderCtDayCard() {
   const el = $('ctDayCard');
   if (!el || !ctDay) return;
   el.innerHTML = dayCardHTML();
@@ -319,7 +319,7 @@ renderColor = function () {
   if (ctPage === 'stats') { renderCtStats(false); return; }
   ctBaseRender();
   renderLiveOverlay();
-  renderDayCard();
+  renderCtDayCard();
 };
 
 // ---------- the Stats page ----------
@@ -525,7 +525,7 @@ function heatmapHTML(heat, kind) {
 }
 function hourBars(byHour, kind) {
   const max = Math.max.apply(null, byHour) || 1;
-  return '<div class="hbars" style="--hc:' + kindInfo(kind).color + '">' + byHour.map(function (v, h) {
+  return '<div class="hrbars" style="--hc:' + kindInfo(kind).color + '">' + byHour.map(function (v, h) {
     return '<span style="height:' + (v / max * 100).toFixed(0) + '%" title="' + hourName(h) + ': ' + fmtMins(v) + '"></span>';
   }).join('') + '</div><div class="sched-x"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div>';
 }

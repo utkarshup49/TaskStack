@@ -8,6 +8,7 @@
      a phone. Tap a day to see its tasks in the side card.
    - Year: all 12 months, just the calendar. Tap a day to see it.
    Days off (Sat + Sun unless changed in Settings) are shaded.
+   On a phone, tapping a date in Month / 2 weeks opens that day in a sheet (calPeekHTML).
    Only the lists picked in the list bar are shown; each task carries its list's colour.
    Weeks start on Monday.
    ========================================================= */
@@ -103,6 +104,7 @@ function renderCalendar() {
     if (m === 'year') renderYear(p.year); else renderDayGrid(p);
     renderDayCard();
   }
+  if (sheetCtx && sheetCtx.type === 'calpeek' && sheetCtx.d === calSel) refreshSheet(calPeekHTML());
 }
 
 // ---------- weekday headings: a coloured band, "Mon" on a phone, "Monday" on a laptop ----------
@@ -282,8 +284,8 @@ function calDue(p, raw) {
   if (p.date !== null && /\b(today|tod|tonight)\b/i.test(raw)) return p.due;
   return calSel + (p.time !== null ? p.time * MIN : 0);
 }
-function addFromCalendar() {
-  const input = $('calInput');
+function addFromCalendar(inputId, parseId) {
+  const input = $(inputId || 'calInput');
   const raw = input.value.trim();
   if (!raw) return;
   const p = parseQuickAdd(raw);
@@ -295,8 +297,9 @@ function addFromCalendar() {
   state.tasks.push(task);
   save();
   input.value = '';
-  $('calParse').innerHTML = '';
+  $(parseId || 'calParse').innerHTML = '';
   if (midnight(due) !== calSel) selectDay(midnight(due));
+  if (sheetCtx && sheetCtx.type === 'calpeek') { refreshCalPeek(); if ($('peekInput')) $('peekInput').focus(); }
   renderTaskViews();
   sound('soft');
   const li = document.querySelector('#calList .task[data-id="' + task.id + '"]');
@@ -304,8 +307,65 @@ function addFromCalendar() {
   if (task.repeat) explainNewRepeat(task); else input.focus();
 }
 
+// ---------- phone: tap a date in Month / 2 weeks → its tasks in a sheet ----------
+// On a laptop the selected day's card sits next to the grid. On a phone it's far below it, so a tap
+// opens the day in a sheet instead: tick, open and edit tasks, add new ones, or jump to the Day view.
+function calPeekHTML() {
+  const d = calSel;
+  const today = midnight(now());
+  const list = (tasksByDay()[d] || []).slice();
+  if (d === today) liveTasks().forEach(function (t) { if (taskDate(t) === null && !t.done && !t.someday && listVisible(t)) list.push(t); });
+  const open = sortByDay(list.filter(function (t) { return !t.done; }));
+  const done = list.filter(function (t) { return t.done; });
+  const label = d === today ? 'Today' : d === addDays(today, 1) ? 'Tomorrow' : d === addDays(today, -1) ? 'Yesterday' : dayName(d, 'long');
+  const cds = typeof liveCountdowns === 'function' ? liveCountdowns().filter(function (c) { return midnight(c.date) === d; }) : [];
+  return '<div class="peek-head"><button class="icon-btn sm" data-action="peekstep" data-d="-1" aria-label="Previous day">‹</button>' +
+    '<div><h3>' + label + ', ' + new Date(d).toLocaleDateString([], { day: 'numeric', month: 'long' }) + '</h3>' +
+    '<p class="small">' + (open.length ? open.length + ' to do' : 'Nothing to do') + (done.length ? ' · ' + done.length + ' done' : '') + (isOffDay(d) ? ' · day off' : '') + '</p></div>' +
+    '<button class="icon-btn sm" data-action="peekstep" data-d="1" aria-label="Next day">›</button></div>' +
+    (cds.length ? '<p class="note">' + cds.map(function (c) { return '📅 ' + esc(c.title); }).join(' · ') + '</p>' : '') +
+    '<form id="peekForm" class="add-row" autocomplete="off"><input id="peekInput" placeholder="Add to this day (try &quot;5pm !1&quot;)" aria-label="Add a task on this day" enterkeyhint="done"><button class="btn primary" type="submit">Add</button></form>' +
+    '<div class="parse" id="peekParse"></div>' +
+    '<ul class="tasks list peeklist">' + (open.concat(done).map(function (t) { return taskHTML(t, { box: true, day: d }); }).join('') ||
+      '<li class="empty">' + (d < today ? 'Nothing was planned for this day.' : 'Free day. Add a task above.') + '</li>') + '</ul>' +
+    '<div class="row"><button class="btn" data-action="calgoday" data-d="' + d + '">Open day view</button><button class="btn primary" data-action="close">Done</button></div>';
+}
+function refreshCalPeek() { if (sheetCtx && sheetCtx.type === 'calpeek') refreshSheet(calPeekHTML()); }
+function openCalPeek(d) {
+  calSel = d;
+  renderCalendar();
+  openSheet({ type: 'calpeek', d: d }, calPeekHTML());
+}
+const calPhone = function () { return window.innerWidth < 900; };
+// After editing a task opened from the sheet, come back to the same day.
+let peekReturn = null;
+const calCloseSheet = closeSheet;
+closeSheet = function (fromHistory) {
+  const ctx = sheetCtx;
+  calCloseSheet(fromHistory);
+  if (ctx && ctx.type === 'task' && peekReturn !== null && view === 'calendar') {
+    const d = peekReturn;
+    peekReturn = null;
+    setTimeout(function () { if (!sheetCtx) openCalPeek(d); }, 360);
+  } else if (!ctx || ctx.type !== 'task') peekReturn = null;
+};
+document.addEventListener('click', function (e) {
+  if (sheetCtx && sheetCtx.type === 'calpeek' && e.target.closest('#sheet [data-action="open"]')) peekReturn = sheetCtx.d;
+}, true);
+actions.peekstep = function (el) { calSel = addDays(calSel, Number(el.dataset.d)); sheetCtx.d = calSel; if (!periodHas(calPeriod(), calSel)) calAnchor = calSel; renderCalendar(); refreshCalPeek(); haptic(5); };
+$('sheet').addEventListener('submit', function (e) { if (e.target.id !== 'peekForm') return; e.preventDefault(); addFromCalendar('peekInput', 'peekParse'); });
+$('sheet').addEventListener('input', function (e) {
+  if (e.target.id !== 'peekInput') return;
+  const p = parseQuickAdd(e.target.value);
+  $('peekParse').innerHTML = e.target.value.trim() ? quickAddChips(Object.assign({}, p, { due: calDue(p, e.target.value) })).map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('') : '';
+});
+
 // ---------- actions ----------
-actions.calpick = function (el) { selectDay(Number(el.dataset.d)); };
+actions.calpick = function (el) {
+  const d = Number(el.dataset.d);
+  if (calPhone() && (calMode() === 'month' || calMode() === '2week')) { openCalPeek(d); return; }
+  selectDay(d);
+};
 actions.calprev = function () { calStep(-1); };
 actions.calnext = function () { calStep(1); };
 actions.caltoday = function () { calSel = midnight(now()); calAnchor = calSel; calScrolled = ''; haptic(5); renderCalendar(); };
