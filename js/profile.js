@@ -9,8 +9,11 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.14';
+const APP_VERSION = '0.15';
 const WHATS_NEW = [
+  'Steps (subtasks) now show right under their task in every list. Tick each one there, no need to open the task.',
+  'Cleaner task rows: flat, every row the same shape, softer chips and box labels.',
+  'Habits: pick Tiles (21 days) or Compact (7 days, many habits on one screen). Phones start on Compact, laptops on Tiles.',
   'ColorTracker: export your time log for an AI. Pick 7, 15, 30… up to 365 days, as easy text (with your question on top), JSON or CSV. Copy or download.',
   'Removed "Delete all my data" for now, so nobody can wipe their data by accident.',
   'Laptop Tasks: the list on the left, and on the right Today (progress, Top 3, habits, timeline) or a small calendar. Tasks open beside the list.',

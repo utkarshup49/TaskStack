@@ -109,7 +109,10 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
   element is moved into `#taskPaneDock` and `sheetCtx.docked = true`, so every sheet listener keeps working. `openSheet`/`closeSheet` are wrapped
   (opening any other sheet undocks first). Use `sheetOpen()` (core.js) instead of `!!sheetCtx` when asking "is a pop-up in the way?".
   Layout: `ui.taskLayout` 'list' | 'board' (board 900px+), `ui.taskPane` 'today' | 'cal'. Drop targets carry `data-tpdrop` ("day:<ms>", nodate, later, someday);
-  the timeline is `.tpt-grid`. Habits: `HABIT_DAYS = 21`, tile classes `.htile` / `.h21*`.
+  the timeline is `.tpt-grid`. Habits: `HABIT_DAYS = 21`, tile classes `.htile` / `.h21*`; `ui.habitLayout` 'tiles' | 'compact'
+  (unset = tiles on 900px+, compact rows of 7 days on phones; compact = `renderHabitRows()`).
+- Task rows (v0.15): flat, list colour = short bar via `.task-inner::before`, dividers via `.task + .task::before`. Steps render inside the row
+  (`subtasksHTML`, `.tsubs`, `actions.subtick`); pass `{ nosubs: true }` to taskHTML to hide them. Done tasks show only the count chip.
 - Theme: the sun/moon button in the top bar (`actions.themetoggle`, `isDark()`); Settings has System / Light / Dark. Settings opens from the gear in the profile (`.psettings`).
 - Lists: `state.lists` = { id, name, color, order }. Default ids personal/college/extra/projects/growth with updatedAt 1 (so devices don't duplicate them). `listOf(t)` always returns a live list. The filter is `ui.listFilter` (device-only, shared by Tasks/Matrix/Calendar); views use `listVisible(t)`. New tasks go to `defaultListId()` (the one list being viewed, else `settings.defaultList`).
 - Reminders: `task.reminders` = { id, type 'due' (mins before its time, or before `settings.remindHour` on its day) | 'dl' (mins before remindHour on the deadline day) | 'abs' (at) , snooze? }. `reminderAt(t, r)` gives the moment. What fired is device-only in localStorage `taskstack.fired`. Only works while the app is open/recent; Telegram/web push need a server (not built yet).

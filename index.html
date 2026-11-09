@@ -198,8 +198,11 @@
           <button class="btn primary" type="submit">Add</button>
         </div>
       </form>
+      <div class="seg hlayout" id="habitLayout" role="group" aria-label="Layout">
+        <button data-action="hlayout" data-l="tiles">Tiles · 21 days</button><button data-action="hlayout" data-l="compact">Compact · 7 days</button>
+      </div>
       <div class="hgrid" id="habitGrid"></div>
-      <p class="small">Each habit shows its last 21 days, today last. Tap a day to tick it. Tap a habit's name for its colour, year heatmap and stats. Strength rises with every tick and falls slowly when you miss, so one bad day never wipes you out.</p>
+      <p class="small"><span id="habitHelp">Each habit shows its last 21 days, today last.</span> Tap a day to tick it. Tap a habit's name for its colour, year heatmap and stats. Strength rises with every tick and falls slowly when you miss, so one bad day never wipes you out.</p>
     </div>
   </section>
 

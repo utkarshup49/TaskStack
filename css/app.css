@@ -1505,8 +1505,11 @@ html.theme-anim body, html.theme-anim .card, html.theme-anim .sheet, html.theme-
 /* ---------- Habits v0.13: one tile per habit, last 21 days ---------- */
 .habits-wrap { max-width: 1500px; }
 #habitForm { width: 100%; max-width: 680px; }
-#habitGrid.hgrid { background: none; border: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+#habitGrid.hgrid.tiles { background: none; border: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
 .h21empty { grid-column: 1 / -1; }
+.hlayout { align-self: flex-start; }
+.hlayout button { height: 30px; font-size: 12.5px; padding: 0 12px; }
+#habitGrid.hgrid:not(.tiles) { max-width: 760px; width: 100%; }
 .htile { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px 12px 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: inset 0 3px 0 var(--hc); }
 .htile .hname { width: 100%; }
 .htile .hname > span:nth-child(2) { flex: 1; min-width: 0; }
@@ -1654,3 +1657,40 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .ctx-custom input.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
 .ctx-prompt { width: 100%; min-height: 84px; resize: vertical; font-size: 13.5px; line-height: 1.45; padding: 10px; }
 .ctx-pre { margin: 0; max-height: 220px; overflow: auto; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 5%, var(--surface)); border: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+
+/* ---------- v0.15: calmer, flatter task rows + steps inside the task ----------
+   Every row looks the same: no tinted backgrounds, no rounded bracket on the first row.
+   The list colour is a short, rounded bar inside the row's left edge. */
+.task-inner, .tasks.list .task-inner { background: transparent; box-shadow: none; border-radius: 12px; padding: 10px 8px 10px 16px; flex-wrap: wrap; row-gap: 6px; }
+.task-inner::before { content: ""; position: absolute; left: 5px; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--lc, transparent); opacity: 0.9; }
+.tasks.list .task + .task .task-inner { border-top: none; border-radius: 12px; }
+.tasks.list .task + .task::before { content: ""; position: absolute; top: 0; left: 46px; right: 10px; height: 1px; background: color-mix(in srgb, var(--line) 75%, transparent); }
+.task.top .task-inner { background: transparent; }
+.tasks.list .task:hover .task-inner { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.task.swiping .task-inner { background: var(--surface); }
+.task-bg { border-radius: 12px; }
+.task.done .task-inner::before { opacity: 0.35; }
+/* quieter chips and box labels: no outlines, soft fills */
+.chip { border-color: transparent; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.chip.late { border-color: transparent; background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.chip.today, .chip.rep, .chip.rem { border-color: transparent; background: color-mix(in srgb, var(--accent) 11%, transparent); }
+.chip.alldone { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); }
+.boxbtn { border: none; height: 26px; background: color-mix(in srgb, var(--qc) 13%, transparent); }
+.boxbtn.q0 { border: 1px dashed var(--line); background: transparent; }
+.stackbtn { border: none; }
+.lgroup { padding: 4px 4px 6px; }
+.lgroup.late { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+
+/* steps (subtasks) right under the task, each tickable */
+.tsubs { flex: 1 0 100%; list-style: none; margin: 0; padding: 0 0 0 30px; display: flex; flex-direction: column; gap: 1px; }
+.tsubs li { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.tsubchk { flex: 0 0 auto; width: 18px; height: 18px; padding: 0; border-radius: 5px; border: 1.8px solid color-mix(in srgb, var(--qc) 70%, var(--muted)); background: transparent; display: grid; place-items: center; color: transparent; transition: background-color 0.15s ease, transform 0.15s var(--spring); }
+.tsubchk svg { width: 13px; height: 13px; }
+.tsubchk:active { transform: scale(0.85); }
+.tsubs li.done .tsubchk { background: var(--qc); border-color: var(--qc); color: var(--surface); }
+.tsubt { flex: 1; min-width: 0; border: none; background: none; padding: 4px 0; text-align: left; font: inherit; font-size: 13px; color: var(--ink); opacity: 0.88; overflow-wrap: anywhere; }
+.tsubs li.done .tsubt { text-decoration: line-through; color: var(--muted); }
+.tsubs li.more .tsubt { color: var(--accent); font-size: 12.5px; padding-left: 26px; }
+/* the tap area around a step's box is bigger than the box */
+.tsubchk { position: relative; }
+.tsubchk::after { content: ""; position: absolute; inset: -8px; }

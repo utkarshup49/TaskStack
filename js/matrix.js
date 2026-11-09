@@ -186,9 +186,11 @@ function taskHTML(t, opts) {
     const left = Math.round((midnight(t.deadline) - midnight(now())) / DAY);
     meta.push('<span class="chip' + (left <= 1 ? ' late' : '') + '">' + FLAG_SVG + esc(fmtDeadline(t.deadline)) + '</span>');
   }
+  // Steps show right under the task (tick each one there). A finished task just shows the count.
+  const showSubs = t.subtasks.length && !t.done && !opts.nosubs;
   if (t.subtasks.length) {
     const d = t.subtasks.filter(function (s) { return s.done; }).length;
-    meta.push('<span class="chip">' + LIST_SVG + d + '/' + t.subtasks.length + '</span>');
+    meta.push('<span class="chip' + (d === t.subtasks.length ? ' alldone' : '') + '">' + LIST_SVG + d + '/' + t.subtasks.length + '</span>');
   }
   if (t.repeat) meta.push('<span class="chip rep">' + REPEAT_SVG + esc(repeatLabel(t.repeat)) + '</span>');
   const nextRem = t.done ? null : nextReminder(t);
@@ -210,8 +212,33 @@ function taskHTML(t, opts) {
       (meta.length ? '<span class="meta">' + meta.join('') + '</span>' : '') + '</button>' +
       (stacked > 1 ? '<button class="stackbtn' + (stacked >= STACK_MAX ? ' full' : '') + '" data-action="stackopen" data-id="' + t.seriesId + '" aria-label="' + stacked + ' copies stacked">' + STACK_SVG + stacked + '</button>' : '') +
       (opts.box ? '<button class="boxbtn q' + q + '" data-action="boxmenu" data-id="' + t.id + '" aria-label="Box: ' + boxName(t.q) + '"><i></i><span>' + (t.q ? esc(quadName(t.q)) : 'Sort') + '</span></button>' : '') +
+      (showSubs ? subtasksHTML(t) : '') +
     '</div></li>';
 }
+// A task's steps, inside its row: each with its own tick. Long lists show the first 6.
+const SUBS_SHOWN = 6;
+function subtasksHTML(t) {
+  const list = t.subtasks.slice(0, SUBS_SHOWN);
+  return '<ul class="tsubs">' + list.map(function (s) {
+    return '<li class="' + (s.done ? 'done' : '') + '"><button class="tsubchk" data-action="subtick" data-id="' + t.id + '" data-sid="' + s.id + '" aria-pressed="' + !!s.done + '" aria-label="' + (s.done ? 'Mark step not done: ' : 'Mark step done: ') + esc(s.title) + '">' + TICK_SVG + '</button>' +
+      '<button class="tsubt" data-action="open" data-id="' + t.id + '">' + esc(s.title || 'Untitled step') + '</button></li>';
+  }).join('') + (t.subtasks.length > SUBS_SHOWN ? '<li class="more"><button class="tsubt" data-action="open" data-id="' + t.id + '">+' + (t.subtasks.length - SUBS_SHOWN) + ' more steps</button></li>' : '') + '</ul>';
+}
+// Tick a step straight from the list.
+actions.subtick = function (el) {
+  const t = findTask(el.dataset.id);
+  if (!t) return;
+  const s = t.subtasks.find(function (x) { return x.id === el.dataset.sid; });
+  if (!s) return;
+  s.done = !s.done;
+  t.updatedAt = now();
+  save();
+  haptic(s.done ? 8 : 4);
+  if (s.done) sound('soft');
+  renderTaskViews();
+  if (s.done && t.subtasks.every(function (x) { return x.done; })) toast('All steps of "' + shortTitle(t.title) + '" done. Tick the task when you\'re ready.');
+};
+
 // Redraw every view that shows tasks.
 function renderTaskViews() {
   refreshStackSheet();
