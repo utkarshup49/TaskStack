@@ -39,8 +39,11 @@ js/matrix.js           shared task rows (taskHTML), tick/swipe/hold-drag gesture
                        task details sheet, Eisenhower matrix + "Not sorted" tray,
                        per-box add pop-up (+) and rename (...)
 js/tasks.js            Tasks list, the main view (grouped by date)
-js/calendar.js         Calendar: Day / 3 days / Week (hour grid), 2 weeks / Month (day grid), Year;
-                       days off shaded; tap an empty hour slot to add a task there
+js/calendar.js         Calendar drawing: Agenda / Day / 3 days / Week (hour grid) / 2 weeks / Month / Year;
+                       days off shaded; future repeats (ghosts), multi-day bars, ColorTracker strip, habit ticks,
+                       week numbers; side card + phone day sheet (calPeekHTML)
+js/calplus.js          Calendar moving + finding: drag (move / resize / range-add), move mode, drawer
+                       (no date / overdue), View options sheet, search, jump to date, zoom, swipe
 js/focus.js            pomodoro, intent/reflection, growing plant, ambient sound, 7-day chart
 js/habits.js           habits, strength score, milestones; details sheet with stat cards,
                        a tickable month calendar (streaks join into bands) and a 12-month chart
@@ -67,7 +70,7 @@ manifest.webmanifest   install-as-app info
 `grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
 and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, calplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, plan, profile, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -82,7 +85,14 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - `mergeState()` merges two copies: newer `updatedAt` wins per item; habit ticks merge per day. Google Drive sync (sync.js) uses it.
 - **Every edit must bump `updatedAt`** (habit ticks: `done[day].at`), or sync won't see it.
 - `timer` and `ui` stay on the device and are never uploaded. Sync's own info (token, file id) is in localStorage key `taskstack.sync`.
-- Calendar: `settings.offDays` = weekdays shaded as days off (0 = Sun … 6 = Sat, default [0, 6]; syncs). `ui.calMode` = the view (device-only). Timed tasks are drawn 1 hour tall (tasks have no duration yet).
+- Calendar: `settings.offDays` = weekdays shaded as days off (0 = Sun … 6 = Sat, default [0, 6]; syncs). `ui.calMode` = the view (device-only).
+  v0.11: a timed block is as tall as `task.est` (60 min if none); dragging its bottom edge sets `est`. `task.endDate` (midnight or null) = last day
+  of a multi-day task ("Runs until" in the task sheet); multi-day tasks always sit in the All day row; moving one moves endDate too.
+  Settings (sync): calWeekStart (1 Mon / 0 Sun, Calendar only; `weekStart()` stays Monday for weekly reviews, use `calWeekStart()` in the Calendar),
+  calWeekNums, calFrom / calTo (hours shown), calShowDone, calRepeats, calCt, calHabits. Device-only ui: calFilter { q: [0-4], tags: [] }, calDrawer ('nodate' | 'late' | null).
+  Ghosts = future dates of repeating tasks from `repeatGhosts()`: copies with `ghost: true` and the real id, never ticked/dragged, never saved.
+  Use `tasksByDay(from, to)` (with a range = with ghosts), `calShows(t)` for the filters, `calPlaceTask()` to put a task on a day.
+  Drag: mouse = press + move 6px; touch = hold 380 ms then move (touchmove preventDefault). After a drag `calNoTapUntil` eats the one click that follows.
 - Repeating tasks: `task.repeat` = { unit day|week|month|year, every, days[], monthBy date|nth|workday, monthDay (-1 = last), nth (-1 = last), wd, mode fixed|after|stack, start, until }. fixed/after: ticking logs `task.history` and moves the date (never onto a past day). stack: one copy per date, same `seriesId`, id `seriesId_YYYY-MM-DD`, max 5 open; lists show only the oldest open copy with a "N stacked" button. Use `setupRepeat()` when adding, `applyTaskRepeat()` when editing.
 - Box names: `quadName(q)` / `quadSub(q)` (core.js), renamable, stored in `settings.quadNames` so they sync. Never read `QUADS[i].name` directly for display.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes, listId, reminders[], someday, evening, est (minutes or null), top (dayKey when it's one of that day's top 3)`.

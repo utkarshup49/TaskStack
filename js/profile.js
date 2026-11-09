@@ -9,14 +9,14 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.9';
+const APP_VERSION = '0.11';
 const WHATS_NEW = [
-  'Lists: College, Extracurricular, Projects, Self-growth, Personal (or your own). Pick which to see at the top of Tasks, Matrix and Calendar. Type /college when adding.',
-  'Reminders inside the app, with Done / Snooze / Tomorrow, and on Android / Windows a notification with Done and Snooze buttons.',
-  'Plan your day, Wrap up the day and a Weekly review.',
-  'Top 3 for today, "This evening", and Someday for ideas with no date.',
-  'Time estimates (~45m when adding) next to the time you really focused.',
-  'Logbook, Countdowns, Templates, a "Got distracted" counter in Focus, and this profile.'
+  'Calendar: drag tasks to another day or time, drag a block\'s bottom edge to change how long it takes, drag on empty hours to add a task for that range.',
+  'Calendar drawer: tasks with no date and overdue ones, ready to drag in. "All to today" in one tap.',
+  'Calendar Agenda view, future dates of repeating tasks (faded), tasks that run over several days ("Runs until").',
+  'Calendar shows what you painted in ColorTracker on past days and your habit ticks; tick habits from the day sheet.',
+  'Calendar: search (F), jump to any date (tap the title), pinch or + / − to zoom, week numbers, Sunday start, hours shown, filter by box or tag.',
+  'Phone: hold a task in the day sheet, then tap another day to move it.'
 ];
 const SECTION_NAMES = [['calendar', 'Calendar'], ['matrix', 'Matrix'], ['focus', 'Focus'], ['habits', 'Habits'], ['colortracker', 'ColorTracker']];
 
@@ -217,7 +217,7 @@ actions.psection = function (el) {
 actions.shortcuts = function () {
   openSheet({ type: 'shortcuts' }, '<h3>Keyboard shortcuts</h3><ul class="keys">' + [
     ['N', 'New task'], ['Ctrl K or /', 'Search, commands, add'], ['Ctrl Z', 'Undo'], ['1 – 6', 'Switch section (Alt + 1 – 6 in ColorTracker)'],
-    ['?', 'This list'], ['Esc', 'Close'], ['← →', 'Calendar: previous / next'], ['P', 'ColorTracker: pen'], ['1 – 9', 'ColorTracker: pick a colour'], ['L', 'ColorTracker: lock a block']
+    ['?', 'This list'], ['Esc', 'Close'], ['← →', 'Calendar: previous / next'], ['F / G / U / T', 'Calendar: find, go to date, drawer, today'], ['+ −', 'Calendar: zoom in / out'], ['P', 'ColorTracker: pen'], ['1 – 9', 'ColorTracker: pick a colour'], ['L', 'ColorTracker: lock a block']
   ].map(function (k) { return '<li><span class="kbd">' + k[0] + '</span><span>' + k[1] + '</span></li>'; }).join('') + '</ul>' +
   '<p class="label">Typing a task</p><ul class="keys">' + [
     ['fri 5pm', 'date and time'], ['!1 … !4', 'Matrix box'], ['/college', 'list'], ['#exam', 'tag'], ['~45m', 'how long it takes'],

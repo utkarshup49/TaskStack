@@ -154,7 +154,16 @@ const SETTING_DEFAULTS = {
   ctChallenges: [],      // { id, type, start: dayKey }
   ctBadges: [],          // { type, won: dayKey }
   dayTemplates: [],      // { id, name, blocks: [{ s, e, cat }] }
-  ctKindsReviewed: false
+  ctKindsReviewed: false,
+  // Calendar (v0.11)
+  calWeekStart: 1,       // first day of the week in the Calendar: 1 = Monday, 0 = Sunday
+  calWeekNums: false,    // week numbers down the side
+  calFrom: 0,            // hours shown in Day / 3 days / Week: from ... to
+  calTo: 24,
+  calShowDone: true,     // completed tasks, greyed out
+  calRepeats: true,      // faded future dates of repeating tasks
+  calCt: true,           // ColorTracker strip on past days
+  calHabits: true        // habit ticks on each day
 };
 
 function newTask(title, q, extra) {
@@ -254,6 +263,7 @@ function normalize(s) {
     if (typeof x.evening !== 'boolean') x.evening = false;
     if (x.est === undefined) x.est = null;
     if (x.top === undefined) x.top = null;
+    if (x.endDate === undefined) x.endDate = null;   // last day of a multi-day task (midnight), or null
   });
   if (!s.ui.listFilter || !Array.isArray(s.ui.listFilter)) s.ui.listFilter = [];
   if (!s.ui.dismissed || typeof s.ui.dismissed !== 'object') s.ui.dismissed = {};

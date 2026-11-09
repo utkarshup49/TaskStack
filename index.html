@@ -69,18 +69,23 @@
     <div class="listbar" id="listbarCal" role="group" aria-label="Lists to show"></div>
     <div class="cal-top">
       <div class="cal-head">
-        <h2 id="calTitle"></h2>
-        <button class="icon-btn" data-action="caladd" aria-label="Add a task" title="Add a task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <h2 id="calTitle" data-action="caljump" role="button" tabindex="0" title="Jump to a date (G)"></h2>
+        <button class="icon-btn" data-action="calsearch" aria-label="Find a task" title="Find a task (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button>
+        <button class="icon-btn cal-tray" id="calDrawerBtn" data-action="cdrtoggle" aria-label="Tasks with no date, and overdue" title="No date / Overdue (U)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13l2.5-7h11L20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5z"/><path d="M4 13h4.5l1 2h5l1-2H20"/></svg><b></b></button>
+        <button class="icon-btn cal-opts" id="calOptsBtn" data-action="calopts" aria-label="View options and filters" title="View options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+        <button class="icon-btn cal-add" data-action="caladd" aria-label="Add a task" title="Add a task (N)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
         <button class="icon-btn" data-action="calprev" aria-label="Previous" title="Previous (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <button class="btn small" id="calToday" data-action="caltoday">Today</button>
+        <button class="btn small" id="calToday" data-action="caltoday" title="Today (T)">Today</button>
         <button class="icon-btn" data-action="calnext" aria-label="Next" title="Next (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
       </div>
       <div class="seg cal-modes" id="calModes" role="group" aria-label="Calendar view"></div>
     </div>
+    <div class="cal-move note" id="calMove" hidden></div>
     <div class="cal-wrap" id="calWrap">
       <div class="cal-main" id="calBody"></div>
       <div class="card cal-day" id="calDayCard">
         <div><h3 id="calDayTitle"></h3><p class="small" id="calDaySub"></p></div>
+        <div id="calDayExtra"></div>
         <form id="calForm" class="add-row" autocomplete="off">
           <input id="calInput" aria-label="Add a task on this day" enterkeyhint="done">
           <button class="btn primary" type="submit">Add</button>
@@ -88,6 +93,7 @@
         <div class="parse" id="calParse"></div>
         <ul class="tasks list" id="calList"></ul>
       </div>
+      <aside class="caldrawer" id="calDrawer" hidden aria-label="Tasks to place on the calendar"></aside>
     </div>
   </section>
 
@@ -303,6 +309,7 @@
 <script src="js/matrix.js"></script>
 <script src="js/tasks.js"></script>
 <script src="js/calendar.js"></script>
+<script src="js/calplus.js"></script>
 <script src="js/focus.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/colortracker.js"></script>

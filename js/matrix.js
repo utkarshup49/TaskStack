@@ -56,6 +56,7 @@ function addSheetHTML() {
     '<p class="label">Date' + (d.date === null && !d.time ? ' · none, so it shows in Today' : '') + '</p>' +
     '<div class="daterow">' + pick('adate', 'none', 'No date', d.date) + pick('adate', 0, 'Today', d.date) + pick('adate', 1, 'Tomorrow', d.date) + pick('adate', 7, 'Next week', d.date) + '</div>' +
     '<div class="daterow"><input type="date" id="addDate" value="' + (d.date !== null ? dayKey(d.date) : '') + '" aria-label="Date"><input type="time" id="addTime" value="' + d.time + '" aria-label="Time"></div>' +
+    (d.est ? '<p class="small">Blocked for ' + fmtEst(d.est) + ' (picked in the Calendar).</p>' : '') +
     '<p class="label">Deadline</p>' +
     '<div class="daterow">' + pick('adl', 'none', 'None', d.deadline) + pick('adl', 3, 'In 3 days', d.deadline) + pick('adl', 7, 'In a week', d.deadline) +
       '<input type="date" id="addDeadline" value="' + (d.deadline ? dayKey(d.deadline) : '') + '" aria-label="Deadline"></div>' +
@@ -68,7 +69,7 @@ function addSheetHTML() {
 function openAddSheet(q, preset) {
   preset = preset || {};
   if (q) addQ = q;
-  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null, listId: defaultListId() };
+  addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null, listId: defaultListId(), est: preset.est || null };
   openSheet({ type: 'add' }, addSheetHTML());
   setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
 }
@@ -104,6 +105,7 @@ function addFromSheet() {
   const rule = p.repeat || d.repeat;
   if (rule) setupRepeat(task, rule);
   finishNewTask(task, p);
+  if (!task.est && d.est) task.est = d.est;          // a time range picked in the Calendar
   snapshot('Added task');
   state.tasks.push(task);
   save();
@@ -177,6 +179,7 @@ function taskHTML(t, opts) {
     if (!sameDay) meta.push('<span class="chip' + cls + '">' + CAL_SVG + esc(fmtDue(t.due, t.hasTime)) + '</span>');
     else if (t.hasTime) meta.push('<span class="chip' + cls + '">' + esc(fmtTime(t.due)) + '</span>');
   }
+  if (t.endDate && t.due !== null && t.endDate > midnight(t.due)) meta.push('<span class="chip" title="Runs until">→ ' + esc(new Date(t.endDate).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + '</span>');
   if (t.deadline && !t.done) {
     const left = Math.round((midnight(t.deadline) - midnight(now())) / DAY);
     meta.push('<span class="chip' + (left <= 1 ? ' late' : '') + '">' + FLAG_SVG + esc(fmtDeadline(t.deadline)) + '</span>');
@@ -493,6 +496,8 @@ function taskSheetHTML(t) {
       (t.due ? '<button class="btn small" data-action="tdue" data-d="clear">No date</button>' : '') +
     '</div>' +
     '<div class="daterow"><input type="date" id="tDate" value="' + dateVal + '" aria-label="Date"><input type="time" id="tTime" value="' + timeVal + '" aria-label="Time"></div>' +
+    (t.due !== null ? '<div class="daterow until"><span class="small">Runs until</span><input type="date" id="tUntil" min="' + dateVal + '" value="' + (isMulti(t) ? dayKey(t.endDate) : '') + '" aria-label="Last day, for a task that runs over several days">' +
+      (isMulti(t) ? '<button class="btn small" data-action="tuntil">One day only</button>' : '') + '</div>' : '') +
     '<div class="daterow">' +
       '<button class="pick' + (isTop(t) ? ' on' : '') + '" data-action="ttop" aria-pressed="' + isTop(t) + '">' + STAR_SVG + 'Top 3 today</button>' +
       '<button class="pick' + (t.evening ? ' on' : '') + '" data-action="tevening" aria-pressed="' + t.evening + '">This evening</button>' +

@@ -297,8 +297,13 @@ document.addEventListener('keydown', function (e) {
     if (visible[digit - 1]) { e.preventDefault(); showView(visible[digit - 1]); }
     return;
   }
-  if (k === 'n') { e.preventDefault(); if (view === 'matrix') openAddSheet(addQ); else if (view === 'calendar') { if (TIMED_MODES[calMode()]) actions.caladd(); else $('calInput').focus(); } else { showView('tasks'); $('taskInput').focus(); } return; }
+  if (k === 'n') { e.preventDefault(); if (view === 'matrix') openAddSheet(addQ); else if (view === 'calendar') { if (TIMED_MODES[calMode()] || calMode() === 'agenda' || calPhone()) actions.caladd(); else $('calInput').focus(); } else { showView('tasks'); $('taskInput').focus(); } return; }
   if (view === 'calendar' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { calStep(e.key === 'ArrowLeft' ? -1 : 1); return; }
+  if (view === 'calendar' && k === 'f') { e.preventDefault(); actions.calsearch(); return; }
+  if (view === 'calendar' && k === 'g') { e.preventDefault(); actions.caljump(); return; }
+  if (view === 'calendar' && k === 'u') { e.preventDefault(); actions.cdrtoggle(); return; }
+  if (view === 'calendar' && k === 't') { e.preventDefault(); actions.caltoday(); return; }
+  if (view === 'calendar' && (k === '-' || k === '=' || k === '+')) { e.preventDefault(); calZoom(k === '-' ? 1 : -1); return; }
   if (view === 'colortracker') {
     const n = Number(e.key);
     if (n >= 1 && n <= 9 && liveCats()[n - 1]) actions.brush({ dataset: { id: liveCats()[n - 1].id } });
