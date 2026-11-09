@@ -22,10 +22,17 @@ function renderAll() {
   renderColor();
 }
 
+// The theme on screen right now ('system' follows the phone / computer).
+function isDark() {
+  const t = state.ui.theme || 'system';
+  return t === 'dark' || (t === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
 function applyTheme() {
   const t = state.ui.theme || 'system';
   if (t === 'system') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = t;
+  const btn = $('themeBtn');
+  if (btn) { btn.classList.toggle('dark', isDark()); btn.setAttribute('aria-label', isDark() ? 'Switch to light mode' : 'Switch to dark mode'); btn.title = btn.getAttribute('aria-label'); }
   setTimeout(function () {
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = getComputedStyle(document.body).backgroundColor;
@@ -85,11 +92,13 @@ function settingsHTML() {
   function sw(key, label) {
     return '<div class="toggle"><span>' + label + '</span><button class="switch" role="switch" aria-checked="' + !!state.ui[key] + '" data-action="pref" data-k="' + key + '" aria-label="' + label + '"></button></div>';
   }
-  return '<h3>Settings</h3>' +
+  const back = sheetCtx && (sheetCtx.from === 'profile' || sheetCtx.type === 'profile');   // opened from the profile
+  return '<div class="tsh-bar">' + (back ? '<button class="icon-btn sm" data-action="profile" aria-label="Back to profile">‹</button>' : '') +
+    '<h3>Settings</h3><button class="btn small primary" data-action="close">Close</button></div>' +
     '<p class="label">Sync with Google Drive</p>' +
     '<div class="sync-box" id="syncBox">' + syncSettingsHTML() + '</div>' +
     sw('sound', 'Sounds') + sw('haptics', 'Vibration') +
-    '<p class="label">Appearance</p>' +
+    '<p class="label">Appearance</p><p class="small">Quick switch: the sun / moon button at the top. "System" follows your phone or computer.</p>' +
     '<div class="seg">' + ['system', 'light', 'dark'].map(function (t) {
       return '<button class="' + (theme === t ? 'on' : '') + '" data-action="theme" data-t="' + t + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
     }).join('') + '</div>' +
@@ -118,7 +127,11 @@ function setStatus(msg, bad) {
   el.textContent = msg;
   el.style.color = bad ? 'var(--danger)' : 'var(--good)';
 }
-actions.settings = function () { openSheet({ type: 'settings' }, settingsHTML()); };
+actions.settings = function () {
+  const ctx = { type: 'settings', from: sheetCtx && sheetCtx.type === 'profile' ? 'profile' : null };
+  if (sheetCtx && sheetCtx.onClose) sheetCtx.onClose();   // e.g. save the profile name typed so far
+  openSheet(ctx, settingsHTML());
+};
 actions.pref = function (el) {
   const k = el.dataset.k;
   state.ui[k] = !state.ui[k];
@@ -141,8 +154,19 @@ actions.theme = function (el) {
   state.ui.theme = el.dataset.t;
   save();
   applyTheme();
-  refreshSheet(settingsHTML());
+  if (sheetCtx && sheetCtx.type === 'settings') refreshSheet(settingsHTML());
 };
+// The sun / moon button at the top: flip between light and dark.
+actions.themetoggle = function () {
+  state.ui.theme = isDark() ? 'light' : 'dark';
+  save();
+  document.documentElement.classList.add('theme-anim');
+  applyTheme();
+  setTimeout(function () { document.documentElement.classList.remove('theme-anim'); }, 400);
+  haptic(6);
+  if (sheetCtx && sheetCtx.type === 'settings') refreshSheet(settingsHTML());
+};
+if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {} }
 actions.copybackup = function () {
   const data = JSON.stringify(state);
   $('backupBox').value = data;

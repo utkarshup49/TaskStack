@@ -263,7 +263,8 @@ function normalize(s) {
     if (typeof x.evening !== 'boolean') x.evening = false;
     if (x.est === undefined) x.est = null;
     if (x.top === undefined) x.top = null;
-    if (x.endDate === undefined) x.endDate = null;   // last day of a multi-day task (midnight), or null
+    if (x.endDate === undefined) x.endDate = null;
+    if (x.draft) { if (x.title.trim()) delete x.draft; else x.deleted = true; }   // app closed while adding: keep it if it has a name   // last day of a multi-day task (midnight), or null
   });
   if (!s.ui.listFilter || !Array.isArray(s.ui.listFilter)) s.ui.listFilter = [];
   if (!s.ui.dismissed || typeof s.ui.dismissed !== 'object') s.ui.dismissed = {};
@@ -288,7 +289,8 @@ function save() {
 
 let state = load();
 
-function liveTasks() { return state.tasks.filter(function (t) { return !t.deleted; }); }
+// Drafts (a task being filled in with "+" before you press Add) stay hidden until added.
+function liveTasks() { return state.tasks.filter(function (t) { return !t.deleted && !t.draft; }); }
 function liveHabits() { return state.habits.filter(function (h) { return !h.deleted; }); }
 function liveSessions() { return state.sessions.filter(function (s) { return !s.deleted; }); }
 function findTask(id) { return state.tasks.find(function (t) { return t.id === id; }); }

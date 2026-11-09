@@ -1483,3 +1483,21 @@ body.cal-moving .cal-grid .cday:not(.out) { box-shadow: inset 0 0 0 1px color-mi
   .cstrip { left: 6px; right: 6px; bottom: 3px; height: 5px; }
   .cday { padding-bottom: 11px; }
 }
+
+/* ---------- v0.12: sticky sheet bar, add with all options, theme switch, settings in profile ---------- */
+.tsh-bar { position: sticky; top: -10px; z-index: 3; display: flex; align-items: center; gap: 8px; margin: -4px -16px 0; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.tsh-bar h3 { flex: 1; min-width: 0; }
+.tsh-bar .btn { flex: 0 0 auto; }
+.tsh-bar .icon-btn.sm.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+.tsh-done svg { width: 15px; height: 15px; margin-right: 5px; vertical-align: -3px; }
+.tsh-done.on { color: var(--good); border-color: var(--good); }
+.addfull { flex: 0 0 auto; }
+.addfull svg { width: 20px; height: 20px; }
+.theme-btn .sun { display: none; }
+.theme-btn.dark .sun { display: block; }
+.theme-btn.dark .moon { display: none; }
+.theme-btn svg { transition: transform 0.3s var(--spring, ease); }
+.theme-btn:active svg { transform: rotate(-40deg) scale(0.9); }
+html.theme-anim body, html.theme-anim .card, html.theme-anim .sheet, html.theme-anim .tabs { transition: background-color 0.3s ease, color 0.3s ease; }
+.psettings { margin-left: auto; flex: 0 0 auto; }
+.psettings svg { width: 21px; height: 21px; }

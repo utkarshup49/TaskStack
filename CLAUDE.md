@@ -97,6 +97,11 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Box names: `quadName(q)` / `quadSub(q)` (core.js), renamable, stored in `settings.quadNames` so they sync. Never read `QUADS[i].name` directly for display.
 - Task: `title, q (1-4 or null = not sorted), due (ms or null), hasTime, deadline (ms or null), done, doneAt, subtasks[], tags[], notes, listId, reminders[], someday, evening, est (minutes or null), top (dayKey when it's one of that day's top 3)`.
 - New tasks: after `newTask()` call `finishNewTask(task, parsed)` (core.js): applies /list, ~estimate, someday and the default reminder.
+- Adding with all options (v0.12): "+" next to Add (Tasks) and "All options" in the quick-add pop-up call `openNewTaskSheet(parsed, extra)` (matrix.js).
+  It pushes a hidden `draft: true` task so the normal task sheet works on it; `liveTasks()` skips drafts. "Add task" / Enter / closing with a name
+  removes `draft`; Cancel or no name removes it from `state.tasks`. normalize() cleans up drafts left by a closed app.
+- Task sheet: a sticky top bar (`.tsh-bar`) holds Mark done, Delete, Close (or Cancel / Add task for a draft). Use `.tsh-bar` for other long sheets too.
+- Theme: the sun/moon button in the top bar (`actions.themetoggle`, `isDark()`); Settings has System / Light / Dark. Settings opens from the gear in the profile (`.psettings`).
 - Lists: `state.lists` = { id, name, color, order }. Default ids personal/college/extra/projects/growth with updatedAt 1 (so devices don't duplicate them). `listOf(t)` always returns a live list. The filter is `ui.listFilter` (device-only, shared by Tasks/Matrix/Calendar); views use `listVisible(t)`. New tasks go to `defaultListId()` (the one list being viewed, else `settings.defaultList`).
 - Reminders: `task.reminders` = { id, type 'due' (mins before its time, or before `settings.remindHour` on its day) | 'dl' (mins before remindHour on the deadline day) | 'abs' (at) , snooze? }. `reminderAt(t, r)` gives the moment. What fired is device-only in localStorage `taskstack.fired`. Only works while the app is open/recent; Telegram/web push need a server (not built yet).
 - Someday tasks have no date and are hidden from Today, the Matrix and Calendar (a folded group at the bottom of Tasks). Setting a date clears `someday`.

@@ -8,6 +8,8 @@
    - each box can be renamed from its ... button
    ========================================================= */
 
+const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+const TICK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const CHECK_SVG = '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M6.5 11.5l3 3 6-6.5"/></svg>';
 const CAL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
 const LIST_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l2 2 3-3M4 15l2 2 3-3M12 8h8M12 16h8"/></svg>';
@@ -63,7 +65,7 @@ function addSheetHTML() {
     '<p class="label">Repeat</p>' + repeatEditorHTML(d.repeat ? rpNorm(d.repeat, d.date !== null ? d.date : midnight(now())) : null) +
     '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm /college ~45m</b> or <b>every 4 days after completion</b>.</p>' +
     '<p class="status" id="addStatus" role="status"></p>' +
-    '<div class="row"><button class="btn" data-action="close">Done</button></div>';
+    '<div class="row"><button class="btn" data-action="addmore">All options (reminders, steps, notes…)</button><button class="btn" data-action="close">Done</button></div>';
 }
 // q: the box (null = not sorted). preset: { date, time } when opened from the Calendar.
 function openAddSheet(q, preset) {
@@ -482,8 +484,14 @@ attachTaskGestures($('view-matrix'), 'drag');
 function taskSheetHTML(t) {
   const dateVal = t.due ? dayKey(t.due) : '';
   const timeVal = t.due && t.hasTime ? String(new Date(t.due).getHours()).padStart(2, '0') + ':' + String(new Date(t.due).getMinutes()).padStart(2, '0') : '';
-  return '<h3>Task</h3>' +
-    '<input class="text-input" id="tTitle" value="' + esc(t.title) + '" aria-label="Task name">' +
+  const top = t.draft
+    ? '<div class="tsh-bar"><h3>New task</h3><button class="btn" data-action="tnewcancel">Cancel</button><button class="btn primary" data-action="tnewadd">Add task</button></div>'
+    : '<div class="tsh-bar"><h3>Task</h3>' +
+        '<button class="btn small tsh-done' + (t.done ? ' on' : '') + '" data-action="tdonebtn">' + TICK_SVG + (t.done ? 'Not done' : 'Mark done') + '</button>' +
+        '<button class="icon-btn sm danger" data-action="tdelete" aria-label="Delete task" title="Delete">' + TRASH_SVG + '</button>' +
+        '<button class="btn small primary" data-action="close">Close</button></div>';
+  return top +
+    '<input class="text-input" id="tTitle" value="' + esc(t.title) + '" placeholder="What needs doing?" aria-label="Task name"' + (t.draft ? ' enterkeyhint="done"' : '') + '>' +
     '<p class="label">List</p>' + listPickHTML(listOf(t).id, 'tlist') +
     '<p class="label">Eisenhower box</p><div class="qmove">' + QUADS.map(function (q) {
       return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="tmove" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
@@ -528,8 +536,9 @@ function taskSheetHTML(t) {
     '<textarea class="text-input" id="tNotes" placeholder="Anything to remember">' + esc(t.notes) + '</textarea>' +
     '<p class="label">Tags</p>' +
     '<input class="text-input" id="tTags" value="' + esc(t.tags.join(', ')) + '" placeholder="college, exam">' +
-    '<div class="row"><button class="btn" data-action="tsavetemplate">Save as template</button><button class="btn primary" data-action="tfocus">Focus on this</button></div>' +
-    '<div class="row"><button class="btn danger" data-action="tdelete">Delete</button><button class="btn" data-action="close">Done</button></div>';
+    (t.draft
+      ? '<div class="row"><button class="btn" data-action="tnewcancel">Cancel</button><button class="btn primary" data-action="tnewadd">Add task</button></div>'
+      : '<div class="row"><button class="btn" data-action="tsavetemplate">Save as template</button><button class="btn" data-action="tfocus">Focus on this</button></div>');
 }
 function openTask(id) {
   const t = findTask(id);
@@ -687,4 +696,80 @@ actions.tfocus = function () {
   showView('focus');
 };
 actions.tdelete = function () { const t = sheetTask(); if (!t) return; closeSheet(); deleteTask(t.id); };
+actions.tdonebtn = function () { const t = sheetTask(); if (!t) return; closeSheet(); toggleTask(t.id); };
+
+// ---------- adding with every option: the full task sheet, before the task exists ----------
+// The task is created as a hidden draft so every picker in the sheet works on it as usual.
+// "Add task" makes it real; Cancel throws it away; closing another way keeps it only if it has a name.
+function openNewTaskSheet(p, extra) {
+  p = p || {};
+  extra = extra || {};
+  const t = newTask(p.title || '', p.q || extra.q || null, {
+    due: extra.due !== undefined ? extra.due : null, hasTime: !!extra.hasTime, deadline: extra.deadline || null,
+    tags: p.tags || [], listId: extra.listId || defaultListId()
+  });
+  if (extra.repeat) setupRepeat(t, extra.repeat);
+  finishNewTask(t, p);
+  if (!t.est && extra.est) t.est = extra.est;
+  t.draft = true;
+  state.tasks.push(t);
+  openSheet({ type: 'task', id: t.id, onClose: function () { finishDraft(t.id); } }, taskSheetHTML(t));
+  setTimeout(function () { const el = $('tTitle'); if (el && !el.value) el.focus(); }, 80);
+}
+function finishDraft(id) {
+  const t = findTask(id);
+  if (!t || !t.draft) return;
+  const el = $('tTitle');
+  if (el && el.value.trim()) t.title = el.value.trim();
+  if (!t.title.trim() || t.discard) {               // nothing to keep
+    const i = state.tasks.indexOf(t);
+    if (i !== -1) state.tasks.splice(i, 1);
+    save();
+    return;
+  }
+  snapshot('Added task');
+  delete t.draft;
+  t.updatedAt = now();
+  save();
+  renderTaskViews();
+  sound('soft');
+  toast('Added "' + shortTitle(t.title) + '"' + (t.due !== null ? ' for ' + fmtDue(t.due, t.hasTime) : ''), { undo: true });
+}
+actions.tnewadd = function () {
+  const t = sheetTask();
+  if (!t) return;
+  const el = $('tTitle');
+  if (!el.value.trim()) { el.focus(); if (el.animate) el.animate([{ transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'none' }], { duration: 220 }); return; }
+  closeSheet();                                     // finishDraft (onClose) adds it
+};
+actions.tnewcancel = function () { const t = sheetTask(); if (t) t.discard = true; closeSheet(); };
+// "+" next to Add on the Tasks page: whatever is typed so far comes along.
+actions.newfull = function () {
+  const input = $('taskInput');
+  const raw = input.value.trim();
+  const p = raw ? parseQuickAdd(raw) : { title: '', tags: [] };
+  const extra = { due: p.due !== null && p.due !== undefined ? p.due : (typeof listDate !== 'undefined' ? listDate : null), hasTime: !!(p.due && p.hasTime), q: typeof listQ !== 'undefined' ? listQ : null, repeat: p.repeat };
+  if (!raw) { p.title = ''; }
+  input.value = '';
+  if (typeof renderListParse === 'function') renderListParse();
+  openNewTaskSheet(p, extra);
+};
+// From the quick add pop-up: carry over what's typed and picked.
+actions.addmore = function () {
+  const d = addDraft;
+  const raw = $('addTitle') ? $('addTitle').value.trim() : '';
+  const p = raw ? parseQuickAdd(raw) : { title: '', tags: [] };
+  let due = null, hasTime = false;
+  if (p.due !== null && p.due !== undefined) { due = p.due; hasTime = p.hasTime; }
+  else if (d.date !== null || d.time) {
+    const mins = d.time ? Number(d.time.slice(0, 2)) * 60 + Number(d.time.slice(3, 5)) : 0;
+    due = (d.date !== null ? d.date : midnight(now())) + mins * MIN;
+    hasTime = !!d.time;
+  }
+  openNewTaskSheet(p, { due: due, hasTime: hasTime, deadline: d.deadline, q: d.q, listId: d.listId, repeat: p.repeat || d.repeat, est: d.est });
+};
+// Enter in the title of a new task adds it.
+$('sheet').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && e.target.id === 'tTitle' && sheetTask() && sheetTask().draft) { e.preventDefault(); actions.tnewadd(); }
+});
 

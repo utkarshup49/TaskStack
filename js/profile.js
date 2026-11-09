@@ -9,8 +9,11 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.11';
+const APP_VERSION = '0.12';
 const WHATS_NEW = [
+  'Add a task with every option at once: the + next to Add opens the full task screen (repeat, reminders, steps, notes…).',
+  'Task screen: Mark done, Delete and Close sit at the top and stay there while you scroll.',
+  'Light / dark switch at the top of the app. Settings now open from the gear in your profile.',
   'Calendar: drag tasks to another day or time, drag a block\'s bottom edge to change how long it takes, drag on empty hours to add a task for that range.',
   'Calendar drawer: tasks with no date and overdue ones, ready to drag in. "All to today" in one tap.',
   'Calendar Agenda view, future dates of repeating tasks (faded), tasks that run over several days ("Runs until").',
@@ -96,7 +99,8 @@ function profileHTML() {
   const tpls = liveTemplates();
   return '<div class="phead">' + avatarHTML('lg') +
       '<div class="pwho"><input class="pname" id="profileName" value="' + esc(name) + '" placeholder="Your name" maxlength="40" aria-label="Your name" enterkeyhint="done">' +
-      '<span class="small">' + (sync.email ? esc(sync.email) : 'Not signed in · your data is on this device') + '</span></div></div>' +
+      '<span class="small">' + (sync.email ? esc(sync.email) : 'Not signed in · your data is on this device') + '</span></div>' +
+      '<button class="icon-btn psettings" data-action="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>' +
     '<div class="plevel"><div><b>Level ' + xp.level + '</b><span class="small">' + xp.xp + ' XP · ' + xp.toNext + ' to level ' + (xp.level + 1) + '</span></div>' +
       '<div class="lb-track"><i style="width:' + (xp.pct * 100).toFixed(1) + '%"></i></div>' +
       '<p class="small">10 XP a task, 1 a focus minute, 5 a habit tick.</p></div>' +
@@ -115,7 +119,6 @@ function profileHTML() {
       tile('listsedit', 'Lists', LIST_SVG) +
       tile('countdowns', 'Countdowns', CLOCK_SVG) +
       tile('timestats', 'Time stats', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>') +
-      tile('settings', 'Settings', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>') +
       tile('shortcuts', 'Shortcuts', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>') +
     '</div>' +
     '<p class="label">Sync with Google Drive</p><div class="sync-box" id="syncBox">' + syncSettingsHTML() + '</div>' +
