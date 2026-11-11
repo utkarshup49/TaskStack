@@ -1,8 +1,7 @@
 /* =========================================================
    Matrix: the four Eisenhower boxes, plus the task pieces every
-   view shares (row design, tick, swipe, hold-to-drag, details sheet).
+   view shares (row design, tick, hold-to-drag, details sheet).
    - tick animation + sound + vibration
-   - swipe right = done, swipe left = delete (with Undo)
    - hold a task, then drag it into another box
    - a + on each box opens an add pop-up (title, box, date, time, deadline)
    - each box can be renamed from its ... button
@@ -407,7 +406,7 @@ actions.earlydone = function () {
   if (id) toggleTask(id, false, true);
 };
 
-// ---------- gestures: swipe and hold-to-drag ----------
+// ---------- gestures: hold-to-drag ----------
 let gest = null;
 let suppressClickUntil = 0;
 
@@ -449,38 +448,14 @@ function finishDrag() {
   suppressClickUntil = now() + 450;
   if (g.target && g.target !== g.fromQ) moveTask(g.id, g.target);
 }
-function moveSwipe(dx) {
-  const w = gest.li.offsetWidth;
-  gest.inner.style.transform = 'translateX(' + dx + 'px)';
-  gest.li.classList.toggle('swipe-right', dx > 0);
-  gest.li.classList.toggle('swipe-left', dx < 0);
-  const past = Math.abs(dx) > w * 0.38;
-  if (past !== gest.past) { gest.past = past; if (past) haptic(8); }
-  gest.li.querySelector('.task-bg').style.opacity = past ? 1 : 0.5;
-}
-function finishSwipe() {
-  const g = gest;
-  const dx = g.x - g.x0;
-  suppressClickUntil = now() + 450;
-  if (g.past) {
-    const w = g.li.offsetWidth;
-    g.inner.style.transition = 'transform 0.18s ease-in';
-    g.inner.style.transform = 'translateX(' + (dx > 0 ? w : -w) + 'px)';
-    setTimeout(function () { if (dx > 0) toggleTask(g.id, true); else deleteTask(g.id); }, 170);
-  } else {
-    g.inner.style.transform = '';
-    setTimeout(function () { g.li.classList.remove('swiping', 'swipe-left', 'swipe-right'); }, 280);
-  }
-}
 function cancelGesture() {
   if (!gest) return;
   clearTimeout(gest.timer);
   if (gest.mode === 'drag') { gest.target = null; finishDrag(); }
-  if (gest.mode === 'swipe') { gest.past = false; finishSwipe(); }
   gest = null;
 }
 
-// Attach swipe + hold gestures to a container of task rows.
+// Attach the hold gesture to a container of task rows (no swipes: removed in v0.18).
 // mode 'drag': hold then drag into a box (Matrix). mode 'menu': hold opens the box menu (Tasks, Calendar).
 function attachTaskGestures(container, mode) {
   container.addEventListener('touchstart', function (e) {
@@ -503,19 +478,17 @@ function attachTaskGestures(container, mode) {
     const dx = gest.x - gest.x0, dy = gest.y - gest.y0;
     if (!gest.mode) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      clearTimeout(gest.timer);
-      if (Math.abs(dx) > Math.abs(dy) * 1.3) { gest.mode = 'swipe'; gest.li.classList.add('swiping'); }
-      else { gest = null; return; }            // mostly vertical: let the list scroll
+      clearTimeout(gest.timer);              // the finger moved before the hold: it's a scroll, not a gesture
+      gest = null;                           // (swipe right = done / left = delete was removed in v0.18: too easy to do by accident)
+      return;
     }
     if (e.cancelable) e.preventDefault();
-    if (gest.mode === 'swipe') moveSwipe(dx);
-    else if (gest.mode === 'drag') moveDrag(gest.x, gest.y);
+    if (gest.mode === 'drag') moveDrag(gest.x, gest.y);
   }, { passive: false });
   container.addEventListener('touchend', function () {
     if (!gest) return;
     clearTimeout(gest.timer);
-    if (gest.mode === 'swipe') finishSwipe();
-    else if (gest.mode === 'drag') finishDrag();
+    if (gest.mode === 'drag') finishDrag();
     gest = null;
   });
   container.addEventListener('touchcancel', cancelGesture);

@@ -182,7 +182,7 @@ actions.lbox = function (el) { const q = Number(el.dataset.q); listQ = q || null
 actions.tasktips = function () {
   openSheet({ type: 'tips' }, '<h3>Tips for Tasks</h3><ul class="tiplist">' +
     '<li>Tasks with no date stay in <b>Today</b>.</li>' +
-    '<li>Swipe a task <b>right</b> to finish it, <b>left</b> to delete it.</li>' +
+    '<li>Tap the circle to finish a task. To delete one, open it and tap the bin.</li>' +
     '<li>Tap the coloured dot on a task (or hold the task) to put it in a matrix box.</li>' +
     '<li>Type it in one go: <b>fri 5pm</b> sets the date, <b>!1</b> to <b>!4</b> the box, <b>/college</b> the list, <b>~45m</b> how long it takes, <b>#tag</b> a tag, <b>someday</b> parks it, <b>every mon</b> repeats it.</li>' +
     '<li>Press <b>Add</b> with nothing typed to open every option.</li></ul>' +

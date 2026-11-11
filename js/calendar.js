@@ -666,7 +666,7 @@ $('calInput').addEventListener('input', function () {
   $('calParse').innerHTML = chips.map(function (c) { return '<span class="chip">' + esc(c) + '</span>'; }).join('');
 });
 attachTaskGestures($('calList'), 'menu');
-attachTaskGestures($('calBody'), 'menu');   // the Agenda's rows: swipe to tick / delete, hold for the box menu
+attachTaskGestures($('calBody'), 'menu');   // the Agenda's rows: hold for the box menu
 
 // keep the red "now" line moving
 setInterval(function () { if (view === 'calendar' && TIMED_MODES[calMode()] && !sheetCtx && !calDragOn) renderCalendar(); }, 60000);
