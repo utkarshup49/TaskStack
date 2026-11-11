@@ -21,7 +21,6 @@ let cdPending = null;    // mouse pressed, not moved far enough yet to count as 
 let cdHold = null;       // finger down, waiting for the hold
 let calMoveId = null;    // move mode: the task waiting for a tap on a day
 let calJumpMonth = null; // month shown in the "jump to a date" sheet
-let cdLastWheel = 0;
 
 function calShortDay(d) { return new Date(d).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }); }
 function calHHMM(mins) { return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'); }
@@ -423,6 +422,7 @@ function calOptsHTML() {
   }
   const hrs = calHours();
   return '<h3>Calendar view</h3>' +
+    '<button class="btn calfind" data-action="calsearch">' + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>Find a task</button>' +
     '<p class="label">Show only these boxes</p><div class="daterow">' + [1, 2, 3, 4, 0].map(function (q) {
       const on = f.q.indexOf(q) !== -1;
       return '<button class="pick qpick q' + q + (on ? ' on' : '') + '" data-action="calfq" data-q="' + q + '" aria-pressed="' + on + '"><i></i>' + (q ? esc(quadName(q)) : 'Not sorted') + '</button>';
