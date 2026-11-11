@@ -67,40 +67,49 @@ function shortTitle(s) { return s.length > 28 ? s.slice(0, 27) + '…' : s; }
 let addQ = 1;          // the box the last task was added to (the N key reuses it)
 let addDraft = null;   // what's picked in the pop-up: { q (null = not sorted), date (midnight ms or null), time ('HH:MM' or ''), deadline (ms or null) }
 
+let addSec = 'date';   // which row of the add pop-up is open
+function addDue() {      // the date + time picked in the add pop-up, as one timestamp (null = no date)
+  const d = addDraft;
+  if (d.date === null && !d.time) return null;
+  const mins = d.time ? Number(d.time.slice(0, 2)) * 60 + Number(d.time.slice(3, 5)) : 0;
+  return (d.date !== null ? d.date : midnight(now())) + mins * MIN;
+}
 function addSheetHTML() {
   const d = addDraft;
-  const today = midnight(now());
-  function pick(action, n, label, current) {
-    const val = n === 'none' ? null : addDays(today, n);
-    return '<button type="button" class="pick' + (current === val ? ' on' : '') + '" data-action="' + action + '" data-d="' + n + '">' + label + '</button>';
-  }
+  const due = addDue();
+  const list = liveLists().find(function (l) { return l.id === d.listId; }) || liveLists()[0];
+  const rule = d.repeat ? rpNorm(d.repeat, d.date !== null ? d.date : midnight(now())) : null;
+  function row(key, icon, label, value, set, body) { return propRowHTML({ key: key, act: 'asec', open: addSec === key, icon: icon, label: label, value: value, set: set, body: body }); }
   return '<h3 class="add-title q' + (d.q || 0) + '"><i></i>' + (d.q ? 'Add to ' + esc(quadName(d.q)) : 'Add a task') + '</h3>' +
     '<form id="addSheetForm" class="add" autocomplete="off"><div class="add-row">' +
       '<input id="addTitle" placeholder="What needs doing?" aria-label="Task name" enterkeyhint="done">' +
       '<button class="btn primary" type="submit">Add</button></div>' +
       '<div class="parse" id="addParse" aria-live="polite"></div></form>' +
     (typeof templateRowHTML === 'function' ? templateRowHTML() : '') +
-    '<p class="label">List</p>' + listPickHTML(d.listId, 'alist') +
-    '<p class="label">Box</p><div class="qmove">' + QUADS.map(function (q) {
-      return '<button type="button" class="q' + q.q + (d.q === q.q ? ' on' : '') + '" data-action="aq" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
-    }).join('') + '<button type="button" class="q0 wide' + (!d.q ? ' on' : '') + '" data-action="aq" data-q="0">Not sorted</button></div>' +
-    '<p class="label">Date' + (d.date === null && !d.time ? ' · none, so it shows in Today' : '') + '</p>' +
-    '<div class="daterow">' + pick('adate', 'none', 'No date', d.date) + pick('adate', 0, 'Today', d.date) + pick('adate', 1, 'Tomorrow', d.date) + pick('adate', 7, 'Next week', d.date) + '</div>' +
-    '<div class="daterow"><input type="date" id="addDate" value="' + (d.date !== null ? dayKey(d.date) : '') + '" aria-label="Date"><input type="time" id="addTime" value="' + d.time + '" aria-label="Time"></div>' +
-    (d.est ? '<p class="small">Blocked for ' + fmtEst(d.est) + ' (picked in the Calendar).</p>' : '') +
-    '<p class="label">Deadline</p>' +
-    '<div class="daterow">' + pick('adl', 'none', 'None', d.deadline) + pick('adl', 3, 'In 3 days', d.deadline) + pick('adl', 7, 'In a week', d.deadline) +
-      '<input type="date" id="addDeadline" value="' + (d.deadline ? dayKey(d.deadline) : '') + '" aria-label="Deadline"></div>' +
-    '<p class="label">Repeat</p>' + repeatEditorHTML(d.repeat ? rpNorm(d.repeat, d.date !== null ? d.date : midnight(now())) : null) +
-    '<p class="small">Tip: you can also type it, e.g. <b>tomorrow 5pm /college ~45m</b> or <b>every 4 days after completion</b>.</p>' +
+    '<div class="tprops">' +
+    row('date', CAL_SVG, 'Date', due === null ? 'No date' : esc(fmtDue(due, !!d.time)), due !== null, function () {
+      return '<div class="daterow">' + datePicksHTML('adate', d.date, [[0, 'Today'], [1, 'Tomorrow'], [7, 'Next week'], ['none', 'No date']]) + '</div>' +
+        '<div class="daterow"><input type="date" id="addDate" value="' + (d.date !== null ? dayKey(d.date) : '') + '" aria-label="Date"><input type="time" id="addTime" value="' + d.time + '" aria-label="Time"></div>' +
+        (d.est ? '<p class="small">Blocked for ' + fmtEst(d.est) + ' (picked in the Calendar).</p>' : '') +
+        (due === null ? '<p class="small">With no date it shows in Today.</p>' : '');
+    }) +
+    row('repeat', REPEAT_SVG, 'Repeat', rule ? esc(repeatLabel(rule)) : 'Off', !!rule, function () { return repeatEditorHTML(rule); }) +
+    row('list', FOLDER_SVG, 'List', listValueHTML(list), false, function () { return listPickHTML(d.listId, 'alist'); }) +
+    row('box', GRID_SVG, 'Matrix box', boxValueHTML(d.q), !!d.q, function () { return boxPickHTML(d.q, 'aq'); }) +
+    row('deadline', FLAG_SVG, 'Deadline', d.deadline ? esc(rpDateText(d.deadline)) : 'None', !!d.deadline, function () {
+      return '<div class="daterow">' + datePicksHTML('adl', d.deadline, [[3, 'In 3 days'], [7, 'In a week'], ['none', 'None']]) +
+        '<input type="date" id="addDeadline" value="' + (d.deadline ? dayKey(d.deadline) : '') + '" aria-label="Deadline"></div>';
+    }) +
+    '</div>' +
     '<p class="status" id="addStatus" role="status"></p>' +
-    '<div class="row"><button class="btn" data-action="addmore">All options (reminders, steps, notes…)</button><button class="btn" data-action="close">Done</button></div>';
+    '<div class="row"><button class="btn" data-action="addmore">More options</button><button class="btn" data-action="close">Done</button></div>';
 }
 // q: the box (null = not sorted). preset: { date, time } when opened from the Calendar.
 function openAddSheet(q, preset) {
   preset = preset || {};
   if (q) addQ = q;
   addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null, listId: defaultListId(), est: preset.est || null };
+  addSec = 'date';
   rpMore = false;
   openSheet({ type: 'add' }, addSheetHTML());
   setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
@@ -620,6 +629,12 @@ function tshOpen(key) {
   if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
 }
 actions.tsec = function (el) { tshOpen(tshSec === el.dataset.s ? null : el.dataset.s); };
+actions.asec = function (el) {
+  addSec = addSec === el.dataset.s ? null : el.dataset.s;
+  refreshAddSheet();
+  const row = document.querySelector('#sheet .tprop.open');
+  if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+};
 function openTask(id) {
   const t = findTask(id);
   if (!t) return;

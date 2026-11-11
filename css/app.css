@@ -1914,3 +1914,4 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .sheet textarea#tNotes { min-height: 64px; }
 .tprop-b .pick.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .tprop-b .rp-days .pick.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--ink); }
+#addStatus:empty { display: none; }
