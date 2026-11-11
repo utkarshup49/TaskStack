@@ -376,7 +376,7 @@ function stackSheetHTML(sid) {
 function refreshStackSheet() { if (sheetCtx && sheetCtx.type === 'stack') refreshSheet(stackSheetHTML(sheetCtx.id)); }
 
 // ---------- the Repeat picker (task details and the add pop-up) ----------
-const RP_PRESETS = [['none', 'None'], ['daily', 'Daily'], ['weekdays', 'Weekdays'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['custom', 'Custom']];
+const RP_PRESETS = [['none', 'Off'], ['daily', 'Daily'], ['weekdays', 'Weekdays'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['custom', 'Custom']];
 function rpPresetOf(r) {
   if (!r) return 'none';
   if (r.mode !== 'after' && !r.until && (r.every || 1) === 1) {
@@ -410,26 +410,43 @@ function rpChange(edit) {             // edit a copy of the current rule
   edit(r);
   rpSet(r);
 }
+// Simple first: pick a preset and read one line saying when it comes back.
+// Everything else (how it comes back, when it ends, monthly details) sits under "More options".
+let rpMore = false;
+const RP_MODES = [['fixed', 'On schedule', 'Fixed dates, whether you finished the last one or not.'],
+  ['after', 'After I finish', 'Counts from the day you complete it.'],
+  ['stack', 'Stack up', 'A new copy each time, even if the last one isn\'t done (max ' + STACK_MAX + ').']];
+// One short line: "Every 2 days · next Wed 11 Nov, Fri 13 Nov, Sun 15 Nov".
+function rpSummaryHTML(r, from) {
+  if (r.mode !== 'fixed') return describeRepeat(r, from);
+  const today = midnight(now());
+  const dates = [];
+  let d = from !== undefined && from !== null ? midnight(from) : rpFirstOnOrAfter(r, Math.max(r.start, today));
+  while (d !== null && dates.length < 3) { dates.push(d); d = rpNextAfter(r, d); }
+  const text = rpScheduleText(r);
+  return '<b>' + text.charAt(0).toUpperCase() + text.slice(1) + '</b>' + (dates.length ? ' · next: ' + dates.map(rpDateText).join(' · ') : '') +
+    (r.until ? ' · stops after ' + rpDateText(r.until) : '') + '.';
+}
 function repeatEditorHTML(r, from) {
   const preset = rpPresetOf(r);
   let h = '<div class="daterow">' + RP_PRESETS.map(function (p) {
-    return '<button type="button" class="pick' + (preset === p[0] ? ' on' : '') + '" data-action="rppreset" data-p="' + p[0] + '">' + p[1] + '</button>';
+    return '<button type="button" class="pick' + (preset === p[0] ? ' on' : '') + '" data-action="rppreset" data-p="' + p[0] + '" aria-pressed="' + (preset === p[0]) + '">' + p[1] + '</button>';
   }).join('') + '</div>';
-  if (!r) return h;
-  const modes = [['fixed', 'On a schedule', 'Fixed dates, done or not'], ['after', 'After I finish', 'Counts from the day you complete it'], ['stack', 'Stack up', 'A new copy each time, even if unfinished (max ' + STACK_MAX + ')']];
-  h += '<div class="rp-modes">' + modes.map(function (m) {
-    return '<button type="button" class="rp-mode' + (r.mode === m[0] ? ' on' : '') + '" data-action="rpmode" data-m="' + m[0] + '"><b>' + m[1] + '</b><span>' + m[2] + '</span></button>';
-  }).join('') + '</div>';
-  h += '<div class="rp-every"><span>Every</span><input type="number" id="rpEvery" min="1" max="99" value="' + r.every + '" aria-label="How many"><div class="seg">' +
-    ['day', 'week', 'month', 'year'].map(function (u) {
-      return '<button type="button" class="' + (r.unit === u ? 'on' : '') + '" data-action="rpunit" data-u="' + u + '">' + u + (r.every > 1 ? 's' : '') + '</button>';
-    }).join('') + '</div></div>';
+  if (!r) return h + '<p class="small">Off: it happens once.</p>';
+  const more = rpMore || r.mode !== 'fixed' || !!r.until;
+  h += '<div class="rp-explain">' + rpSummaryHTML(r, from) + '</div>';
+  if (preset === 'custom') {
+    h += '<div class="rp-every"><span>Every</span><input type="number" id="rpEvery" min="1" max="99" value="' + r.every + '" aria-label="How many"><div class="seg">' +
+      ['day', 'week', 'month', 'year'].map(function (u) {
+        return '<button type="button" class="' + (r.unit === u ? 'on' : '') + '" data-action="rpunit" data-u="' + u + '">' + u + (r.every > 1 ? 's' : '') + '</button>';
+      }).join('') + '</div></div>';
+  }
   if (r.mode !== 'after' && r.unit === 'week') {
     h += '<div class="daterow rp-days">' + [1, 2, 3, 4, 5, 6, 0].map(function (d) {
       return '<button type="button" class="pick' + (r.days.indexOf(d) !== -1 ? ' on' : '') + '" data-action="rpday" data-d="' + d + '">' + RP_WD_NAMES[d] + '</button>';
     }).join('') + '</div>';
   }
-  if (r.mode !== 'after' && r.unit === 'month') {
+  if (r.mode !== 'after' && r.unit === 'month' && (more || preset === 'custom')) {
     h += '<div class="seg rp-by">' + [['date', 'On a date'], ['nth', 'On a weekday'], ['workday', 'Working day']].map(function (b) {
       return '<button type="button" class="' + (r.monthBy === b[0] ? 'on' : '') + '" data-action="rpby" data-b="' + b[0] + '">' + b[1] + '</button>';
     }).join('') + '</div>';
@@ -448,11 +465,21 @@ function repeatEditorHTML(r, from) {
         '<button type="button" class="pick' + (r.monthDay === -1 ? ' on' : '') + '" data-action="rplastday">Last day</button></div>';
     }
   }
+  if (!more) return h + '<button type="button" class="linkbtn rp-more" data-action="rpmore" aria-expanded="false">More options</button>';
+  const mode = RP_MODES.find(function (m) { return m[0] === r.mode; }) || RP_MODES[0];
+  h += '<p class="rp-sub">When it comes back</p><div class="seg rp-how">' + RP_MODES.map(function (m) {
+    return '<button type="button" class="' + (r.mode === m[0] ? 'on' : '') + '" data-action="rpmode" data-m="' + m[0] + '" aria-pressed="' + (r.mode === m[0]) + '">' + m[1] + '</button>';
+  }).join('') + '</div><p class="small">' + mode[2] + '</p>';
   h += '<div class="daterow rp-every"><span>Ends</span><button type="button" class="pick' + (!r.until ? ' on' : '') + '" data-action="rpnoend">Never</button>' +
     '<input type="date" id="rpUntil" value="' + (r.until ? dayKey(r.until) : '') + '" aria-label="Last date"></div>';
-  h += '<div class="rp-explain">' + describeRepeat(r, from) + '</div>';
   return h;
 }
+actions.rpmore = function () {
+  rpMore = true;
+  const c = rpContext();
+  if (!c) return;
+  if (c.kind === 'add') refreshAddSheet(); else refreshTaskSheet();
+};
 
 actions.rppreset = function (el) {
   const c = rpContext();
