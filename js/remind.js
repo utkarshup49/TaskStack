@@ -259,6 +259,7 @@ function remindersHTML(t, nolabel) {
   }).join('') + '<label class="btn small datetimebtn">+ Pick a time<input type="datetime-local" id="rCustom" aria-label="Remind me at"></label></div>';
   if (t.due === null && !t.deadline) html += '<p class="small">Give the task a date to get "before" reminders that move with it.</p>';
   html += notifyStateHTML();
+  if (nolabel) html += '<button class="linkbtn remlink" data-action="reminders">' + (typeof tgOn === 'function' && tgOn() && tgInfo.linked ? 'Also sent to Telegram · reminder settings' : 'Get these on Telegram · reminder settings') + '</button>';
   return html;
 }
 function askNotify() {
