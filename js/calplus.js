@@ -10,8 +10,8 @@
      Drop a task on the drawer to take its date away.
    - View options: box / tag filter, and what's drawn (completed, repeats,
      ColorTracker strip, habits, week numbers, first weekday, hours shown).
-   - Search, jump to a date (tap the title), pinch / Ctrl+scroll / + − to zoom
-     between Day … Year, swipe to page.
+   - Search, jump to a date (tap the title), + − keys to zoom between Day … Year,
+     one long sideways swipe to page (no pinch, no vibration: removed on request).
    - "Runs until" in the task sheet makes a task span several days.
    ========================================================= */
 
@@ -614,19 +614,12 @@ function calZoom(dir) {
   const inner = $('calBody').firstElementChild;
   if (inner && inner.animate) inner.animate([{ transform: 'scale(' + (dir > 0 ? 1.06 : 0.94) + ')', opacity: 0.4 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'ease-out' });
 }
-$('calBody').addEventListener('wheel', function (e) {
-  if (!e.ctrlKey) return;
-  e.preventDefault();
-  if (now() - cdLastWheel < 450 || Math.abs(e.deltaY) < 4) return;
-  cdLastWheel = now();
-  calZoom(e.deltaY > 0 ? 1 : -1);
-}, { passive: false });
-
-// ---------- swipe to page (the view follows your finger) and pinch to zoom ----------
+// ---------- swipe to page ----------
+// Deliberately hard to trigger: it takes one long, clearly sideways swipe (about 40% of the screen),
+// not started at the very edge. Small or slanted moves do nothing. (No pinch: it kept jumping to Year.)
 (function () {
   const body = $('calBody');
-  let sw = null, pinch = null;
-  function gap(e) { const a = e.touches[0], b = e.touches[1]; return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+  let sw = null;
   function settle(inner) {
     if (!inner) return;
     inner.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
@@ -634,43 +627,42 @@ $('calBody').addEventListener('wheel', function (e) {
     inner.style.opacity = '';
     setTimeout(function () { inner.style.transition = ''; }, 220);
   }
+  function need() { return Math.max(130, window.innerWidth * 0.4); }
   body.addEventListener('touchstart', function (e) {
-    if (e.touches.length === 2) { if (sw) settle(sw.inner); sw = null; pinch = { d0: gap(e), done: false }; return; }
+    if (sw) settle(sw.inner);
     sw = null;
     if (e.touches.length !== 1 || calDragOn || calMoveId || e.target.closest('.task-inner')) return;
-    sw = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, dx: 0, dir: null, inner: body.firstElementChild };
+    const x = e.touches[0].clientX;
+    if (x < 24 || x > window.innerWidth - 24) return;          // the screen edges belong to the phone's own back gesture
+    sw = { x0: x, y0: e.touches[0].clientY, dx: 0, dir: null, inner: body.firstElementChild };
   }, { passive: true });
   body.addEventListener('touchmove', function (e) {
-    if (pinch && e.touches.length === 2) {
-      if (e.cancelable) e.preventDefault();
-      const r = gap(e) / pinch.d0;
-      if (!pinch.done && (r > 1.35 || r < 0.75)) { pinch.done = true; calZoom(r > 1 ? -1 : 1); }
-      return;
-    }
     if (!sw) return;
-    if (calDragOn || cdrag) { settle(sw.inner); sw = null; return; }
+    if (e.touches.length !== 1 || calDragOn || cdrag) { settle(sw.inner); sw = null; return; }
     const dx = e.touches[0].clientX - sw.x0, dy = e.touches[0].clientY - sw.y0;
     if (!sw.dir) {
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-      sw.dir = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 12) return;
+      sw.dir = Math.abs(dx) > Math.abs(dy) * 2.2 ? 'x' : 'y';
       if (sw.dir === 'y') { sw = null; return; }
       if (cdHold) { clearTimeout(cdHold.timer); cdHold = null; }
     }
+    if (Math.abs(dy) > 90) { settle(sw.inner); sw = null; return; }     // it turned into a scroll
     sw.dx = dx;
-    if (sw.inner) { sw.inner.style.transform = 'translateX(' + (dx * 0.45) + 'px)'; sw.inner.style.opacity = String(1 - Math.min(0.5, Math.abs(dx) / 700)); }
-  }, { passive: false });
-  body.addEventListener('touchend', function (e) {
-    if (pinch && e.touches.length < 2) pinch = null;
+    const far = Math.abs(dx) >= need();
+    if (sw.inner) { sw.inner.style.transform = 'translateX(' + (dx * 0.3) + 'px)'; sw.inner.style.opacity = far ? '0.45' : '1'; }   // fades once it's far enough to turn the page
+  }, { passive: true });
+  body.addEventListener('touchend', function () {
     if (!sw) return;
     const g = sw;
     sw = null;
     if (g.dir !== 'x') return;
-    if (Math.abs(g.dx) > 70) {
+    if (Math.abs(g.dx) >= need()) {
       calStep(g.dx < 0 ? 1 : -1);
       const inner = body.firstElementChild;
       if (inner && inner.animate) inner.animate([{ transform: 'translateX(' + (g.dx < 0 ? 40 : -40) + 'px)', opacity: 0.3 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'ease-out' });
     } else settle(g.inner);
   });
+  body.addEventListener('touchcancel', function () { if (sw) settle(sw.inner); sw = null; });
 })();
 
 // keep the drawer above the tab bar when the window changes size
