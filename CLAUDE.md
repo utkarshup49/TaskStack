@@ -10,6 +10,7 @@ Read this before changing anything. Both Claude Code (on Utkarsh's PC) and Claud
 ## Commits
 - Author and committer: **Utkarsh Pareek <utkarshpareekss@gmail.com>** (already set in this repo's git config).
 - **Never** add `Co-Authored-By: Claude`, "Generated with Claude", or any other Claude/AI attribution line to commit messages or PRs.
+- Split a piece of work into several small commits (roughly 5 to 25, one per change he could want to undo on its own), each with a clear message and each leaving the app working. Don't squash a whole release into one commit.
 - Message style: one short line saying what changed, e.g. `ColorTracker: tap a block to lock it`. Group a release as `v0.x: ...`.
 
 ## How Utkarsh likes the code
