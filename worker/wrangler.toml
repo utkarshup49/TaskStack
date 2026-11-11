@@ -1,0 +1,11 @@
+# Settings for `npx wrangler deploy` (only needed if you deploy from the PC instead of pasting in the dashboard).
+name = "taskstack-reminders"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[triggers]
+crons = ["* * * * *"]          # every minute
+
+[[kv_namespaces]]
+binding = "DATA"
+id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
