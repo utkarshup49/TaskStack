@@ -70,16 +70,20 @@ js/plan.js             banner, Plan your day, Wrap up, Weekly review, Logbook, C
 js/profile.js          avatar + profile sheet: stats, level/XP, goals, reminder settings, sections on/off,
                        download/restore/CSV, shortcuts sheet (no delete-all: removed on purpose in v0.14), what's new
 js/sync.js             Google sign-in (redirect, no server) + Google Drive sync
+js/telegram.js         Reminders sheet (channels, coming up, defaults for new tasks) + Telegram: sends coming reminders to the
+                       Cloudflare Worker, applies "Done" pressed in Telegram (tgSync, comingReminders)
 js/navbar.js           phone bottom bar: which sections sit in the bar (ui.tabBar), the More button + "All sections" sheet
 js/main.js             section switching, settings sheet, Ctrl+K command bar, keyboard, start-up
 sw.js                  service worker (offline)
+worker/                NOT part of the app: the Cloudflare Worker that sends Telegram reminders (worker.js, README.md with
+                       Utkarsh's setup steps, wrangler.toml). He pastes worker.js into the Cloudflare dashboard after it changes.
 manifest.webmanifest   install-as-app info
 ```
 **Name clashes break things silently** (v0.10 shipped one: ColorTracker's day card replaced the Calendar's). Before committing run
 `grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
 and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, ctexport, notes, plan, profile, navbar, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, ctexport, notes, plan, profile, telegram, navbar, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -130,6 +134,11 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Theme: the sun/moon button in the top bar (`actions.themetoggle`, `isDark()`); Settings has System / Light / Dark. Settings opens from the gear in the profile (`.psettings`).
 - Lists: `state.lists` = { id, name, color, order }. Default ids personal/college/extra/projects/growth with updatedAt 1 (so devices don't duplicate them). `listOf(t)` always returns a live list. The filter is `ui.listFilter` (device-only, shared by Tasks/Matrix/Calendar); views use `listVisible(t)`. New tasks go to `defaultListId()` (the one list being viewed, else `settings.defaultList`).
 - Reminders: `task.reminders` = { id, type 'due' (mins before its time, or before `settings.remindHour` on its day) | 'dl' (mins before remindHour on the deadline day) | 'abs' (at) , snooze? }. `reminderAt(t, r)` gives the moment. What fired is device-only in localStorage `taskstack.fired`. Only works while the app is open/recent; Telegram/web push need a server (not built yet).
+- Telegram reminders (v0.18): settings `tgUrl` (Worker address, '' = off) and `tgKey` (random id, made on first save) sync. Device-only
+  localStorage `taskstack.tg` = { fp, at, linked, bot, name, error }. `tgSync()` posts `comingReminders()` (next 60 days, text with real dates,
+  never "Today") to `/sync` when the list changes or every 30 min; the reply's `actions` ({ type: 'done', t: taskId }) tick tasks.
+  Worker API: POST /sync, /status, /test, /unlink (JSON with `key`), POST /tg (Telegram webhook), GET /setup?key=SETUP_KEY. One KV key "store".
+  If you change what the app sends, change worker.js too and tell Utkarsh to redeploy it.
 - Someday tasks have no date and are hidden from Today, the Matrix and Calendar (a folded group at the bottom of Tasks). Setting a date clears `someday`.
 - `state.days`: { id: "YYYY-MM-DD" (planned, wrapped, mood 1-5, note) or "wYYYY-MM-DD" = week starting that Monday (reviewed, note) }. The Notes "Journal" notebook IS this: its pages read/write `dayEntry(day).note`, so Wrap up and Notes show the same text.
 - Sessions also store `distractions` and `listId`.
@@ -153,7 +162,13 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Far-off tasks (`isFarOff(t)`: planned date more than 6 days ahead): hidden from the Matrix (a note under it counts them), folded into a collapsed "Scheduled" group in Tasks, always shown in the Calendar. Ticking one asks "Done already?" first (`askDoneEarly`), because one stray tick on a repeating task silently moves it a whole month on. A task with only a far deadline stays visible.
 - Snapshot before a change (`snapshot('label')`) so Undo works; show `toast(msg, { undo: true })` for anything destructive.
 
+## Gestures he asked to remove (don't bring them back)
+- No swipe on task rows (right = done, left = delete). Rows only have hold (box menu; drag in the Matrix).
+- Calendar: no pinch / Ctrl+scroll zoom, no haptic() calls anywhere in calendar.js / calplus.js. Paging needs one long sideways
+  swipe (40% of the width, at least 130px, not from the screen edge, not slanted).
+
 ## Design rules
+- Matrix on phones (under 600px): boxes stack in one column at full width, flat; `#matrixJump` bar on top; rows show the box dot (`.quad .boxbtn`). The 2 x 2 grid is for 600px+.
 - Layout: phone/tablet = bottom tabs; 900px+ = tabs become a left sidebar and the Matrix and ColorTracker fill the whole width (other views max 1400px).
 - Matrix: no add box on the page. Each box has its own + (shown on hover on a laptop, always on touch) that opens the add pop-up; tap a box title or ... to rename it.
 - One signature colour per section (`--c-tasks`, `--c-cal`, `--c-matrix`, `--c-focus`, `--c-break`, `--c-habits`, `--c-ct`, `--c-notes`); the active section sets `--accent`.
@@ -173,7 +188,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 
 ## Roadmap (next, in order)
 1. ~~Repeating tasks~~ (done: repeat.js)
-2. Reminders: ~~in-app~~ (done: remind.js). Next: Telegram bot + web push from a Cloudflare Worker (needs Utkarsh to create the bot in @BotFather and a Cloudflare account). WhatsApp only later (paid per message).
+2. Reminders: ~~in-app~~ (done: remind.js), ~~Telegram via a Cloudflare Worker~~ (done: telegram.js + worker/, v0.18). Next: web push from the same Worker, a morning summary message. WhatsApp only later (paid per message).
 3. ~~Google Drive sync~~ (done: sync.js, file `TaskStack/taskstack-data.json` in the user's Drive)
 4. Plan vs actual: time-block tasks on a day timeline and compare with ColorTracker
 5. ~~Lists~~ (done: lists.js)

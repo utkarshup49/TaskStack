@@ -9,8 +9,13 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.17';
+const APP_VERSION = '0.18';
 const WHATS_NEW = [
+  'Telegram reminders: get your task reminders as Telegram messages, even when TaskStack is closed, with Done and snooze buttons. Set it up once in Profile → Reminders.',
+  'New Reminders screen: where reminders reach you, what\'s coming up, and the defaults for new tasks, all in one place.',
+  'Matrix on phones: the four boxes stack at full width so every task name is readable. A bar on top jumps to a box; tap the dot on a task to move it.',
+  'Calendar: no more pinch zoom or vibration. Turning the page needs one long sideways swipe. The title is no longer cut off on phones.',
+  'Tasks: the swipe gestures on task rows are gone (they were too easy to trigger by accident).',
   'Calmer Tasks page: one add box. Date, Box and More options only appear while you\'re adding. Press Add with nothing typed to open every option.',
   'Task details are now one line each (Date, Repeat, Reminder, List, Box, Deadline, Time, Tags). Tap a line to change it. The day it\'s on is highlighted.',
   'Repeat is simple first: pick Daily / Weekly / Monthly and read one line saying when it comes back. The rest is under More options.',
