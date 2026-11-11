@@ -54,24 +54,24 @@
     <div class="listbar" id="listbarTasks" role="group" aria-label="Lists to show"></div>
     <div id="planBanner"></div>
     <div class="cdstrip" id="countdownStrip" hidden></div>
-    <form id="taskForm" class="add" autocomplete="off">
+    <div class="add-line">
+    <form id="taskForm" class="add composer" autocomplete="off">
       <div class="add-row">
-        <input id="taskInput" placeholder="Add a task (try &quot;fri 5pm !2 /college&quot;)" aria-label="New task" enterkeyhint="done">
+        <input id="taskInput" placeholder="Add a task" aria-label="New task" enterkeyhint="done">
         <button class="icon-btn mic" id="micBtn" type="button" data-action="voiceadd" aria-label="Say a task" title="Say a task" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
         </button>
-        <button class="btn primary" type="submit">Add</button>
-        <button class="icon-btn addfull" type="button" data-action="newfull" aria-label="Add with all options" title="Add with all options (date, repeat, reminders, steps, notes)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="btn primary" type="submit" title="Add (with nothing typed: open every option)">Add</button>
       </div>
+      <div class="cmp-opts" id="taskPick"></div>
       <div class="parse" id="taskParse" aria-live="polite"></div>
-      <div id="taskPick"></div>
     </form>
     <div class="seg tlayout" id="taskLayout" role="group" aria-label="Layout">
       <button data-action="tlayout" data-l="list">List</button><button data-action="tlayout" data-l="board">Board</button>
     </div>
+    </div>
     <div id="taskList"></div>
     <div class="tboard" id="taskBoard" hidden></div>
-    <p class="small">Tasks with no date stay in Today. Tap the box button on a task (or hold the task) to sort it into the matrix. Swipe right to finish, left to delete. Type <b>/college</b> for a list, <b>~45m</b> for how long it takes, <b>someday</b> to park it.</p>
    </div>
    <aside class="task-pane" id="taskPane" hidden aria-label="Today, calendar and task details">
      <div id="taskPaneBody"></div>
@@ -330,6 +330,7 @@
 </div>
 
 <div class="boxmenu" id="boxMenu" role="menu" hidden></div>
+<div class="popmenu" id="popMenu" role="menu" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="js/core.js"></script>

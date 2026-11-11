@@ -555,6 +555,24 @@ function openBoxMenu(taskId, anchor) {
 function closeBoxMenu() { boxMenuTask = null; $('boxMenu').hidden = true; }
 document.addEventListener('pointerdown', function (e) { if (boxMenuTask && !e.target.closest('#boxMenu') && !e.target.closest('[data-action="boxmenu"]')) closeBoxMenu(); });
 
+// ---------- small pop-up menu under a button (the Tasks add bar uses it for Date and Box) ----------
+let popKey = null;                  // which menu is open (null = none)
+function openPop(key, anchor, html) {
+  closeBoxMenu();
+  popKey = key;
+  const m = $('popMenu');
+  m.innerHTML = html;
+  m.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const mw = m.offsetWidth, mh = m.offsetHeight;
+  let top = r.bottom + 6;
+  if (top + mh > window.innerHeight - 12) top = Math.max(12, r.top - mh - 6);
+  m.style.left = Math.min(window.innerWidth - mw - 12, Math.max(12, r.left)) + 'px';
+  m.style.top = top + 'px';
+}
+function closePop() { if (!popKey) return; popKey = null; $('popMenu').hidden = true; }
+document.addEventListener('pointerdown', function (e) { if (popKey && !e.target.closest('#popMenu') && !e.target.closest('[data-pop]')) closePop(); });
+
 // ---------- quick add: "Submit report fri 5pm !1 #college" ----------
 const WEEKDAY_NAMES = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };
 const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];

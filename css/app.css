@@ -1805,3 +1805,47 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .tabname svg { width: 20px; height: 20px; flex: 0 0 auto; }
 .tabsp { width: 34px; flex: 0 0 auto; }
 .tabrow .seg button { height: 30px; padding: 0 10px; font-size: 12.5px; }
+
+
+/* =========================================================
+   v0.17: calmer Tasks page + simpler task sheet
+   - add bar: one field; Date / Box / More options only show while adding
+   - task rows: details as quiet text (no pills), box = a small dot button on phones
+   - groups: soft cards, folded groups are just a line
+   - task sheet + add pop-up: one line per detail (.tprop), tap to open its editor
+   ========================================================= */
+.composer { gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 5px; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.composer .add-row { gap: 6px; align-items: center; }
+.composer .add-row input, .composer .add-row input:focus { border: none; box-shadow: none; background: transparent; height: 42px; padding: 0 10px; font-size: 15px; }
+.composer .btn.primary { height: 38px; border-radius: 11px; padding: 0 16px; }
+.composer .icon-btn.mic { width: 38px; height: 38px; border: none; background: none; color: var(--muted); }
+.cmp-opts { display: none; align-items: center; gap: 6px; padding: 6px 5px 3px; flex-wrap: wrap; }
+.composer.open .cmp-opts { display: flex; animation: pop 0.18s var(--ease); }
+.composer .parse { padding: 4px 5px 2px; }
+.composer .parse:empty { display: none; }
+.addchip { height: 30px; padding: 0 11px; border-radius: 999px; border: none; background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--muted); font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.addchip svg { width: 13px; height: 13px; }
+.addchip i { width: 8px; height: 8px; border-radius: 50%; background: var(--qc); }
+.addchip.q0 i { background: transparent; border: 1.5px dashed var(--muted); }
+.addchip.on { background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); font-weight: 600; }
+.addchip.on[class*=" q"] { background: color-mix(in srgb, var(--qc) 14%, transparent); color: var(--qc); }
+.addchip.more { margin-left: auto; background: none; color: var(--accent); padding: 0 6px; }
+.addchip:active { transform: scale(0.96); }
+.popmenu { position: fixed; z-index: 55; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22); padding: 6px; display: flex; flex-direction: column; gap: 1px; animation: pop 0.16s var(--ease); }
+.popmenu[hidden] { display: none; }
+.popi { position: relative; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border: none; background: none; border-radius: 9px; font-size: 14px; font-weight: 500; text-align: left; color: var(--ink); cursor: pointer; }
+.popi:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.popi > span:first-of-type { flex: 1; }
+.popi-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--qc); flex: 0 0 auto; }
+.popi.q0 .popi-dot { background: transparent; border: 1.5px dashed var(--muted); }
+.popi-tick { display: none; color: var(--accent); }
+.popi-tick svg, .popi > svg { width: 16px; height: 16px; }
+.popi > svg { color: var(--muted); }
+.popi.on { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.popi.on .popi-tick { display: inline-flex; }
+.list-foot .tips { margin-left: auto; }
+.tiplist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; }
+.add-line { display: flex; align-items: flex-start; gap: 10px; }
+.add-line .composer { flex: 1; min-width: 0; }
+.add-line .tlayout { align-self: flex-start; margin-top: 6px; }

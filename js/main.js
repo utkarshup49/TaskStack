@@ -65,6 +65,7 @@ function showView(v) {
     $('main').scrollTop = 0;
   }
   closeBoxMenu();
+  closePop();
   if (!sheetCtx && !(history.state && history.state.overlay)) { try { history.replaceState(null, '', '#' + v + (v === 'colortracker' && ctPage === 'stats' ? '/stats/' + ctTab : '')); } catch (e) {} }
   if (v === 'tasks') renderTaskList();
   if (v === 'calendar') renderCalendar();
@@ -310,6 +311,7 @@ document.addEventListener('keydown', function (e) {
   if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); if ($('paletteWrap').hidden) openPalette(); else closePalette(); return; }
   if (e.key === 'Escape') {
     if (boxMenuTask) { closeBoxMenu(); return; }
+    if (popKey) { closePop(); return; }
     if (!$('paletteWrap').hidden) { closePalette(); return; }
     if (sheetCtx) { closeSheet(); return; }
     if (view === 'colortracker' && (ctSel || ctMode)) { ctSel = null; ctMode = null; renderColor(); return; }
