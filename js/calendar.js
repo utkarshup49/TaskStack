@@ -236,7 +236,6 @@ function calStep(dir) {
   else if (m === 'year') calAnchor = new Date(new Date(calAnchor).getFullYear() + dir, 0, 1).getTime();
   else calAnchor = addDays(calAnchor, dir * { agenda: AGENDA_DAYS, day: 1, '3day': 3, week: 7, '2week': 14 }[m]);
   calAgendaExtra = 0;
-  haptic(5);
   renderCalendar();
 }
 
@@ -522,7 +521,6 @@ function renderDayCard() {
 function selectDay(d) {
   calSel = d;
   if (!periodHas(calPeriod(), d)) calAnchor = d;
-  haptic(5);
   renderCalendar();
 }
 function openCalDay(d, mode) {
@@ -607,7 +605,7 @@ closeSheet = function (fromHistory) {
 document.addEventListener('click', function (e) {
   if (sheetCtx && sheetCtx.type === 'calpeek' && e.target.closest('#sheet [data-action="open"]')) peekReturn = sheetCtx.d;
 }, true);
-actions.peekstep = function (el) { calSel = addDays(calSel, Number(el.dataset.d)); sheetCtx.d = calSel; if (!periodHas(calPeriod(), calSel)) calAnchor = calSel; renderCalendar(); refreshCalPeek(); haptic(5); };
+actions.peekstep = function (el) { calSel = addDays(calSel, Number(el.dataset.d)); sheetCtx.d = calSel; if (!periodHas(calPeriod(), calSel)) calAnchor = calSel; renderCalendar(); refreshCalPeek(); };
 $('sheet').addEventListener('submit', function (e) { if (e.target.id !== 'peekForm') return; e.preventDefault(); addFromCalendar('peekInput', 'peekParse'); });
 $('sheet').addEventListener('input', function (e) {
   if (e.target.id !== 'peekInput') return;
@@ -623,8 +621,8 @@ actions.calpick = function (el) {
 };
 actions.calprev = function () { calStep(-1); };
 actions.calnext = function () { calStep(1); };
-actions.caltoday = function () { calSel = midnight(now()); calAnchor = calSel; calScrolled = ''; calAgendaExtra = 0; haptic(5); renderCalendar(); };
-actions.calmode = function (el) { state.ui.calMode = el.dataset.m; calAnchor = calSel; calAgendaExtra = 0; save(); haptic(5); renderCalendar(); };
+actions.caltoday = function () { calSel = midnight(now()); calAnchor = calSel; calScrolled = ''; calAgendaExtra = 0; renderCalendar(); };
+actions.calmode = function (el) { state.ui.calMode = el.dataset.m; calAnchor = calSel; calAgendaExtra = 0; save(); renderCalendar(); };
 actions.calgoday = function (el) { openCalDay(Number(el.dataset.d), 'day'); };
 actions.calopenmonth = function (el) { openCalDay(Number(el.dataset.d), 'month'); };
 actions.caladd = function () { openAddSheet(null, { date: calSel === null ? midnight(now()) : calSel }); };

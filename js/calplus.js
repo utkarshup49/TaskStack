@@ -57,7 +57,6 @@ function calDropTask(id, target) {
   if (t.due + '|' + t.hasTime === before) { undoStack.pop(); renderCalendar(); return; }
   save();
   renderTaskViews();
-  haptic(10);
   sound('soft');
   toast('Moved to ' + calShortDay(t.due) + (t.hasTime ? ', ' + fmtTime(t.due) : ''), { undo: true });
   if (!calShows(t)) toast('Moved. It\'s hidden by a filter, so you won\'t see it here.', { undo: true });
@@ -151,7 +150,6 @@ function cdMove(x, y) {
     if (key !== g.key) {
       if (g.target && g.target.el) g.target.el.classList.remove('cddrop');
       if (tg && tg.el && tg.kind !== 'time') tg.el.classList.add('cddrop');
-      if (tg) haptic(4);
       g.key = key;
     }
     g.target = tg;
@@ -172,7 +170,6 @@ function cdMove(x, y) {
     const at = Math.max(hrs.from * 60, Math.min(hrs.to * 60, hrs.from * 60 + Math.round(yy / HOUR_PX * 4) * 15));
     if (g.kind === 'resize') {
       const est = Math.max(15, Math.min(12 * 60, at - g.startMins));
-      if (est !== g.est) haptic(3);
       g.est = est;
       g.el.style.height = Math.max(22, Math.min(est, hrs.to * 60 - g.startMins) / 60 * HOUR_PX - 2) + 'px';
       const tm = g.el.querySelector('.tm');
@@ -276,7 +273,6 @@ document.addEventListener('touchstart', function (e) {
     const h = cdHold;
     cdHold = null;
     if (!h) return;
-    haptic(14);
     cdBegin(h.pre, h.x, h.y);
   }, pre.kind === 'resize' ? 150 : 380);
 }, { passive: true });
@@ -307,7 +303,6 @@ document.addEventListener('contextmenu', function (e) { if (cdrag || (view === '
 // ---------- move mode: pick a task, then tap a day ----------
 function calStartMove(id) {
   calMoveId = id;
-  haptic(8);
   renderCalChrome();
 }
 document.addEventListener('click', function (e) {
@@ -394,7 +389,7 @@ function renderCalChrome() {
   document.body.classList.toggle('cal-moving', !!t);
   if (t) mv.innerHTML = '<span>Tap a day' + (TIMED_MODES[calMode()] ? ' or a time' : '') + ' to move <b>' + esc(shortTitle(t.title)) + '</b></span><button class="btn small" data-action="calmovecancel">Cancel</button>';
 }
-actions.cdrtoggle = function () { state.ui.calDrawer = state.ui.calDrawer ? null : (calOverdue().length ? 'late' : 'nodate'); save(); haptic(5); renderCalChrome(); };
+actions.cdrtoggle = function () { state.ui.calDrawer = state.ui.calDrawer ? null : (calOverdue().length ? 'late' : 'nodate'); save(); renderCalChrome(); };
 actions.cdrtab = function (el) { state.ui.calDrawer = el.dataset.t; save(); renderCalChrome(); };
 actions.cdrpick = function (el) { if (calMoveId === el.dataset.id) { calMoveId = null; renderCalChrome(); } else calStartMove(el.dataset.id); };
 actions.calmovecancel = function () { calMoveId = null; renderCalChrome(); };
@@ -460,7 +455,6 @@ actions.calopts = function () { openSheet({ type: 'calopts' }, calOptsHTML()); }
 actions.calset = function (el) {
   const k = el.dataset.k;
   state.settings[k] = k === 'calWeekNums' || k === 'calNotesPhone' ? !state.settings[k] : state.settings[k] === false;
-  haptic(5);
   calOptsChanged(true);
 };
 actions.calws = function (el) { state.settings.calWeekStart = Number(el.dataset.v); calOptsChanged(true); };
@@ -596,7 +590,7 @@ actions.caljump = function () {
   calJumpMonth = monthStart(calSel || now());
   openSheet({ type: 'caljump' }, calJumpHTML());
 };
-actions.caljumpstep = function (el) { calJumpMonth = addMonths(calJumpMonth, Number(el.dataset.d)); refreshSheet(calJumpHTML()); haptic(5); };
+actions.caljumpstep = function (el) { calJumpMonth = addMonths(calJumpMonth, Number(el.dataset.d)); refreshSheet(calJumpHTML()); };
 actions.caljumpto = function (el) {
   const d = Number(el.dataset.d);
   closeSheet();
@@ -605,7 +599,6 @@ actions.caljumpto = function (el) {
   calAgendaExtra = 0;
   if (calMode() === 'year') state.ui.calMode = 'month';
   calScrolled = '';
-  haptic(5);
   renderCalendar();
 };
 
@@ -617,7 +610,6 @@ function calZoom(dir) {
   state.ui.calMode = CAL_ZOOM[j];
   calAnchor = calSel;
   save();
-  haptic(8);
   renderCalendar();
   const inner = $('calBody').firstElementChild;
   if (inner && inner.animate) inner.animate([{ transform: 'scale(' + (dir > 0 ? 1.06 : 0.94) + ')', opacity: 0.4 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'ease-out' });
