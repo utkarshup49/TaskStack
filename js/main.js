@@ -391,6 +391,7 @@ showView(location.hash.slice(1) || 'tasks');
 save();
 startSync();
 startReminders();
+startTelegram();
 setupVoiceAdd();
 // Home-screen shortcuts (long-press the app icon): ?do=add opens the add box, ?do=focus starts a session.
 (function homeShortcut() {

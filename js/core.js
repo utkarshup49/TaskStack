@@ -141,6 +141,8 @@ const SETTING_DEFAULTS = {
   workHours: 6,          // hours you can really plan into a day (Plan my day warns past this)
   remindDefault: 0,      // new tasks with a time get a reminder this many minutes before (-1 = none)
   remindHour: 9,         // reminders for tasks with a date but no time fire at this hour
+  tgUrl: '',             // Telegram reminders: address of your Cloudflare Worker ('' = off)
+  tgKey: '',             // Telegram reminders: a random id that stands for you on that server
   defaultList: 'personal',
   profileName: '',
   hiddenTabs: [],        // sections switched off in the profile

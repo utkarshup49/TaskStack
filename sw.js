@@ -21,7 +21,7 @@ const FILES = [
   './js/ctview.js',
   './js/ctlog.js', './js/ctexport.js',
   './js/notes.js', './js/plan.js',
-  './js/profile.js', './js/navbar.js',
+  './js/profile.js', './js/telegram.js', './js/navbar.js',
   './js/sync.js',
   './js/main.js',
   './icons/icon-192.png',

@@ -111,7 +111,6 @@ function profileHTML() {
     return '<div class="stepper"><span>' + label + '</span><button class="icon-btn sm" data-action="pstep" data-k="' + key + '" data-d="-1" aria-label="Less"' + (st[key] <= min ? ' disabled' : '') + '>−</button>' +
       '<b>' + st[key] + unit + '</b><button class="icon-btn sm" data-action="pstep" data-k="' + key + '" data-d="1" aria-label="More"' + (st[key] >= max ? ' disabled' : '') + '>+</button></div>';
   }
-  const remChoices = [[-1, 'None'], [0, 'At time'], [5, '5 min'], [10, '10 min'], [30, '30 min'], [60, '1 hour']];
   const tpls = liveTemplates();
   return '<div class="phead">' + avatarHTML('lg') +
       '<div class="pwho"><input class="pname" id="profileName" value="' + esc(name) + '" placeholder="Your name" maxlength="40" aria-label="Your name" enterkeyhint="done">' +
@@ -142,16 +141,7 @@ function profileHTML() {
     stepper('dailyGoal', 'Tasks a day', '', 1, 30) +
     stepper('workHours', 'Hours you can plan into a day', 'h', 1, 16) +
     '<p class="label">Reminders</p>' +
-    '<p class="small">New tasks with a time get this reminder:</p>' +
-    '<div class="pickrow wrap">' + remChoices.map(function (c) {
-      return '<button class="pick' + (st.remindDefault === c[0] ? ' on' : '') + '" data-action="premdef" data-m="' + c[0] + '">' + (c[0] > 0 ? c[1] + ' before' : c[1]) + '</button>';
-    }).join('') + '</div>' +
-    '<div class="stepper"><span>Tasks with only a date remind at</span><button class="icon-btn sm" data-action="pstep" data-k="remindHour" data-d="-1" aria-label="Earlier"' + (st.remindHour <= 5 ? ' disabled' : '') + '>−</button>' +
-      '<b>' + fmtTime(midnight(now()) + st.remindHour * HOUR) + '</b><button class="icon-btn sm" data-action="pstep" data-k="remindHour" data-d="1" aria-label="Later"' + (st.remindHour >= 22 ? ' disabled' : '') + '>+</button></div>' +
-    '<div class="toggle"><span>Nudge me to plan (8 am) and wrap up (9 pm)</span><button class="switch" role="switch" aria-checked="' + !!st.nudges + '" data-action="pnudges" aria-label="Daily nudges"></button></div>' +
-    notifyStateHTML() +
-    ('Notification' in window && Notification.permission === 'granted' ? '<button class="btn small" data-action="ptestnote">Send a test notification</button>' : '') +
-    '<p class="small">Reminders work while TaskStack is open or was used recently. Telegram reminders, which also reach you when it\'s closed, come next.</p>' +
+    '<button class="btn prem" data-action="reminders">' + BELL_SVG + '<span>Reminders and Telegram</span><em>' + (tgOn() && tgInfo.linked ? 'Telegram on' : 'Set up') + '</em></button>' +
     '<p class="label">Sections</p><p class="small">Hide the ones you don\'t use. Tasks always stays.</p>' +
     SECTION_NAMES.map(function (s) {
       const on = (st.hiddenTabs || []).indexOf(s[0]) === -1;
@@ -202,6 +192,7 @@ actions.pstep = function (el) {
   state.settings.updatedAt = now();
   save();
   refreshProfile();
+  refreshRemSheet();
   renderTaskViews();
 };
 actions.premdef = function (el) {
@@ -210,6 +201,7 @@ actions.premdef = function (el) {
   state.settings.updatedAt = now();
   save();
   refreshProfile();
+  refreshRemSheet();
   if (state.settings.remindDefault >= 0) askNotify();
 };
 actions.pnudges = function () {
@@ -218,6 +210,7 @@ actions.pnudges = function () {
   state.settings.updatedAt = now();
   save();
   refreshProfile();
+  refreshRemSheet();
   if (state.settings.nudges) askNotify();
 };
 actions.ptestnote = function () { showNote('TaskStack', 'Notifications work. Reminders will look like this.', 'test', { view: 'tasks' }); toast('Sent. Check your notifications.'); };

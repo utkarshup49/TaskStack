@@ -1959,5 +1959,31 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
   .quad .task + .task::before, .tray .task + .task::before { content: ""; position: absolute; top: 0; left: 46px; right: 10px; height: 1px; background: color-mix(in srgb, var(--line) 75%, transparent); }
 }
 
+/* Reminders sheet (v0.18) */
+.rchs { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.rch { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.rch + .rch { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.rch-i { display: inline-flex; color: var(--muted); flex: 0 0 auto; }
+.rch-i svg { width: 20px; height: 20px; }
+.rch-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rch-t b { font-size: 14px; font-weight: 600; }
+.rch-t span { font-size: 12.5px; color: var(--muted); }
+.rch-t span.ok { color: var(--good); }
+.tgbox { display: flex; flex-direction: column; gap: 10px; }
+.tgbox .small { margin: 0; }
+.tgbox a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; align-self: flex-start; }
+.tgrow { flex-wrap: nowrap; }
+.tgrow .text-input { height: 44px; font-size: 13.5px; }
+.tgerr { color: var(--danger); }
+.remcoming { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.remcoming li + li { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.remcoming button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: none; background: none; text-align: left; }
+.remcoming b { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.remcoming span { flex: 0 0 auto; font-size: 12.5px; color: var(--accent); font-weight: 600; }
+.prem { display: flex; align-items: center; gap: 10px; text-align: left; }
+.prem svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.prem span { flex: 1; }
+.prem em { font-style: normal; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.remlink { align-self: flex-start; font-size: 12.5px; }
 /* Calendar day card: keep the list-colour bar to the left of the tick circle (it was drawn over it) */
 .cal-day .tasks.list .task-inner, #sheet .tasks.list .task-inner { padding-left: 16px; }
