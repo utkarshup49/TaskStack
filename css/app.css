@@ -1931,3 +1931,29 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
   .cal-head { gap: 3px; }
   .calfind { display: flex; }
 }
+
+/* Matrix on phones (v0.18): the 2 x 2 grid made every box too narrow to read. The boxes now sit one under
+   another at full width, flat (no tinted fill, no thick borders), with a jump bar on top. Laptops keep the grid. */
+.mjump, .tray-tip-s { display: none; }
+.quad .boxbtn { display: none; }
+@media (max-width: 599px) {
+  .tray-tip-l { display: none; }
+  .tray-tip-s { display: inline; }
+  .mjump { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; position: sticky; top: 0; z-index: 5; padding: 6px 0; background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
+  .mjump button { min-width: 0; height: 44px; border-radius: 12px; border: none; background: color-mix(in srgb, var(--qc) 12%, var(--surface)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0 4px; }
+  .mjump i { display: none; }
+  .mjump span { max-width: 100%; font-size: 11.5px; font-weight: 600; color: var(--qc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mjump b { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink); }
+  .matrix { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 0 0 auto; }
+  .quad { overflow: visible; background: var(--surface); border: none; border-radius: 18px; box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent); scroll-margin-top: 62px; padding-bottom: 6px; }
+  .quad-head { padding: 12px 10px 4px 14px; }
+  .quad h2 { font-size: 16px; }
+  .quad .sub { font-size: 12px; }
+  .quad .tasks, .tray-list { overflow: visible; max-height: none; flex: 0 0 auto; padding: 0 6px; }
+  .quad .task-inner, .tray .task-inner { padding: 10px 6px 10px 16px; }
+  .quad .ttl, .tray .ttl { font-size: 15px; }
+  .quad .boxbtn { display: flex; }
+  .tray { border: none; border-radius: 18px; padding: 10px 6px 6px; box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent); }
+  .tray-head { margin: 0 8px 4px; }
+  .quad .task + .task::before, .tray .task + .task::before { content: ""; position: absolute; top: 0; left: 46px; right: 10px; height: 1px; background: color-mix(in srgb, var(--line) 75%, transparent); }
+}

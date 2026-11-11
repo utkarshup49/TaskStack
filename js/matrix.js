@@ -299,8 +299,15 @@ function renderMatrix() {
     (later.length === 1 ? 'It shows' : 'They show') + ' up here a week before. <button class="linkbtn" data-action="tab" data-view="calendar">See the Calendar</button>' : '';
   const unsorted = sortOpen(tasks.filter(function (t) { return !t.q && !t.done; }));
   $('tray').hidden = !unsorted.length;
-  $('tray').innerHTML = '<p class="tray-head"><b>Not sorted · ' + unsorted.length + '</b> Hold one and drag it into a box, or tap its button.</p>' +
+  $('tray').innerHTML = '<p class="tray-head"><b>Not sorted · ' + unsorted.length + '</b> <span class="tray-tip-l">Hold one and drag it into a box, or tap its button.</span><span class="tray-tip-s">Tap the dot on a task to put it in a box.</span></p>' +
     '<ul class="tasks tray-list">' + unsorted.map(function (t) { return taskHTML(t, { box: true }); }).join('') + '</ul>';
+  // phones: the four boxes sit one under another (full width, every name readable); this bar jumps to one
+  let jump = $('matrixJump');
+  if (!jump) { jump = document.createElement('div'); jump.id = 'matrixJump'; jump.className = 'mjump'; $('matrixGrid').before(jump); }
+  jump.innerHTML = QUADS.map(function (q) {
+    const n = tasks.filter(function (t) { return t.q === q.q && !t.done; }).length;
+    return '<button class="q' + q.q + '" data-action="mjump" data-q="' + q.q + '"><i></i><span>' + esc(quadName(q.q)) + '</span><b>' + n + '</b></button>';
+  }).join('');
   const scrolls = {};
   document.querySelectorAll('.quad .tasks').forEach(function (ul) { scrolls[ul.parentElement.dataset.q] = ul.scrollTop; });
   $('matrixGrid').innerHTML = QUADS.map(function (q) {
@@ -309,11 +316,12 @@ function renderMatrix() {
     const done = mine.filter(function (t) { return t.done; }).sort(function (a, b) { return (b.doneAt || 0) - (a.doneAt || 0); });
     const showDone = !!state.ui.showDone[q.q];
     const name = esc(quadName(q.q));
-    let list = open.length ? open.map(taskHTML).join('') :
+    const rowHTML = function (t) { return taskHTML(t, { box: true }); };       // the box dot only shows on phones (CSS); laptops drag
+    let list = open.length ? open.map(rowHTML).join('') :
       '<li class="empty"><button class="empty-add" data-action="addhere" data-q="' + q.q + '">' + EMPTY_TEXT[q.q] + ' <b>+ Add a task</b></button></li>';
     if (done.length) {
       list += '<li><button class="done-toggle" data-action="showdone" data-q="' + q.q + '" aria-expanded="' + showDone + '">' + CHEVRON_SVG + 'Completed · ' + done.length + '</button></li>';
-      if (showDone) list += done.map(taskHTML).join('');
+      if (showDone) list += done.map(rowHTML).join('');
     }
     return '<div class="quad q' + q.q + '" data-q="' + q.q + '">' +
       '<div class="quad-head"><span class="qnum" aria-hidden="true">' + ROMAN[q.q - 1] + '</span>' +
@@ -327,6 +335,10 @@ function renderMatrix() {
   }).join('');
   document.querySelectorAll('.quad .tasks').forEach(function (ul) { const y = scrolls[ul.parentElement.dataset.q]; if (y) ul.scrollTop = y; });
 }
+actions.mjump = function (el) {
+  const box = document.querySelector('.quad[data-q="' + el.dataset.q + '"]');
+  if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 function afterTaskChange() { if (typeof renderTaskSelect === 'function') renderTaskSelect(); }
 
 // ---------- actions on a task ----------
