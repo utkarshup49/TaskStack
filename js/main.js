@@ -4,7 +4,7 @@
    starting the app.
    ========================================================= */
 
-const VIEWS = ['tasks', 'calendar', 'matrix', 'focus', 'habits', 'colortracker'];
+const VIEWS = ['tasks', 'calendar', 'matrix', 'focus', 'habits', 'colortracker', 'notes'];
 let view = 'tasks';
 
 function renderAll() {
@@ -20,6 +20,7 @@ function renderAll() {
   renderFocus();
   renderHabits();
   renderColor();
+  renderNotes();
 }
 
 // The theme on screen right now ('system' follows the phone / computer).
@@ -69,6 +70,8 @@ function showView(v) {
   if (v === 'calendar') renderCalendar();
   if (v === 'focus') renderFocus();
   if (v === 'colortracker') renderColor();
+  if (v === 'notes') renderNotes();
+  if (typeof applyTabBar === 'function') applyTabBar();
   applyTheme();
 }
 
@@ -102,6 +105,9 @@ function settingsHTML() {
     '<div class="seg">' + ['system', 'light', 'dark'].map(function (t) {
       return '<button class="' + (theme === t ? 'on' : '') + '" data-action="theme" data-t="' + t + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
     }).join('') + '</div>' +
+    '<p class="label">Bottom bar (phone)</p><p class="small">Pick which sections sit in the bottom bar and which live in More.</p>' +
+    '<div class="row"><button class="btn" data-action="moremenu">Edit bottom bar</button>' +
+    '<button class="pick' + (moreOn() ? ' on' : '') + '" data-action="moretoggle" aria-pressed="' + moreOn() + '">More button ' + (moreOn() ? 'on' : 'off') + '</button></div>' +
     '<p class="label">Calendar: days off</p>' +
     '<p class="small">These days are shaded in the Calendar. Tap to switch a day on or off.</p>' +
     '<div class="daterow">' + [1, 2, 3, 4, 5, 6, 0].map(function (wd) {

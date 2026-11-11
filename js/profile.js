@@ -9,8 +9,11 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.15';
+const APP_VERSION = '0.16';
 const WHATS_NEW = [
+  'New Notes section: Daily notebooks (a page for every date, e.g. Eating or Journal) and Pages (one long note). Simple formatting, checkboxes, search, Day / Week view, streaks, copy yesterday, voice typing, make a task from a line.',
+  'Journal notebook = your Wrap up day notes. Write in either place, it shows in both.',
+  'Phone bottom bar: pick up to 6 sections, the rest live in More (Bar / More / Off for each). Calendar shows that day\'s notes on a laptop.',
   'Steps (subtasks) now show right under their task in every list. Tick each one there, no need to open the task.',
   'Cleaner task rows: flat, every row the same shape, softer chips and box labels.',
   'Habits: pick Tiles (21 days) or Compact (7 days, many habits on one screen). Phones start on Compact, laptops on Tiles.',
@@ -30,7 +33,7 @@ const WHATS_NEW = [
   'Calendar: search (F), jump to any date (tap the title), pinch or + / − to zoom, week numbers, Sunday start, hours shown, filter by box or tag.',
   'Phone: hold a task in the day sheet, then tap another day to move it.'
 ];
-const SECTION_NAMES = [['calendar', 'Calendar'], ['matrix', 'Matrix'], ['focus', 'Focus'], ['habits', 'Habits'], ['colortracker', 'ColorTracker']];
+const SECTION_NAMES = [['calendar', 'Calendar'], ['matrix', 'Matrix'], ['focus', 'Focus'], ['habits', 'Habits'], ['colortracker', 'ColorTracker'], ['notes', 'Notes']];
 
 // ---------- who you are ----------
 function profileName() {
@@ -242,6 +245,7 @@ function applySections() {
   const hidden = state.settings.hiddenTabs || [];
   document.querySelectorAll('.tab').forEach(function (b) { b.hidden = hidden.indexOf(b.dataset.view) !== -1; });
   if (hidden.indexOf(view) !== -1) showView('tasks');
+  if (typeof applyTabBar === 'function') applyTabBar();
 }
 
 // ---------- data ----------

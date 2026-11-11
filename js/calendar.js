@@ -513,7 +513,7 @@ function renderDayCard() {
   const open = l.open.filter(function (t) { return !t.ghost; });
   $('calDayTitle').textContent = (calSel === addDays(today, -1) ? 'Yesterday' : calDayLabel(calSel)) + ', ' + new Date(calSel).toLocaleDateString([], { day: 'numeric', month: 'long' });
   $('calDaySub').textContent = open.length + ' to do' + (l.done.length ? ' · ' + l.done.length + ' done' : '') + (calSel === today ? ' · includes tasks with no date' : '');
-  $('calDayExtra').innerHTML = calDayExtrasHTML(calSel);
+  $('calDayExtra').innerHTML = calDayExtrasHTML(calSel) + (state.settings.calNotes !== false && typeof calNotesHTML === 'function' ? calNotesHTML(calSel) : '');
   $('calInput').placeholder = 'Add to ' + (calSel === today ? 'today' : new Date(calSel).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + ' (try "5pm !1")';
   $('calList').innerHTML = l.open.concat(l.done).map(function (t) { return calRowHTML(t, calSel); }).join('') ||
     '<li class="empty">' + (calSel < today ? 'Nothing was planned for this day.' : 'Free day. Add a task above.') + '</li>';
@@ -577,7 +577,7 @@ function calPeekHTML() {
     '<p class="small">' + (open.length ? open.length + ' to do' : 'Nothing to do') + (l.done.length ? ' · ' + l.done.length + ' done' : '') + (isOffDay(d) ? ' · day off' : '') + '</p></div>' +
     '<button class="icon-btn sm" data-action="peekstep" data-d="1" aria-label="Next day">›</button></div>' +
     (cds.length ? '<p class="note">' + cds.map(function (c) { return '📅 ' + esc(c.title); }).join(' · ') + '</p>' : '') +
-    calDayExtrasHTML(d) +
+    calDayExtrasHTML(d) + (state.settings.calNotesPhone === true && typeof calNotesHTML === 'function' ? calNotesHTML(d) : '') +
     '<form id="peekForm" class="add-row" autocomplete="off"><input id="peekInput" placeholder="Add to this day (try &quot;5pm !1&quot;)" aria-label="Add a task on this day" enterkeyhint="done"><button class="btn primary" type="submit">Add</button></form>' +
     '<div class="parse" id="peekParse"></div>' +
     '<ul class="tasks list peeklist">' + (l.open.concat(l.done).map(function (t) { return calRowHTML(t, d); }).join('') ||

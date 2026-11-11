@@ -418,7 +418,7 @@ function calOptsHTML() {
   const tags = Object.keys(count).sort(function (a, b) { return count[b] - count[a]; }).slice(0, 16);
   f.tags.forEach(function (g) { if (tags.indexOf(g) === -1) tags.push(g); });
   function tog(key, label) {
-    const on = key === 'calWeekNums' ? !!s[key] : s[key] !== false;
+    const on = key === 'calWeekNums' || key === 'calNotesPhone' ? !!s[key] : s[key] !== false;
     return '<button class="pick' + (on ? ' on' : '') + '" data-action="calset" data-k="' + key + '" aria-pressed="' + on + '">' + label + '</button>';
   }
   function hourOpts(from, to, val) {
@@ -440,6 +440,7 @@ function calOptsHTML() {
     '<p class="small">Lists are picked in the bar at the top of the Calendar.</p>' +
     '<p class="label">On the calendar</p><div class="daterow">' + tog('calShowDone', 'Completed tasks') + tog('calRepeats', 'Future repeats') +
       tog('calCt', 'ColorTracker strip') + tog('calHabits', 'Habit ticks') + tog('calWeekNums', 'Week numbers') + '</div>' +
+    '<p class="label">Notes from daily notebooks</p><div class="daterow">' + tog('calNotes', 'In the day card (laptop)') + tog('calNotesPhone', 'In the day sheet (phone)') + '</div>' +
     '<p class="label">Week starts on</p><div class="daterow">' +
       '<button class="pick' + (s.calWeekStart !== 0 ? ' on' : '') + '" data-action="calws" data-v="1">Monday</button>' +
       '<button class="pick' + (s.calWeekStart === 0 ? ' on' : '') + '" data-action="calws" data-v="0">Sunday</button></div>' +
@@ -458,7 +459,7 @@ function calOptsChanged(settingsToo) {
 actions.calopts = function () { openSheet({ type: 'calopts' }, calOptsHTML()); };
 actions.calset = function (el) {
   const k = el.dataset.k;
-  state.settings[k] = k === 'calWeekNums' ? !state.settings[k] : state.settings[k] === false;
+  state.settings[k] = k === 'calWeekNums' || k === 'calNotesPhone' ? !state.settings[k] : state.settings[k] === false;
   haptic(5);
   calOptsChanged(true);
 };

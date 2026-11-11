@@ -190,6 +190,10 @@
   </section>
 
   <!-- HABITS -->
+  <section id="view-notes" class="view" hidden>
+    <div class="notes-wrap" id="notesWrap"></div>
+  </section>
+
   <section id="view-habits" class="view" hidden>
     <div class="habits-wrap">
       <form id="habitForm" class="add" autocomplete="off">
@@ -302,6 +306,14 @@
     <svg viewBox="0 0 24 24"><rect x="3" y="5" width="5" height="6" rx="1.5" fill="#6b6b6b"/><rect x="9.5" y="5" width="5" height="6" rx="1.5" fill="#6cbf3a"/><rect x="16" y="5" width="5" height="6" rx="1.5" fill="#ec4899"/><rect x="3" y="13" width="5" height="6" rx="1.5" fill="#facc15"/><rect x="9.5" y="13" width="5" height="6" rx="1.5" fill="#dc2626"/><rect x="16" y="13" width="5" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
     <span>Tracker</span>
   </button>
+  <button class="tab" data-action="tab" data-view="notes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg>
+    <span>Notes</span>
+  </button>
+  <button class="tab more-tab" id="moreTab" data-action="moremenu" aria-label="More sections" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5.5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor"/></svg>
+    <span>More</span>
+  </button>
 </nav>
 
 <div class="sheet-wrap" id="sheetWrap" hidden>
@@ -337,8 +349,10 @@
 <script src="js/ctview.js"></script>
 <script src="js/ctlog.js"></script>
 <script src="js/ctexport.js"></script>
+<script src="js/notes.js"></script>
 <script src="js/plan.js"></script>
 <script src="js/profile.js"></script>
+<script src="js/navbar.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/main.js"></script>
 </body>

@@ -163,7 +163,9 @@ const SETTING_DEFAULTS = {
   calShowDone: true,     // completed tasks, greyed out
   calRepeats: true,      // faded future dates of repeating tasks
   calCt: true,           // ColorTracker strip on past days
-  calHabits: true        // habit ticks on each day
+  calHabits: true,       // habit ticks on each day
+  calNotes: true,        // that day's notes in the Calendar's day card (laptop)
+  calNotesPhone: false   // ... and in the phone's day sheet
 };
 
 function newTask(title, q, extra) {
@@ -214,10 +216,15 @@ function exampleState() {
     countdowns: [],    // { id, title, date }
     templates: [],     // { id, name, task: { title, q, listId, est, tags, notes, subtasks } }
     periods: [],       // ColorTracker periods to compare: { id, name, start: "YYYY-MM-DD", end }
+    notebooks: defaultNotebooks(),   // Notes: { id, name, type 'daily'|'page', icon, color, pinned, order }
+    notes: [],         // a page of a notebook: { id, nb, day: "YYYY-MM-DD" | null, text }. Daily id = nb + '_' + day
     ui: { ctView: 'sleep', sound: true, haptics: true, ambient: 'off', showDone: {}, listQ: null, listFilter: [], dismissed: {} }
   };
 }
 
+function defaultNotebooks() {
+  return [{ id: 'journal', name: 'Journal', type: 'daily', icon: '📔', color: '#7c3aed', pinned: false, order: 0, builtin: true, updatedAt: 1, deleted: false }];
+}
 // Fill in anything an older saved copy doesn't have yet.
 function normalize(s) {
   const base = exampleState();
@@ -243,6 +250,10 @@ function normalize(s) {
   s.countdowns = Array.isArray(s.countdowns) ? s.countdowns : [];
   s.templates = Array.isArray(s.templates) ? s.templates : [];
   s.periods = Array.isArray(s.periods) ? s.periods : [];
+  s.notebooks = Array.isArray(s.notebooks) ? s.notebooks : [];
+  // the Journal notebook is built in (its pages are the day notes from Wrap up); updatedAt 1 so devices don't duplicate it
+  if (!s.notebooks.some(function (n) { return n.id === 'journal'; })) s.notebooks.push(defaultNotebooks()[0]);
+  s.notes = Array.isArray(s.notes) ? s.notes : [];
   ['ctGoals', 'ctChallenges', 'ctBadges', 'dayTemplates'].forEach(function (k) { if (!Array.isArray(s.settings[k])) s.settings[k] = []; });
   s.categories = (Array.isArray(s.categories) && s.categories.length) ? s.categories : base.categories;
   // Older data has no One-off activity: add it. updatedAt 1 so any real edit synced from another device wins.
@@ -337,12 +348,14 @@ function mergeState(local, incoming) {
     countdowns: mergeById(local.countdowns || [], incoming.countdowns || []),
     templates: mergeById(local.templates || [], incoming.templates || []),
     periods: mergeById(local.periods || [], incoming.periods || []),
+    notebooks: mergeById(local.notebooks || [], incoming.notebooks || []),
+    notes: mergeById(local.notes || [], incoming.notes || []),
     ui: local.ui                      // view choices belong to this device
   };
 }
 
 // ---------- undo (one stack for the whole app) ----------
-const UNDO_KEYS = ['tasks', 'habits', 'sessions', 'ranges', 'categories', 'lists', 'days', 'countdowns', 'templates', 'periods'];
+const UNDO_KEYS = ['tasks', 'habits', 'sessions', 'ranges', 'categories', 'lists', 'days', 'countdowns', 'templates', 'periods', 'notebooks', 'notes'];
 const undoStack = [];
 function snapshot(label) {
   const snap = { label: label };

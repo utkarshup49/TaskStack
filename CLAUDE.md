@@ -61,11 +61,15 @@ js/ctview.js           Paint | Stats switch, Stats page (7 tabs incl. Compare + 
 js/ctlog.js            live mode / going to sleep, gaps + smart fill, copy yesterday, day templates, notes + 👍/👎,
                        gap reminders, goals + budgets, ideal day, 7-day challenges, CSV export, month poster
 js/ctexport.js         Export my time log: last N days (1–365) as AI-ready text (+ your question), JSON or CSV; copy / download
+js/notes.js            Notes (v0.16): notebooks (Daily = a page per date, Page = one long note), list / search / week view,
+                       plain-text editor with a small markdown subset + read view, copy previous day, line → task, voice typing,
+                       streaks, notes in the Calendar day card (calNotesHTML)
 js/plan.js             banner, Plan your day, Wrap up, Weekly review, Logbook, Countdowns, Templates,
                        day notes (state.days), completionsByDay()
 js/profile.js          avatar + profile sheet: stats, level/XP, goals, reminder settings, sections on/off,
                        download/restore/CSV, shortcuts sheet (no delete-all: removed on purpose in v0.14), what's new
 js/sync.js             Google sign-in (redirect, no server) + Google Drive sync
+js/navbar.js           phone bottom bar: which sections sit in the bar (ui.tabBar), the More button + "All sections" sheet
 js/main.js             section switching, settings sheet, Ctrl+K command bar, keyboard, start-up
 sw.js                  service worker (offline)
 manifest.webmanifest   install-as-app info
@@ -74,7 +78,7 @@ manifest.webmanifest   install-as-app info
 `grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
 and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, ctexport, plan, profile, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, ctexport, notes, plan, profile, navbar, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -117,8 +121,15 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Lists: `state.lists` = { id, name, color, order }. Default ids personal/college/extra/projects/growth with updatedAt 1 (so devices don't duplicate them). `listOf(t)` always returns a live list. The filter is `ui.listFilter` (device-only, shared by Tasks/Matrix/Calendar); views use `listVisible(t)`. New tasks go to `defaultListId()` (the one list being viewed, else `settings.defaultList`).
 - Reminders: `task.reminders` = { id, type 'due' (mins before its time, or before `settings.remindHour` on its day) | 'dl' (mins before remindHour on the deadline day) | 'abs' (at) , snooze? }. `reminderAt(t, r)` gives the moment. What fired is device-only in localStorage `taskstack.fired`. Only works while the app is open/recent; Telegram/web push need a server (not built yet).
 - Someday tasks have no date and are hidden from Today, the Matrix and Calendar (a folded group at the bottom of Tasks). Setting a date clears `someday`.
-- `state.days`: { id: "YYYY-MM-DD" (planned, wrapped, mood 1-5, note) or "wYYYY-MM-DD" = week starting that Monday (reviewed, note) }. The future Journal should build on this.
+- `state.days`: { id: "YYYY-MM-DD" (planned, wrapped, mood 1-5, note) or "wYYYY-MM-DD" = week starting that Monday (reviewed, note) }. The Notes "Journal" notebook IS this: its pages read/write `dayEntry(day).note`, so Wrap up and Notes show the same text.
 - Sessions also store `distractions` and `listId`.
+- Notes (v0.16): `state.notebooks` = { id, name, type 'daily'|'page', icon (emoji), color, pinned, order, builtin }; `journal` is built in
+  (normalize re-adds it). `state.notes` = { id: nb + '_' + "YYYY-MM-DD" (daily) or nb + '_page', nb, day, text }. Journal text lives in
+  state.days, never in state.notes. Use `noteText(nb, day)` / `setNoteText(nb, day, text)`. Text is plain markdown: # / ## headings,
+  - bullets, 1. numbers, - [ ] / - [x] boxes, > quote, ---, **bold**, *italic*, ~~strike~~, links. Days are normal midnight days.
+  Settings (sync): calNotes (laptop day card, default on), calNotesPhone (phone day sheet, default off). Device ui: noteLast.
+- Phone bottom bar (v0.16): `ui.tabBar` = ordered section ids in the bar (default tasks, calendar, habits, colortracker; 2–6), the rest live
+  in More. `ui.moreBtn === false` hides More (turned back on in Settings). Off = `settings.hiddenTabs` (hidden everywhere). 900px+ shows all.
 - ColorTracker stats (v0.10): category gets `kind, sub, value, listId, kindSure, kindSet`; range gets `note, worth (1/-1)`.
   `state.periods` = { id, name, start, end } (YYYY-MM-DD). Settings: sleepNeed, ctNudge, ctGoals, ctBedBy (late minutes: 1500 = 1 am),
   ctIdeal, ctChallenges, ctBadges, dayTemplates, ctKindsReviewed. Device-only ui: ctRange, ctLive {cat,start}, ctSeen, ctRecords.
@@ -135,7 +146,7 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 ## Design rules
 - Layout: phone/tablet = bottom tabs; 900px+ = tabs become a left sidebar and the Matrix and ColorTracker fill the whole width (other views max 1400px).
 - Matrix: no add box on the page. Each box has its own + (shown on hover on a laptop, always on touch) that opens the add pop-up; tap a box title or ... to rename it.
-- One signature colour per section (`--c-tasks`, `--c-cal`, `--c-matrix`, `--c-focus`, `--c-break`, `--c-habits`, `--c-ct`); the active section sets `--accent`.
+- One signature colour per section (`--c-tasks`, `--c-cal`, `--c-matrix`, `--c-focus`, `--c-break`, `--c-habits`, `--c-ct`, `--c-notes`); the active section sets `--accent`.
 - Quadrants: `--q1` red, `--q2` blue, `--q3` mustard, `--q4` slate. Keep every colour clearly different from the others, in light and dark mode (he dislikes colours that look alike).
 - Use colour tokens, never hard-coded hex in components.
 - Motion: 150–300 ms, springy, never blocks the next tap; respect reduced motion.
@@ -157,6 +168,6 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 4. Plan vs actual: time-block tasks on a day timeline and compare with ColorTracker
 5. ~~Lists~~ (done: lists.js)
 6. ~~Weekly review, countdowns, morning plan~~ (done: plan.js). Still: snooze swipe, Google Calendar events (read-only)
-7. Journal (Day One style), building on `state.days`
+7. ~~Journal~~ (done: Notes, v0.16). Maybe later: photos, hashtags, reminders, export
 8. Teams / shared lists (a list file shared through Drive)
 9. Native Android / iPad apps via Capacitor (widgets, reliable notifications)
