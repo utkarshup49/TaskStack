@@ -101,7 +101,8 @@ function groupHTML(title, sub, tasks, opts) {
   }
   return '<section class="lgroup' + (opts.cls ? ' ' + opts.cls : '') + '">' +
     '<header><div><h3>' + title + '</h3>' + (sub ? '<span class="small">' + sub + '</span>' : '') + '</div>' +
-    (opts.action || '') + '<span class="count">' + (tasks.length + (opts.evening ? opts.evening.length : 0)) + '</span></header>' +
+    (opts.action || '') + '<span class="count">' + (opts.prog ? opts.prog[0] + '/' + opts.prog[1] + ' done' : tasks.length + (opts.evening ? opts.evening.length : 0)) + '</span></header>' +
+    (opts.prog ? '<div class="lg-prog" aria-hidden="true"><i style="width:' + Math.round(100 * opts.prog[0] / opts.prog[1]) + '%"></i></div>' : '') +
     '<ul class="tasks list">' + rows + '</ul></section>';
 }
 
@@ -119,15 +120,16 @@ function renderTaskList() {
   const overdue = open.filter(function (t) { return dayOf(t) !== null && dayOf(t) < today; });
   if (overdue.length) {
     html += groupHTML('Overdue', '', sortByDay(overdue).sort(function (a, b) { return taskDate(a) - taskDate(b); }),
-      { cls: 'late', action: '<button class="btn small" data-action="movetoday">Move to today</button>' });
+      { cls: 'late', action: '<button class="linkbtn" data-action="movetoday">Move to today</button>' });
   }
   const todays = open.filter(function (t) { return dayOf(t) === null || dayOf(t) === today; });
   const isEvening = function (t) { return t.evening || (t.due !== null && t.hasTime && new Date(t.due).getHours() >= 18); };
   const topFirst = function (list) { return list.filter(isTop).concat(list.filter(function (t) { return !isTop(t); })); };
   const dayPart = sortByDay(todays.filter(function (t) { return !isEvening(t); }));
   const evePart = sortByDay(todays.filter(isEvening));
+  const doneN = shown.filter(function (t) { return t.done && t.doneAt && midnight(t.doneAt) === today; }).length;
   html += groupHTML('Today', new Date(today).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' }), topFirst(dayPart),
-    { day: today, evening: topFirst(evePart), empty: evePart.length ? 'Nothing before the evening.' : 'Nothing for today. Add something above, or enjoy it.' });
+    { day: today, evening: topFirst(evePart), prog: doneN ? [doneN, doneN + todays.length] : null, empty: evePart.length ? 'Nothing before the evening.' : 'Nothing for today. Add something above, or enjoy it.' });
   for (let i = 1; i <= 6; i++) {
     const d = addDays(today, i);
     const list = open.filter(function (t) { return dayOf(t) === d; });
