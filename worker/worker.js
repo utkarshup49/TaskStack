@@ -182,12 +182,12 @@ async function onApp(env, path, body) {
     const live = {};
     items.forEach(function (it) { live[it.t] = true; });
     if (Array.isArray(body.open)) body.open.forEach(function (t) { live[String(t)] = true; });
+    const before = JSON.stringify([u.items, u.snoozed, u.actions]);
     u.snoozed = u.snoozed.filter(function (it) { return !body.open || live[it.t]; });    // a snooze for a finished / deleted task is dropped
     u.items = items;
-    u.seen = now;
     const actions = u.actions;
     u.actions = [];
-    await saveStore(env, store);
+    if (JSON.stringify([u.items, u.snoozed, u.actions]) !== before) { u.seen = now; await saveStore(env, store); }   // free plan: 1,000 writes a day, so only write real changes
     return json({ linked: !!u.chat, name: u.name, actions: actions, kept: items.length, bot: store.bot || null });
   }
   if (path === '/test') {
