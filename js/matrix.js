@@ -774,7 +774,13 @@ actions.tdue = function (el) {
   if (!t) return;
   snapshot('Changed due date');
   if (el.dataset.d === 'clear') { t.due = null; t.hasTime = false; }
-  else { t.due = addDays(midnight(now()), Number(el.dataset.d)); t.hasTime = false; t.someday = false; }
+  else {
+    const mins = t.due !== null && t.hasTime ? Math.round((t.due - midnight(t.due)) / MIN) : 0;    // keep its time of day
+    const span = isMulti(t) ? midnight(t.endDate) - midnight(t.due) : 0;                             // and how many days it runs
+    t.due = addDays(midnight(now()), Number(el.dataset.d)) + mins * MIN;
+    if (span) t.endDate = midnight(t.due) + span;
+    t.someday = false;
+  }
   taskChanged(t); refreshTaskSheet();
 };
 actions.tsubdel = function (el) {
