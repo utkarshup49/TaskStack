@@ -19,7 +19,36 @@ const PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const DOTS_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 const CLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 const STAR_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/></svg>';
+const GRID_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>';
+const TAG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h7l9 9-7 7-9-9z"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/></svg>';
+const FOLDER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 const EST_CHOICES = [15, 30, 45, 60, 90, 120, 180];
+
+// One line of a task's details: icon, name, what it's set to. Tap it and its editor opens right under it
+// (one at a time), so the sheet stays short and you can see everything at a glance.
+// o: { key, act (the data-action that opens it), open, icon, label, value (html), set (true = not the default), body (function → html) }
+function propRowHTML(o) {
+  return '<div class="tprop' + (o.open ? ' open' : '') + '" data-prop="' + o.key + '">' +
+    '<button type="button" class="tprop-h" data-action="' + o.act + '" data-s="' + o.key + '" aria-expanded="' + !!o.open + '">' +
+      '<span class="tprop-i">' + o.icon + '</span><span class="tprop-l">' + o.label + '</span>' +
+      '<span class="tprop-v' + (o.set ? ' set' : '') + '">' + o.value + '</span><span class="tprop-c">' + CHEVRON_SVG + '</span></button>' +
+    (o.open ? '<div class="tprop-b">' + o.body() + '</div>' : '') + '</div>';
+}
+// Quick date buttons that show which one is picked. day = the picked day (midnight ms) or null.
+function datePicksHTML(action, day, choices) {
+  const today = midnight(now());
+  return choices.map(function (c) {
+    const val = c[0] === 'none' ? null : addDays(today, c[0]);
+    return '<button type="button" class="pick' + (day === val ? ' on' : '') + '" data-action="' + action + '" data-d="' + (c[0] === 'none' ? (c[2] || 'none') : c[0]) + '" aria-pressed="' + (day === val) + '">' + c[1] + '</button>';
+  }).join('');
+}
+function boxPickHTML(q, action) {
+  return '<div class="qmove">' + QUADS.map(function (x) {
+    return '<button type="button" class="q' + x.q + (q === x.q ? ' on' : '') + '" data-action="' + action + '" data-q="' + x.q + '">' + esc(quadName(x.q)) + '</button>';
+  }).join('') + '<button type="button" class="q0 wide' + (!q ? ' on' : '') + '" data-action="' + action + '" data-q="0">Not sorted</button></div>';
+}
+function listValueHTML(l) { return '<i class="tprop-dot" style="background:' + l.color + '"></i>' + esc(l.name); }
+function boxValueHTML(q) { return '<i class="tprop-dot q' + (q || 0) + '"></i>' + esc(boxName(q)); }
 
 // Minutes of Focus sessions spent on a task (its "actual" next to the estimate).
 function focusMinutes(taskId) {
@@ -72,6 +101,7 @@ function openAddSheet(q, preset) {
   preset = preset || {};
   if (q) addQ = q;
   addDraft = { q: q || null, date: preset.date !== undefined ? preset.date : null, time: preset.time || '', deadline: null, repeat: null, listId: defaultListId(), est: preset.est || null };
+  rpMore = false;
   openSheet({ type: 'add' }, addSheetHTML());
   setTimeout(function () { if ($('addTitle')) $('addTitle').focus(); }, 60);
 }
@@ -508,9 +538,28 @@ document.addEventListener('mouseup', function () {
 attachTaskGestures($('view-matrix'), 'drag');
 
 // ---------- task details sheet ----------
+let tshSec = null;     // which row of the task sheet is open (null = all folded)
+function tshDateText(t) {
+  if (t.someday) return 'Someday';
+  if (t.due === null) return 'No date';
+  let s = fmtDue(t.due, t.hasTime);
+  if (isMulti(t)) s += ' → ' + rpDateText(t.endDate);
+  if (t.evening) s += ' · evening';
+  return esc(s);
+}
+function tshRemindText(t) {
+  const list = (t.reminders || []).filter(function (r) { return !(r.type === 'abs' && r.snooze && r.at < now()); });
+  if (!list.length) return 'None';
+  return esc(list.length === 1 ? reminderLabel(t, list[0]) : list.length + ' reminders');
+}
 function taskSheetHTML(t) {
+  const today = midnight(now());
   const dateVal = t.due ? dayKey(t.due) : '';
   const timeVal = t.due && t.hasTime ? String(new Date(t.due).getHours()).padStart(2, '0') + ':' + String(new Date(t.due).getMinutes()).padStart(2, '0') : '';
+  const day = t.due !== null ? midnight(t.due) : null;
+  const spent = focusMinutes(t.id);
+  const stepsDone = t.subtasks.filter(function (x) { return x.done; }).length;
+  function row(key, icon, label, value, set, body) { return propRowHTML({ key: key, act: 'tsec', open: tshSec === key, icon: icon, label: label, value: value, set: set, body: body }); }
   const top = t.draft
     ? '<div class="tsh-bar"><h3>New task</h3><button class="btn" data-action="tnewcancel">Cancel</button><button class="btn primary" data-action="tnewadd">Add task</button></div>'
     : '<div class="tsh-bar"><h3>Task</h3>' +
@@ -518,58 +567,64 @@ function taskSheetHTML(t) {
         '<button class="icon-btn sm danger" data-action="tdelete" aria-label="Delete task" title="Delete">' + TRASH_SVG + '</button>' +
         '<button class="btn small primary" data-action="close">Close</button></div>';
   return top +
-    '<input class="text-input" id="tTitle" value="' + esc(t.title) + '" placeholder="What needs doing?" aria-label="Task name"' + (t.draft ? ' enterkeyhint="done"' : '') + '>' +
-    '<p class="label">List</p>' + listPickHTML(listOf(t).id, 'tlist') +
-    '<p class="label">Eisenhower box</p><div class="qmove">' + QUADS.map(function (q) {
-      return '<button class="q' + q.q + (t.q === q.q ? ' on' : '') + '" data-action="tmove" data-q="' + q.q + '">' + esc(quadName(q.q)) + '</button>';
-    }).join('') + '<button class="q0 wide' + (!t.q ? ' on' : '') + '" data-action="tmove" data-q="0">Not sorted</button></div>' +
-    '<p class="label">Date' + (t.due ? ' · ' + esc(fmtDue(t.due, t.hasTime)) : ' · none, so it shows in Today') + '</p>' +
-    '<div class="daterow">' +
-      '<button class="btn small" data-action="tdue" data-d="0">Today</button>' +
-      '<button class="btn small" data-action="tdue" data-d="1">Tomorrow</button>' +
-      '<button class="btn small" data-action="tdue" data-d="7">Next week</button>' +
-      (t.due ? '<button class="btn small" data-action="tdue" data-d="clear">No date</button>' : '') +
+    '<input class="text-input tsh-title" id="tTitle" value="' + esc(t.title) + '" placeholder="What needs doing?" aria-label="Task name"' + (t.draft ? ' enterkeyhint="done"' : '') + '>' +
+    '<div class="tprops">' +
+    row('date', CAL_SVG, 'Date', tshDateText(t), t.due !== null || t.someday, function () {
+      return '<div class="daterow">' + datePicksHTML('tdue', t.someday ? -1 : day, [[0, 'Today'], [1, 'Tomorrow'], [7, 'Next week'], ['none', 'No date', 'clear']]) + '</div>' +
+        '<div class="daterow"><input type="date" id="tDate" value="' + dateVal + '" aria-label="Date"><input type="time" id="tTime" value="' + timeVal + '" aria-label="Time"></div>' +
+        (t.due !== null ? '<div class="daterow until"><span class="small">Runs until</span><input type="date" id="tUntil" min="' + dateVal + '" value="' + (isMulti(t) ? dayKey(t.endDate) : '') + '" aria-label="Last day, for a task that runs over several days">' +
+          (isMulti(t) ? '<button class="btn small" data-action="tuntil">One day only</button>' : '') + '</div>' : '') +
+        '<div class="daterow">' +
+          '<button class="pick' + (t.evening ? ' on' : '') + '" data-action="tevening" aria-pressed="' + !!t.evening + '">This evening</button>' +
+          '<button class="pick' + (t.someday ? ' on' : '') + '" data-action="tsomeday" aria-pressed="' + !!t.someday + '">Someday</button>' +
+        '</div>' +
+        '<p class="small">' + (t.someday ? 'Someday: no date, kept out of Today and the Matrix. Find it at the bottom of Tasks.' : t.due === null ? 'With no date it shows in Today.' : 'The highlighted button is the day it\'s on now.') + '</p>';
+    }) +
+    row('repeat', REPEAT_SVG, 'Repeat', t.repeat ? esc(repeatLabel(t.repeat)) : 'Off', !!t.repeat, function () {
+      return repeatEditorHTML(t.repeat, t.due) + (repeatsInPlace(t) ? '<div class="row"><button class="btn small" data-action="rpskip">Skip this one</button></div>' : '');
+    }) +
+    row('remind', BELL_SVG, 'Reminder', tshRemindText(t), tshRemindText(t) !== 'None', function () { return remindersHTML(t, true); }) +
+    row('list', FOLDER_SVG, 'List', listValueHTML(listOf(t)), false, function () { return listPickHTML(listOf(t).id, 'tlist'); }) +
+    row('box', GRID_SVG, 'Matrix box', boxValueHTML(t.q), !!t.q, function () { return boxPickHTML(t.q, 'tmove'); }) +
+    row('deadline', FLAG_SVG, 'Deadline', t.deadline ? esc(rpDateText(t.deadline)) + ' · ' + esc(fmtDeadline(t.deadline)) : 'None', !!t.deadline, function () {
+      return '<div class="daterow">' + datePicksHTML('tdl', t.deadline ? midnight(t.deadline) : null, [[3, 'In 3 days'], [7, 'In a week'], ['none', 'None', 'clear']]) +
+        '<input type="date" id="tDeadline" value="' + (t.deadline ? dayKey(t.deadline) : '') + '" aria-label="Deadline"></div>';
+    }) +
+    row('est', CLOCK_SVG, 'Time needed', (t.est ? fmtEst(t.est) : 'Not set') + (spent ? ' · ' + fmtEst(spent) + ' focused' : ''), !!t.est, function () {
+      return '<div class="daterow">' + EST_CHOICES.map(function (m) {
+        return '<button class="pick' + (t.est === m ? ' on' : '') + '" data-action="test" data-m="' + m + '">' + fmtEst(m) + '</button>';
+      }).join('') + '<button class="pick' + (!t.est ? ' on' : '') + '" data-action="test" data-m="0">Not set</button></div>';
+    }) +
+    row('tags', TAG_SVG, 'Tags', t.tags.length ? esc(t.tags.map(function (x) { return '#' + x; }).join(' ')) : 'None', t.tags.length > 0, function () {
+      return '<input class="text-input" id="tTags" value="' + esc(t.tags.join(', ')) + '" placeholder="college, exam" aria-label="Tags, with commas between">';
+    }) +
+    '<div class="tprop"><button type="button" class="tprop-h" data-action="ttop" aria-pressed="' + isTop(t) + '">' +
+      '<span class="tprop-i">' + STAR_SVG + '</span><span class="tprop-l">Top 3 today</span><span class="tprop-v"></span><span class="tsw' + (isTop(t) ? ' on' : '') + '"><i></i></span></button></div>' +
     '</div>' +
-    '<div class="daterow"><input type="date" id="tDate" value="' + dateVal + '" aria-label="Date"><input type="time" id="tTime" value="' + timeVal + '" aria-label="Time"></div>' +
-    (t.due !== null ? '<div class="daterow until"><span class="small">Runs until</span><input type="date" id="tUntil" min="' + dateVal + '" value="' + (isMulti(t) ? dayKey(t.endDate) : '') + '" aria-label="Last day, for a task that runs over several days">' +
-      (isMulti(t) ? '<button class="btn small" data-action="tuntil">One day only</button>' : '') + '</div>' : '') +
-    '<div class="daterow">' +
-      '<button class="pick' + (isTop(t) ? ' on' : '') + '" data-action="ttop" aria-pressed="' + isTop(t) + '">' + STAR_SVG + 'Top 3 today</button>' +
-      '<button class="pick' + (t.evening ? ' on' : '') + '" data-action="tevening" aria-pressed="' + t.evening + '">This evening</button>' +
-      '<button class="pick' + (t.someday ? ' on' : '') + '" data-action="tsomeday" aria-pressed="' + t.someday + '">Someday</button>' +
-    '</div>' +
-    (t.someday ? '<p class="small">Someday: no date, kept out of Today and the Matrix. Find it at the bottom of Tasks.</p>' : '') +
-    '<p class="label">Deadline' + (t.deadline ? ' · ' + esc(new Date(t.deadline).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })) + ' (' + esc(fmtDeadline(t.deadline)) + ')' : '') + '</p>' +
-    '<div class="daterow">' +
-      '<button class="btn small" data-action="tdl" data-d="3">In 3 days</button>' +
-      '<button class="btn small" data-action="tdl" data-d="7">In a week</button>' +
-      '<input type="date" id="tDeadline" value="' + (t.deadline ? dayKey(t.deadline) : '') + '" aria-label="Deadline">' +
-      (t.deadline ? '<button class="btn small" data-action="tdl" data-d="clear">Remove</button>' : '') +
-    '</div>' +
-    remindersHTML(t) +
-    '<p class="label">Time it needs' + (focusMinutes(t.id) ? ' · focused ' + fmtEst(focusMinutes(t.id)) + ' so far' : '') + '</p>' +
-    '<div class="daterow">' + EST_CHOICES.map(function (m) {
-      return '<button class="pick' + (t.est === m ? ' on' : '') + '" data-action="test" data-m="' + m + '">' + fmtEst(m) + '</button>';
-    }).join('') + (t.est ? '<button class="pick" data-action="test" data-m="0">None</button>' : '') + '</div>' +
-    '<p class="label">Repeat' + (t.repeat ? ' · ' + esc(repeatLabel(t.repeat)) : '') + '</p>' +
-    repeatEditorHTML(t.repeat, t.due) +
-    (repeatsInPlace(t) ? '<div class="row"><button class="btn small" data-action="rpskip">Skip this one</button></div>' : '') +
-    '<p class="label">Checklist</p>' +
-    '<ul class="subtasks">' + t.subtasks.map(function (s) {
+    '<p class="label">Steps' + (t.subtasks.length ? ' · ' + stepsDone + '/' + t.subtasks.length : '') + '</p>' +
+    (t.subtasks.length ? '<ul class="subtasks">' + t.subtasks.map(function (s) {
       return '<li><input type="checkbox" data-sub="' + s.id + '"' + (s.done ? ' checked' : '') + ' aria-label="Done"><input class="text-input" data-subtext="' + s.id + '" value="' + esc(s.title) + '" aria-label="Step"><button class="x" data-action="tsubdel" data-sub="' + s.id + '" aria-label="Remove step">×</button></li>';
-    }).join('') + '</ul>' +
+    }).join('') + '</ul>' : '') +
     '<input class="text-input" id="tSubAdd" placeholder="Add a step, then press Enter" enterkeyhint="done">' +
     '<p class="label">Notes</p>' +
     '<textarea class="text-input" id="tNotes" placeholder="Anything to remember">' + esc(t.notes) + '</textarea>' +
-    '<p class="label">Tags</p>' +
-    '<input class="text-input" id="tTags" value="' + esc(t.tags.join(', ')) + '" placeholder="college, exam">' +
     (t.draft
       ? '<div class="row"><button class="btn" data-action="tnewcancel">Cancel</button><button class="btn primary" data-action="tnewadd">Add task</button></div>'
-      : '<div class="row"><button class="btn" data-action="tsavetemplate">Save as template</button><button class="btn" data-action="tfocus">Focus on this</button></div>');
+      : '<div class="row tsh-foot"><button class="btn" data-action="tfocus">Focus on this</button><button class="btn" data-action="tsavetemplate">Save as template</button></div>');
 }
+// Open one row of the task sheet (tests and other code use this too).
+function tshOpen(key) {
+  tshSec = key;
+  refreshTaskSheet();
+  const el = document.querySelector('#sheet .tprop.open');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+}
+actions.tsec = function (el) { tshOpen(tshSec === el.dataset.s ? null : el.dataset.s); };
 function openTask(id) {
   const t = findTask(id);
   if (!t) return;
+  tshSec = null;
+  rpMore = false;
   openSheet({ type: 'task', id: id }, taskSheetHTML(t));
 }
 function sheetTask() { return sheetCtx && sheetCtx.type === 'task' ? findTask(sheetCtx.id) : null; }
@@ -686,7 +741,7 @@ actions.test = function (el) {
   const t = sheetTask();
   if (!t) return;
   const m = Number(el.dataset.m);
-  t.est = m && t.est !== m ? m : null;
+  t.est = m || null;
   taskChanged(t); refreshTaskSheet();
 };
 actions.tmove = function (el) { const t = sheetTask(); if (!t) return; moveTask(t.id, Number(el.dataset.q)); refreshTaskSheet(); };
@@ -739,6 +794,7 @@ function openNewTaskSheet(p, extra) {
   finishNewTask(t, p);
   if (!t.est && extra.est) t.est = extra.est;
   t.draft = true;
+  tshSec = null;
   state.tasks.push(t);
   openSheet({ type: 'task', id: t.id, onClose: function () { finishDraft(t.id); } }, taskSheetHTML(t));
   setTimeout(function () { const el = $('tTitle'); if (el && !el.value) el.focus(); }, 80);

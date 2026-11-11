@@ -1883,3 +1883,34 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .rp-how button { padding: 0 6px; font-size: 12.5px; }
 .rp-sub { margin: 4px 0 -4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .rp-more { align-self: flex-start; }
+/* one line per detail (task sheet + add pop-up) */
+.tsh-title { font-family: var(--display); font-size: 19px; font-weight: 700; height: 46px; padding: 0 6px; border-color: transparent; background: transparent; margin: -4px 0 -6px; }
+.tsh-title:hover { border-color: var(--line); }
+.tprops { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.tprop + .tprop { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.tprop-h { width: 100%; min-height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: none; background: none; text-align: left; color: var(--ink); cursor: pointer; }
+.tprop-h:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.tprop-i { display: inline-flex; color: var(--muted); flex: 0 0 auto; }
+.tprop-i svg { width: 17px; height: 17px; }
+.tprop-l { font-size: 14px; font-weight: 500; flex: 0 0 auto; }
+.tprop-v { flex: 1; min-width: 0; text-align: right; font-size: 13.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tprop-v.set { color: var(--accent); font-weight: 600; }
+.tprop-c { display: inline-flex; color: var(--muted); flex: 0 0 auto; }
+.tprop-c svg { width: 13px; height: 13px; transition: transform 0.2s ease; }
+.tprop.open .tprop-c svg { transform: rotate(90deg); }
+.tprop.open { background: color-mix(in srgb, var(--ink) 2.5%, transparent); }
+.tprop.open .tprop-l { font-weight: 700; }
+.tprop-b { padding: 2px 12px 14px; display: flex; flex-direction: column; gap: 10px; animation: pop 0.18s var(--ease); }
+.tprop-b .small { margin: 0; }
+.tprop-b .qmove button { height: 40px; }
+.tprop-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--qc); vertical-align: 0; }
+.tprop-dot.q0 { background: transparent; border: 1.5px dashed var(--muted); }
+.tsw { flex: 0 0 auto; width: 38px; height: 22px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 16%, transparent); padding: 2px; transition: background-color 0.15s ease; }
+.tsw i { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.18s var(--ease); }
+.tsw.on { background: var(--q3); }
+.tsw.on i { transform: translateX(16px); }
+.pick[aria-pressed="true"], .pick.on { font-weight: 600; }
+.tsh-foot .btn { height: 38px; font-size: 13px; color: var(--muted); }
+.sheet textarea#tNotes { min-height: 64px; }
+.tprop-b .pick.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.tprop-b .rp-days .pick.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--ink); }

@@ -237,9 +237,9 @@ function notifyStateHTML() {
   if (Notification.permission === 'denied') return '<p class="small">Notifications are blocked for this site in your browser settings, so reminders only pop up inside the app.</p>';
   return '<button class="btn small" data-action="allownotify">' + BELL_SVG + ' Allow notifications</button>';
 }
-function remindersHTML(t) {
+function remindersHTML(t, nolabel) {
   const list = (t.reminders || []).filter(function (r) { return !(r.type === 'abs' && r.snooze && r.at < now()); });
-  let html = '<p class="label">Reminders</p>';
+  let html = nolabel ? '' : '<p class="label">Reminders</p>';
   html += list.length ? '<div class="remchips">' + list.map(function (r) {
     const at = reminderAt(t, r);
     const past = at !== null && at <= now();
