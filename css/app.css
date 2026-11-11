@@ -1939,6 +1939,7 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 @media (max-width: 599px) {
   .tray-tip-l { display: none; }
   .tray-tip-s { display: inline; }
+  #view-matrix:not([hidden]) { height: auto; }      /* so the jump bar can stay stuck to the top while the page scrolls */
   .mjump { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; position: sticky; top: 0; z-index: 5; padding: 6px 0; background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
   .mjump button { min-width: 0; height: 44px; border-radius: 12px; border: none; background: color-mix(in srgb, var(--qc) 12%, var(--surface)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0 4px; }
   .mjump i { display: none; }
@@ -1957,3 +1958,4 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
   .tray-head { margin: 0 8px 4px; }
   .quad .task + .task::before, .tray .task + .task::before { content: ""; position: absolute; top: 0; left: 46px; right: 10px; height: 1px; background: color-mix(in srgb, var(--line) 75%, transparent); }
 }
+
