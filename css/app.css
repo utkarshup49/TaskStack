@@ -1959,3 +1959,5 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
   .quad .task + .task::before, .tray .task + .task::before { content: ""; position: absolute; top: 0; left: 46px; right: 10px; height: 1px; background: color-mix(in srgb, var(--line) 75%, transparent); }
 }
 
+/* Calendar day card: keep the list-colour bar to the left of the tick circle (it was drawn over it) */
+.cal-day .tasks.list .task-inner, #sheet .tasks.list .task-inner { padding-left: 16px; }
