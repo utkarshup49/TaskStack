@@ -109,6 +109,15 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
   It pushes a hidden `draft: true` task so the normal task sheet works on it; `liveTasks()` skips drafts. "Add task" / Enter / closing with a name
   removes `draft`; Cancel or no name removes it from `state.tasks`. normalize() cleans up drafts left by a closed app.
 - Task sheet: a sticky top bar (`.tsh-bar`) holds Mark done, Delete, Close (or Cancel / Add task for a draft). Use `.tsh-bar` for other long sheets too.
+- Task sheet + add pop-up (v0.17): one line per detail, built with `propRowHTML({ key, act, open, icon, label, value, set, body })` (matrix.js).
+  Only the open row's editor is in the page: `tshSec` (task sheet, `tshOpen(key)` opens one: date, repeat, remind, list, box, deadline, est, tags)
+  and `addSec` (add pop-up). Quick date buttons come from `datePicksHTML()` and must show `.on` for the picked day. Don't add always-open blocks of buttons back.
+  Repeat editor: presets + one summary line (`rpSummaryHTML`); mode / ends / monthly details sit behind "More options" (`rpMore`).
+- Tasks add bar (v0.17): `#taskForm.composer`. `#taskPick` holds 3 quiet chips (date, box, More options) and only shows while the form has class
+  `open` (`composerSync()`: focused, text typed, or something picked). Date / Box open `#popMenu` (`openPop` / `closePop` in core.js, `popKey`).
+  Add with nothing typed = `actions.newfull` (the full New task sheet). The help text lives in the Tips sheet (`actions.tasktips`).
+- Task rows (v0.17): details under the title are plain text (`.task .meta .chip` has no background); the box button is a small dot on phones
+  (name shown from 900px). Folded groups (Scheduled / Someday / Completed) are bare lines, not cards. Today's header shows done/total + a thin bar.
 - Tasks on a laptop (v0.13, tasksplus.js): 1100px+ in List layout = list left, panel right. Opening a task there "docks" it: the same `#sheet`
   element is moved into `#taskPaneDock` and `sheetCtx.docked = true`, so every sheet listener keeps working. `openSheet`/`closeSheet` are wrapped
   (opening any other sheet undocks first). Use `sheetOpen()` (core.js) instead of `!!sheetCtx` when asking "is a pop-up in the way?".

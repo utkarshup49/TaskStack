@@ -9,8 +9,12 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.16';
+const APP_VERSION = '0.17';
 const WHATS_NEW = [
+  'Calmer Tasks page: one add box. Date, Box and More options only appear while you\'re adding. Press Add with nothing typed to open every option.',
+  'Task details are now one line each (Date, Repeat, Reminder, List, Box, Deadline, Time, Tags). Tap a line to change it. The day it\'s on is highlighted.',
+  'Repeat is simple first: pick Daily / Weekly / Monthly and read one line saying when it comes back. The rest is under More options.',
+  'Changing a task to Today / Tomorrow / Next week keeps its time of day.',
   'New Notes section: Daily notebooks (a page for every date, e.g. Eating or Journal) and Pages (one long note). Simple formatting, checkboxes, search, Day / Week view, streaks, copy yesterday, voice typing, make a task from a line.',
   'Journal notebook = your Wrap up day notes. Write in either place, it shows in both.',
   'Phone bottom bar: pick up to 6 sections, the rest live in More (Bar / More / Off for each). Calendar shows that day\'s notes on a laptop.',

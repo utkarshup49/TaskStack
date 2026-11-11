@@ -1832,6 +1832,7 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .addchip.on[class*=" q"] { background: color-mix(in srgb, var(--qc) 14%, transparent); color: var(--qc); }
 .addchip.more { margin-left: auto; background: none; color: var(--accent); padding: 0 6px; }
 .addchip:active { transform: scale(0.96); }
+
 .popmenu { position: fixed; z-index: 55; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22); padding: 6px; display: flex; flex-direction: column; gap: 1px; animation: pop 0.16s var(--ease); }
 .popmenu[hidden] { display: none; }
 .popi { position: relative; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border: none; background: none; border-radius: 9px; font-size: 14px; font-weight: 500; text-align: left; color: var(--ink); cursor: pointer; }
@@ -1844,11 +1845,7 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .popi > svg { color: var(--muted); }
 .popi.on { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .popi.on .popi-tick { display: inline-flex; }
-.list-foot .tips { margin-left: auto; }
-.tiplist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; }
-.add-line { display: flex; align-items: flex-start; gap: 10px; }
-.add-line .composer { flex: 1; min-width: 0; }
-.add-line .tlayout { align-self: flex-start; margin-top: 6px; }
+
 /* groups */
 .lgroup { border: none; border-radius: 18px; padding: 6px 6px 8px; box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent); }
 .lgroup.late { border: none; }
@@ -1858,6 +1855,8 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .lgroup:has(> .done-toggle[aria-expanded="false"]) { background: transparent; box-shadow: none; padding: 0; }
 .lg-prog { height: 3px; border-radius: 3px; margin: 2px 10px 4px; background: color-mix(in srgb, var(--ink) 7%, transparent); overflow: hidden; }
 .lg-prog i { display: block; height: 100%; border-radius: 3px; background: var(--good); transition: width 0.4s var(--ease); }
+.list-foot .tips { margin-left: auto; }
+.tiplist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.45; }
 .banner { padding: 8px 6px 8px 14px; border-radius: 14px; }
 .banner b { font-size: 14.5px; }
 .banner .btn { height: 34px; padding: 0 12px; font-size: 13px; }
@@ -1879,10 +1878,7 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
   .boxbtn { width: 32px; height: 32px; justify-content: center; padding: 0; }
   .boxbtn i { width: 10px; height: 10px; }
 }
-.rp-how { align-self: stretch; }
-.rp-how button { padding: 0 6px; font-size: 12.5px; }
-.rp-sub { margin: 4px 0 -4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.rp-more { align-self: flex-start; }
+
 /* one line per detail (task sheet + add pop-up) */
 .tsh-title { font-family: var(--display); font-size: 19px; font-weight: 700; height: 46px; padding: 0 6px; border-color: transparent; background: transparent; margin: -4px 0 -6px; }
 .tsh-title:hover { border-color: var(--line); }
@@ -1912,6 +1908,13 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .pick[aria-pressed="true"], .pick.on { font-weight: 600; }
 .tsh-foot .btn { height: 38px; font-size: 13px; color: var(--muted); }
 .sheet textarea#tNotes { min-height: 64px; }
+.rp-how { align-self: stretch; }
+.rp-how button { padding: 0 6px; font-size: 12.5px; }
+.rp-sub { margin: 4px 0 -4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.rp-more { align-self: flex-start; }
 .tprop-b .pick.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .tprop-b .rp-days .pick.on { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); color: var(--ink); }
 #addStatus:empty { display: none; }
+.add-line { display: flex; align-items: flex-start; gap: 10px; }
+.add-line .composer { flex: 1; min-width: 0; }
+.add-line .tlayout { align-self: flex-start; margin-top: 6px; }
