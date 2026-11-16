@@ -379,6 +379,7 @@ function statsOverview(R, L, range) {
       'Each hour counts as its activity\'s value (−2 to +2, set per activity; 👍/👎 on a block nudges it by 1). Productive and Workout are +2, Time waste −2 by default.') +
   '</div>';
   if (L >= 1) h += ringsCardHTML();
+  if (L >= 3) h += scoreTrendHTML(R);
   // insights
   if (L >= 3) {
     const ins = todaysInsights(R, 3);

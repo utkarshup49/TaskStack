@@ -376,3 +376,20 @@ function workoutLogHTML() {
   }
   return html + '</div>';
 }
+// Day score for each logged day (0 to 100), with a 7-day average line.
+function scoreTrendHTML(R) {
+  const days = R.days.filter(function (d) { return d.valid && d.score !== undefined; }).slice(-31);
+  if (days.length < 3) return '';
+  const vals = days.map(function (d) { return d.score; });
+  function band(s) { return s >= 80 ? 'var(--good)' : s >= 60 ? 'var(--c-ct)' : s >= 40 ? '#d97706' : 'var(--danger)'; }
+  const best = days.reduce(function (a, b) { return b.score > a.score ? b : a; });
+  return card('Day score, day by day', chartHTML({ hi: 100, ticks: [25, 50, 75, 100], fmt: function (v) { return String(v); }, h: 140,
+    cols: days.map(function (d) {
+      return { segs: [[d.score, band(d.score)]],
+        tip: tipAttr(ctDate(d.start), 'Day score ' + d.score + ' of 100', 'Productive ' + fmtMins(d.mins.productive) + ' · wasted ' + fmtMins(d.mins.waste), d.mins.workout >= 1 ? 'Workout ' + fmtMins(d.mins.workout) : 'No workout') };
+    }),
+    lines: days.length >= 7 ? [{ vals: movingAvg(vals, 7), color: 'var(--ink)' }] : [],
+    xl: xLabels(days.length, function (i) { return shortDate(days[i].start); }),
+    legend: [['var(--good)', '80+'], ['var(--c-ct)', '60–79'], ['#d97706', '40–59'], ['var(--danger)', 'under 40']].concat(days.length >= 7 ? [['var(--ink)', '7-day average']] : []) }) +
+    '<p class="small">Best in this range: <b>' + best.score + '</b> on ' + ctDate(best.start) + '.</p>');
+}
