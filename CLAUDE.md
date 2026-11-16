@@ -59,6 +59,8 @@ js/ctstats.js          ColorTracker stats engine (numbers only): ctStats(from, t
 js/ctview.js           Paint | Stats switch, Stats page (7 tabs incl. Compare + range; laptop: left rail with tabs + key
                        numbers, right rail with today so far + insights + records, cards in CSS columns), day card, insights + unlock ladder,
                        weekly report, Wrapped (+ PNG), Year in pixels, periods, records
+js/ctcharts.js         chart read-outs (data-tip + tipAttr, tap / slide / hover), chartHTML() builder (bars, stacks, ranges, lines, goal lines),
+                       and the v0.19 charts (day rings, each-day stack, score / sleep / productive / waste trends, month race, workout log)
 js/ctlog.js            live mode / going to sleep, gaps + smart fill, copy yesterday, day templates, notes + 👍/👎,
                        gap reminders, goals + budgets, ideal day, 7-day challenges, CSV export, month poster
 js/ctexport.js         Export my time log: last N days (1–365) as AI-ready text (+ your question), JSON or CSV; copy / download
@@ -83,7 +85,7 @@ manifest.webmanifest   install-as-app info
 `grep -ho "^function [A-Za-z0-9_]*\|^const [A-Za-z0-9_]*\|^let [A-Za-z0-9_]*" js/*.js | awk '{print $2}' | sort | uniq -d` (must print nothing),
 and give new CSS classes names no other section uses (check with grep first).
 Scripts are plain `<script>` tags sharing globals, loaded in this order:
-core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctlog, ctexport, notes, plan, profile, telegram, navbar, sync, main. Top-level names must be unique across files.
+core, repeat, lists, remind, matrix, tasks, calendar, calplus, tasksplus, focus, habits, colortracker, kinds, ctstats, ctview, ctcharts, ctlog, ctexport, notes, plan, profile, telegram, navbar, sync, main. Top-level names must be unique across files.
 Click handlers are registered as `actions.<name> = function (el, e) {...}` and triggered by `data-action="<name>"`.
 
 ## Must-do on every change
@@ -166,6 +168,13 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - No swipe on task rows (right = done, left = delete). Rows only have hold (box menu; drag in the Matrix).
 - Calendar: no pinch / Ctrl+scroll zoom, no haptic() calls anywhere in calendar.js / calplus.js. Paging needs one long sideways
   swipe (40% of the width, at least 130px, not from the screen edge, not slanted).
+
+## Charts (ColorTracker stats)
+- Every chart element that shows a value carries `data-tip` (build it with `tipAttr(title, line, line)`), never `title=`. Bar-like charts get
+  `data-scrub="x"` on their container so a finger can slide across; grids get `data-scrub="xy"`. New charts should use `chartHTML()`.
+- Read-outs must be exact and in plain words ("Went to bed 10:15 PM", "Woke up 4:15 AM"), never "undefined"/"NaN" (v19.py checks this).
+- When writing a file from Python, read it into a variable first, check it, then write. `open(p, 'w').write(open(p).read()...)` empties the file
+  (this wiped sw.js in v0.18).
 
 ## Design rules
 - Matrix on phones (under 600px): boxes stack in one column at full width, flat; `#matrixJump` bar on top; rows show the box dot (`.quad .boxbtn`). The 2 x 2 grid is for 600px+.

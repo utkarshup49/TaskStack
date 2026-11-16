@@ -9,8 +9,11 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.18';
+const APP_VERSION = '0.19';
 const WHATS_NEW = [
+  'ColorTracker: tap the date to jump to any day. The month shows which days you painted.',
+  'Every chart now answers back: tap it, slide a finger across it, or hover with the mouse to read the exact numbers (a sleep bar shows when you went to bed and woke up).',
+  'New charts: day rings, each-day breakdown, Day score trend, sleep length vs your need, your usual night by weekday, productive and waste trends with goal lines, this month vs last month, and a workout log.',
   'Telegram reminders: get your task reminders as Telegram messages, even when TaskStack is closed, with Done and snooze buttons. Set it up once in Profile → Reminders.',
   'New Reminders screen: where reminders reach you, what\'s coming up, and the defaults for new tasks, all in one place.',
   'Matrix on phones: the four boxes stack at full width so every task name is readable. A bar on top jumps to a box; tap the dot on a task to move it.',
