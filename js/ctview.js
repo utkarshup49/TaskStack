@@ -602,7 +602,7 @@ function statsMore(R, L) {
     tile('Usual time', O.workAt === null ? '–' : fmtClockMins(O.workAt), 'when workouts start') +
     (O.workSleep !== null && L >= 30 ? tile('Sleep after', fmtSigned(O.workSleep), 'on workout nights', 'Sleep on nights after 20+ min of workout vs other nights.') : '') +
     (O.workNextProd !== null && L >= 30 ? tile('Next day', fmtSigned(O.workNextProd), 'productive time', 'Productive time on the day after a workout vs other days.') : '') +
-  '</div>' + '<p class="label">Last 7 days: ' + fmtMins(O.last7Workout) + ' of the WHO aim of 150–300 min</p><div class="lb-track who"><i style="width:' + Math.min(100, O.last7Workout / 150 * 100).toFixed(0) + '%"></i></div>' +
+  '</div>' + (function () { const log = workoutLogHTML(); return log ? '<p class="label">Workout log (last 5 weeks)</p>' + log : ''; })() + '<p class="label">Last 7 days: ' + fmtMins(O.last7Workout) + ' of the WHO aim of 150–300 min</p><div class="lb-track who"><i style="width:' + Math.min(100, O.last7Workout / 150 * 100).toFixed(0) + '%"></i></div>' +
     how('WHO 2020 guidelines: adults should get 150–300 minutes of moderate activity a week (or 75–150 vigorous). Every Workout-kind activity counts.'));
   if (O.meals) h += card('Meals', '<div class="st-tiles">' +
     tile('Meals a day', O.meals.perDay.toFixed(1), '') + tile('First meal', fmtClockMins(O.meals.first), O.meals.regular !== null ? '±' + fmtMins(O.meals.regular) : '') +
