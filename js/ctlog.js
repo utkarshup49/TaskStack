@@ -502,3 +502,58 @@ function ctWrapHTML() {
     return '<li>' + kindDot(k) + '<span>' + kindInfo(k).name + '</span><b>' + fmtMins(d.mins[k]) + '</b></li>';
   }).join('') + '</ul></div>';
 }
+
+// ---------- jump to any date (v0.19) ----------
+// Tap the date at the top of the ColorTracker: a month opens. Days you painted are tinted
+// (stronger = more of the day painted). Tap a day to open it; ‹ › or the month field jump further back.
+let ctPickMonth = null;
+function ctPickHTML() {
+  const ms = ctPickMonth;
+  const y = new Date(ms).getFullYear(), m = new Date(ms).getMonth();
+  const today = midnight(now());
+  const shown = shownDayStart();
+  const days = buildDays(ms, addMonths(ms, 1));
+  const lead = (new Date(ms).getDay() + 6) % 7;          // weeks start on Monday
+  let painted = 0;
+  let cells = '';
+  ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach(function (x) { cells += '<span class="jwd">' + x + '</span>'; });
+  for (let i = 0; i < lead; i++) cells += '<span></span>';
+  days.forEach(function (d) {
+    const future = d.start > today;
+    const cov = Math.min(1, d.coverage || 0);
+    if (cov > 0) painted++;
+    cells += '<button class="jday ctpd' + (d.start === today ? ' today' : '') + (d.start === shown ? ' sel' : '') + '" style="--cov:' + cov.toFixed(2) + '" data-action="ctpickgo" data-d="' + d.start + '"' +
+      (future ? ' disabled' : '') + ' aria-label="' + ctDate(d.start) + (cov > 0 ? ', ' + Math.round(cov * 100) + '% painted' : ', nothing painted') + '">' + new Date(d.start).getDate() + '</button>';
+  });
+  const monthVal = y + '-' + String(m + 1).padStart(2, '0');
+  const maxVal = new Date(today).getFullYear() + '-' + String(new Date(today).getMonth() + 1).padStart(2, '0');
+  return '<div class="peek-head"><button class="icon-btn sm" data-action="ctpickmonth" data-d="-1" aria-label="Previous month">‹</button><div><h3>' +
+    new Date(ms).toLocaleDateString([], { month: 'long', year: 'numeric' }) + '</h3><p class="small">' + (painted ? painted + (painted === 1 ? ' day' : ' days') + ' painted. Darker = more of the day.' : 'Nothing painted this month.') + '</p></div>' +
+    '<button class="icon-btn sm" data-action="ctpickmonth" data-d="1" aria-label="Next month"' + (addMonths(ms, 1) > today ? ' disabled' : '') + '>›</button></div>' +
+    '<div class="jgrid">' + cells + '</div>' +
+    '<label class="ctpm"><span>Jump to a month</span><input type="month" id="ctPickInput" value="' + monthVal + '" max="' + maxVal + '"></label>' +
+    '<div class="row"><button class="btn" data-action="ctpickgo" data-d="' + today + '">Today</button><button class="btn" data-action="close">Close</button></div>';
+}
+actions.ctpick = function () { ctPickMonth = monthStart(shownDayStart()); openSheet({ type: 'ctpick' }, ctPickHTML()); };
+actions.ctpickmonth = function (el) {
+  const next = monthStart(addMonths(ctPickMonth, Number(el.dataset.d)));
+  if (next > midnight(now())) return;
+  ctPickMonth = next;
+  refreshSheet(ctPickHTML());
+};
+actions.ctpickgo = function (el) {
+  const d = Number(el.dataset.d);
+  closeSheet();
+  ctSel = null;
+  // "Sleep to sleep" days are found by a moment inside them: noon of that date. The 24-hour view uses midnight.
+  ctAnchor = d === midnight(now()) ? null : (state.ui.ctView === 'clock' ? d : d + 12 * HOUR);
+  renderColor();
+};
+$('sheet').addEventListener('change', function (e) {
+  if (e.target.id !== 'ctPickInput' || !e.target.value) return;
+  const p = e.target.value.split('-');
+  const ms = new Date(Number(p[0]), Number(p[1]) - 1, 1).getTime();
+  if (ms > midnight(now())) return;
+  ctPickMonth = ms;
+  refreshSheet(ctPickHTML());
+});

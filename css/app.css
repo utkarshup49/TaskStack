@@ -1987,3 +1987,14 @@ body.tp-dragging .tbcol, body.tp-dragging .jday, body.tp-dragging .tp7d { transi
 .remlink { align-self: flex-start; font-size: 12.5px; }
 /* Calendar day card: keep the list-colour bar to the left of the tick circle (it was drawn over it) */
 .cal-day .tasks.list .task-inner, #sheet .tasks.list .task-inner { padding-left: 16px; }
+
+/* ColorTracker: tap the date to jump to any day (v0.19) */
+button.ct-day { border: none; background: none; padding: 2px 6px; margin: 0 -6px; text-align: left; border-radius: 10px; color: inherit; cursor: pointer; }
+button.ct-day:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.ct-day h2 { display: flex; align-items: center; gap: 4px; }
+.ct-day h2 svg { width: 15px; height: 15px; color: var(--accent); flex: 0 0 auto; }
+.jday.ctpd { background: color-mix(in srgb, var(--c-ct) calc(var(--cov) * 55%), var(--surface-2, var(--surface))); }
+.jday.ctpd:disabled { opacity: 0.35; }
+.jday.ctpd.sel { background: var(--accent); color: var(--on-accent); }
+.ctpm { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--muted); }
+.ctpm input { height: 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 10px; font: inherit; font-size: 14px; }
