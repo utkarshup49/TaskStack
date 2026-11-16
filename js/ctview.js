@@ -63,7 +63,7 @@ function ringSVG24(dayStart, size) {
   let arcs = '';
   segs.forEach(function (s) {
     const a = (s.start - dayStart) / DAY, b = (s.end - dayStart) / DAY;
-    arcs += '<circle r="' + r + '" cx="50" cy="50"' + tipAttr(catName(s.cat), fmtTime(s.start) + ' – ' + fmtTime(s.end), fmtDur(s.end - s.start)) + ' stroke="' + catColor(s.cat) + '" stroke-dasharray=""' + ((b - a) * c).toFixed(2) + ' ' + c.toFixed(2) + '" stroke-dashoffset="' + (-a * c).toFixed(2) + '"/>';
+    arcs += '<circle r="' + r + '" cx="50" cy="50"' + tipAttr(catName(s.cat), fmtTime(s.start) + ' – ' + fmtTime(s.end), fmtDur(s.end - s.start)) + ' stroke="' + catColor(s.cat) + '" stroke-dasharray="' + ((b - a) * c).toFixed(2) + ' ' + c.toFixed(2) + '" stroke-dashoffset="' + (-a * c).toFixed(2) + '"/>';
   });
   const nowA = (now() - dayStart) / DAY;
   const hand = nowA > 0 && nowA < 1 ? '<line x1="50" y1="50" x2="' + (50 + 46 * Math.sin(nowA * 2 * Math.PI)).toFixed(1) + '" y2="' + (50 - 46 * Math.cos(nowA * 2 * Math.PI)).toFixed(1) + '" class="ring-now"/>' : '';
