@@ -63,7 +63,7 @@ function ringSVG24(dayStart, size) {
   let arcs = '';
   segs.forEach(function (s) {
     const a = (s.start - dayStart) / DAY, b = (s.end - dayStart) / DAY;
-    arcs += '<circle r="' + r + '" cx="50" cy="50" stroke="' + catColor(s.cat) + '" stroke-dasharray="' + ((b - a) * c).toFixed(2) + ' ' + c.toFixed(2) + '" stroke-dashoffset="' + (-a * c).toFixed(2) + '"/>';
+    arcs += '<circle r="' + r + '" cx="50" cy="50"' + tipAttr(catName(s.cat), fmtTime(s.start) + ' – ' + fmtTime(s.end), fmtDur(s.end - s.start)) + ' stroke="' + catColor(s.cat) + '" stroke-dasharray=""' + ((b - a) * c).toFixed(2) + ' ' + c.toFixed(2) + '" stroke-dashoffset="' + (-a * c).toFixed(2) + '"/>';
   });
   const nowA = (now() - dayStart) / DAY;
   const hand = nowA > 0 && nowA < 1 ? '<line x1="50" y1="50" x2="' + (50 + 46 * Math.sin(nowA * 2 * Math.PI)).toFixed(1) + '" y2="' + (50 - 46 * Math.cos(nowA * 2 * Math.PI)).toFixed(1) + '" class="ring-now"/>' : '';
@@ -296,7 +296,7 @@ function goCtTab(dir) {
   let sw = null;
   const el = $('ctStats');
   el.addEventListener('touchstart', function (e) {
-    if (e.touches.length !== 1 || e.target.closest('.st-ranges, .st-tabs, .heat, .pixels, input, textarea')) { sw = null; return; }
+    if (e.touches.length !== 1 || e.target.closest('.st-ranges, .st-tabs, .heat, .pixels, [data-scrub], input, textarea')) { sw = null; return; }
     sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
   }, { passive: true });
   el.addEventListener('touchend', function (e) {
@@ -389,7 +389,7 @@ function statsOverview(R, L, range) {
     const awake = R.awakeAvg || 1;
     const kinds = KIND_IDS.concat(['unlogged']).filter(function (k) { return R.avg[k] >= 1; }).sort(function (a, b) { return R.avg[b] - R.avg[a]; });
     h += card('Where your time goes <small>(' + range.label + ', per day)</small>',
-      '<div class="kbar">' + kinds.map(function (k) { return '<span style="flex:' + R.avg[k].toFixed(1) + ';background:' + kindInfo(k).color + '" title="' + kindInfo(k).name + '"></span>'; }).join('') + '</div>' +
+      '<div class="kbar" data-scrub="x">' + kinds.map(function (k) { return '<span style="flex:' + R.avg[k].toFixed(1) + ';background:' + kindInfo(k).color + '"' + tipAttr(kindInfo(k).name, fmtMins(R.avg[k]) + ' a day', Math.round(R.avg[k] / 1440 * 100) + '% of the 24 hours') + '></span>'; }).join('') + '</div>' +
       '<ul class="klist">' + kinds.map(function (k) {
         const diff = prev.n >= 3 && L >= 3 ? R.avg[k] - prev.avg[k] : null;
         return '<li>' + kindDot(k) + '<span>' + kindInfo(k).name + '</span><b>' + fmtMins(R.avg[k]) + '</b>' +
@@ -436,7 +436,7 @@ function statsSleep(R, L) {
   const need = sleepNeed();
   let h = '<div class="st-hero"><b>' + fmtMins(S.avg) + '</b><span>average sleep a night · ' + S.count + ' nights</span>' +
     '<p>' + (S.avg >= need ? 'Covers your ' + fmtMins(need) + ' need.' : fmtMins(need - S.avg) + ' under your ' + fmtMins(need) + ' need.') + '</p></div>';
-  h += card('Each night', sleepScheduleChart(S.nights.slice(-30)) + how('Each bar runs from when you fell asleep to when you woke up. Dashed lines: your average bedtime and wake-up. Nights belong to the day you woke up.'));
+  h += card('Each night <small>(bedtime to wake-up)</small>', sleepScheduleChart(S.nights.slice(-30)) + how('Each bar runs from when you fell asleep to when you woke up. Dashed lines: your usual bedtime and wake-up. Nights belong to the day you woke up. Tap a bar (or slide across) for the exact times.'));
   h += '<details class="st-more" open><summary>How long</summary><div class="st-tiles">' +
     tile('Longest', fmtMins(S.longest.asleep), ctDate(S.longest.end)) +
     tile('Shortest', fmtMins(S.shortest.asleep), ctDate(S.shortest.end)) +
@@ -489,61 +489,37 @@ function weekdayWeekendHTML(S) {
     '<tr><th>Other days (' + S.work.n + ')</th><td>' + fmtMins(S.work.avg) + '</td><td>' + fmtClockMins(S.work.bed) + '</td><td>' + fmtClockMins(S.work.wake) + '</td></tr>' +
     '<tr><th>Free days (' + S.free.n + ')</th><td>' + fmtMins(S.free.avg) + '</td><td>' + fmtClockMins(S.free.bed) + '</td><td>' + fmtClockMins(S.free.wake) + '</td></tr></tbody></table>';
 }
-// 28: sleep schedule chart: one bar per night, from bedtime (top) to wake-up (bottom), 6 pm to 2 pm.
-function sleepScheduleChart(nights) {
-  if (!nights.length) return '';
-  const top = 18 * 60, bottom = 38 * 60;           // 6 pm .. 2 pm next day
-  const S = { bed: mean(nights.map(function (n) { return n.bed; })), wake: mean(nights.map(function (n) { return n.wake < 18 * 60 ? n.wake + 1440 : n.wake; })) };
-  function y(m) { return Math.max(0, Math.min(100, (m - top) / (bottom - top) * 100)); }
-  const bars = nights.map(function (n) {
-    const w = n.wake < 18 * 60 ? n.wake + 1440 : n.wake;
-    const short = n.asleep < 360;
-    return '<span class="sb' + (short ? ' short' : '') + '" style="top:' + y(n.bed).toFixed(1) + '%;height:' + Math.max(1, y(w) - y(n.bed)).toFixed(1) + '%" title="' + ctDate(n.end) + ': ' + fmtTime(n.start) + ' – ' + fmtTime(n.end) + ' (' + fmtMins(n.asleep) + ')"></span>';
-  }).join('');
-  const marks = [21, 24, 27, 30, 33, 36].map(function (hh) { return '<em style="top:' + y(hh * 60) + '%">' + hourName(hh % 24) + '</em>'; }).join('');
-  return '<div class="sched"><div class="sched-ax">' + marks + '</div><div class="sched-bars" style="--n:' + nights.length + '">' +
-    '<i class="avg" style="top:' + y(S.bed).toFixed(1) + '%"></i><i class="avg" style="top:' + y(S.wake).toFixed(1) + '%"></i>' + bars + '</div></div>' +
-    '<div class="sched-x"><span>' + ctDate(nights[0].end) + '</span><span>' + ctDate(nights[nights.length - 1].end) + '</span></div>';
-}
-function bedDriftChart(nights) {
-  if (nights.length < 5) return '';
-  const vals = nights.map(function (n) { return n.bed; });
-  const lo = Math.min.apply(null, vals) - 30, hi = Math.max.apply(null, vals) + 30;
-  const pts = vals.map(function (v, i) { return (i / (vals.length - 1) * 100).toFixed(1) + ',' + ((v - lo) / (hi - lo) * 100).toFixed(1); }).join(' ');
-  return '<p class="label">Bedtime drift (later is lower)</p><svg class="drift" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="' + pts + '"/></svg>' +
-    '<div class="sched-x"><span>' + fmtClockMins(lo + 30) + ' earliest</span><span>' + fmtClockMins(hi - 30) + ' latest</span></div>';
-}
 function durationHistogram(nights) {
   const b = [['<5h', 0, 300], ['5–6h', 300, 360], ['6–7h', 360, 420], ['7–8h', 420, 480], ['8–9h', 480, 540], ['9h+', 540, 99999]];
   const counts = b.map(function (x) { return nights.filter(function (n) { return n.asleep >= x[1] && n.asleep < x[2]; }).length; });
   const max = Math.max.apply(null, counts) || 1;
-  return '<div class="hist">' + b.map(function (x, i) {
-    return '<div><span style="height:' + (counts[i] / max * 100).toFixed(0) + '%" class="' + (x[1] >= 420 && x[1] < 540 ? 'ok' : '') + '"></span><b>' + counts[i] + '</b><small>' + x[0] + '</small></div>';
+  return '<div class="hist" data-scrub="x">' + b.map(function (x, i) {
+    return '<div' + tipAttr(x[0] + ' of sleep', counts[i] + (counts[i] === 1 ? ' night' : ' nights'), nights.length ? Math.round(counts[i] / nights.length * 100) + '% of your nights' : '') + '><span style="height:' + (counts[i] / max * 100).toFixed(0) + '%" class="' + (x[1] >= 420 && x[1] < 540 ? 'ok' : '') + '"></span><b>' + counts[i] + '</b><small>' + x[0] + '</small></div>';
   }).join('') + '</div>';
 }
 function heatmapHTML(heat, kind) {
   let max = 1;
   heat.grid.forEach(function (row) { row.forEach(function (v) { if (v > max) max = v; }); });
   const color = kindInfo(kind).color;
-  let html = '<div class="heat" style="--hc:' + color + '"><div class="heat-h"><span></span>' + [0, 3, 6, 9, 12, 15, 18, 21].map(function (h) { return '<em style="grid-column:' + (h + 2) + '">' + hourName(h) + '</em>'; }).join('') + '</div>';
+  let html = '<div class="heat" data-scrub="xy" style="--hc:' + color + '"><div class="heat-h"><span></span>' + [0, 3, 6, 9, 12, 15, 18, 21].map(function (h) { return '<em style="grid-column:' + (h + 2) + '">' + hourName(h) + '</em>'; }).join('') + '</div>';
   [1, 2, 3, 4, 5, 6, 0].forEach(function (w) {
     html += '<div class="heat-r"><b>' + DOW_NAMES[w][0] + '</b>' + heat.grid[w].map(function (v, h) {
-      return '<i style="--a:' + (v === null ? 0 : (v / max).toFixed(2)) + '" class="' + (v === null ? 'none' : '') + '" title="' + DOW_NAMES[w] + ' ' + hourName(h) + ': ' + (v === null ? 'no data' : fmtMins(v)) + '"></i>';
+      return '<i style="--a:' + (v === null ? 0 : (v / max).toFixed(2)) + '" class="' + (v === null ? 'none' : '') + '"' + tipAttr(DOW_NAMES[w] + ' ' + hourName(h) + '–' + hourName(h + 1), v === null ? 'No logged ' + DOW_NAMES[w] + ' yet' : fmtMins(v) + ' of ' + kindInfo(kind).name.toLowerCase() + ' on average') + '></i>';
     }).join('') + '</div>';
   });
   return html + '</div>';
 }
 function hourBars(byHour, kind) {
   const max = Math.max.apply(null, byHour) || 1;
-  return '<div class="hrbars" style="--hc:' + kindInfo(kind).color + '">' + byHour.map(function (v, h) {
-    return '<span style="height:' + (v / max * 100).toFixed(0) + '%" title="' + hourName(h) + ': ' + fmtMins(v) + '"></span>';
+  return '<div class="hrbars" data-scrub="x" style="--hc:' + kindInfo(kind).color + '">' + byHour.map(function (v, h) {
+    return '<span style="height:' + (v / max * 100).toFixed(0) + '%"' + tipAttr(hourName(h) + ' – ' + hourName(h + 1), fmtMins(v) + ' of ' + kindInfo(kind).name.toLowerCase(), 'on an average day') + '></span>';
   }).join('') + '</div><div class="sched-x"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div>';
 }
 function dowBars(R, key, kind) {
   const vals = [1, 2, 3, 4, 5, 6, 0].map(function (w) { return R.byDow[w]; });
   const max = Math.max.apply(null, vals.map(function (x) { return x[key] || 0; })) || 1;
-  return '<div class="dbars" style="--hc:' + kindInfo(kind).color + '">' + vals.map(function (x) {
-    return '<div><span style="height:' + ((x[key] || 0) / max * 100).toFixed(0) + '%"></span><b>' + (x.n ? fmtMins(x[key]) : '–') + '</b><small>' + DOW_NAMES[x.dow] + '</small></div>';
+  return '<div class="dbars" data-scrub="x" style="--hc:' + kindInfo(kind).color + '">' + vals.map(function (x) {
+    return '<div' + tipAttr(DOW_NAMES[x.dow] + 's', x.n ? fmtMins(x[key]) + ' on average' : 'No logged days yet', x.n ? x.n + (x.n === 1 ? ' day' : ' days') + ' logged' : '') + '><span style="height:' + ((x[key] || 0) / max * 100).toFixed(0) + '%"></span><b>' + (x.n ? fmtMins(x[key]) : '–') + '</b><small>' + DOW_NAMES[x.dow] + '</small></div>';
   }).join('') + '</div>';
 }
 
@@ -582,8 +558,8 @@ function statsProductive(R, L) {
 function planVsActualHTML(pv) {
   if (!pv.days.length) return '';
   const max = Math.max.apply(null, pv.days.map(function (d) { return Math.max(d.planned, d.actual); })) || 1;
-  return card('Plan vs actual (last 7 days)', '<div class="pva">' + pv.days.map(function (d) {
-    return '<div><span class="pl" style="height:' + (d.planned / max * 100).toFixed(0) + '%"></span><span class="ac" style="height:' + (d.actual / max * 100).toFixed(0) + '%"></span><small>' + DOW_NAMES[new Date(d.start).getDay()] + '</small></div>';
+  return card('Plan vs actual (last 7 days)', '<div class="pva" data-scrub="x">' + pv.days.map(function (d) {
+    return '<div' + tipAttr(ctDate(d.start), 'Planned ' + fmtMins(d.planned), 'Painted productive ' + fmtMins(d.actual)) + '><span class="pl" style="height:' + (d.planned / max * 100).toFixed(0) + '%"></span><span class="ac" style="height:' + (d.actual / max * 100).toFixed(0) + '%"></span><small>' + DOW_NAMES[new Date(d.start).getDay()] + '</small></div>';
   }).join('') + '</div><p class="small"><i class="kd" style="background:var(--muted)"></i>Planned (task estimates) <i class="kd" style="background:' + kindInfo('productive').color + '"></i>Painted productive</p>' +
     (pv.timed ? '<p>Timed tasks kept: <b>' + pv.kept + ' of ' + pv.timed + '</b></p>' : '') +
     how('Planned = the time estimates (~45m) of tasks dated that day. Actual = productive time you painted. A timed task counts as kept when at least half of its slot (its estimate, or 1 hour) is painted productive.'));
@@ -620,7 +596,7 @@ function statsMore(R, L) {
     tile('Usual time', O.workAt === null ? '–' : fmtClockMins(O.workAt), 'when workouts start') +
     (O.workSleep !== null && L >= 30 ? tile('Sleep after', fmtSigned(O.workSleep), 'on workout nights', 'Sleep on nights after 20+ min of workout vs other nights.') : '') +
     (O.workNextProd !== null && L >= 30 ? tile('Next day', fmtSigned(O.workNextProd), 'productive time', 'Productive time on the day after a workout vs other days.') : '') +
-  '</div><p class="label">Last 7 days: ' + fmtMins(O.last7Workout) + ' of the WHO aim of 150–300 min</p><div class="lb-track who"><i style="width:' + Math.min(100, O.last7Workout / 150 * 100).toFixed(0) + '%"></i></div>' +
+  '</div>' + '<p class="label">Last 7 days: ' + fmtMins(O.last7Workout) + ' of the WHO aim of 150–300 min</p><div class="lb-track who"><i style="width:' + Math.min(100, O.last7Workout / 150 * 100).toFixed(0) + '%"></i></div>' +
     how('WHO 2020 guidelines: adults should get 150–300 minutes of moderate activity a week (or 75–150 vigorous). Every Workout-kind activity counts.'));
   if (O.meals) h += card('Meals', '<div class="st-tiles">' +
     tile('Meals a day', O.meals.perDay.toFixed(1), '') + tile('First meal', fmtClockMins(O.meals.first), O.meals.regular !== null ? '±' + fmtMins(O.meals.regular) : '') +
@@ -670,8 +646,8 @@ function statsPatterns(R, L) {
 }
 function typicalStrip(slots, label) {
   if (!slots.some(Boolean)) return '';
-  return '<p class="label">' + label + '</p><div class="tstrip">' + slots.map(function (k, i) {
-    return '<i style="background:' + (k ? kindInfo(k).color : 'var(--surface-2)') + '" title="' + fmtClockMins(i * 15) + ': ' + (k ? kindInfo(k).name : 'varies') + '"></i>';
+  return '<p class="label">' + label + '</p><div class="tstrip" data-scrub="x">' + slots.map(function (k, i) {
+    return '<i style="background:' + (k ? kindInfo(k).color : 'var(--surface-2)') + '"' + tipAttr(fmtClockMins(i * 15) + ' – ' + fmtClockMins((i + 1) * 15 % 1440), k ? 'Usually ' + kindInfo(k).name.toLowerCase() : 'Varies from day to day') + '></i>';
   }).join('') + '</div><div class="sched-x"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>12 am</span></div>';
 }
 function trendsHTML(T) {
@@ -679,8 +655,8 @@ function trendsHTML(T) {
   return card('Trends (last 8 weeks, per logged day)', kinds.map(function (k) {
     const vals = T.weeks.map(function (w) { return w.n ? w[k] / w.n : 0; });
     const max = Math.max.apply(null, vals) || 1;
-    return '<div class="trend"><span>' + kindDot(k) + kindInfo(k).name + ' ' + (T.arrows[k] === null ? '' : arrow(T.arrows[k], k !== 'waste')) + '</span><div class="tbars" style="--hc:' + kindInfo(k).color + '">' +
-      vals.map(function (v) { return '<i style="height:' + (v / max * 100).toFixed(0) + '%" title="' + fmtMins(v) + '"></i>'; }).join('') + '</div></div>';
+    return '<div class="trend"><span>' + kindDot(k) + kindInfo(k).name + ' ' + (T.arrows[k] === null ? '' : arrow(T.arrows[k], k !== 'waste')) + '</span><div class="tbars" data-scrub="x" style="--hc:' + kindInfo(k).color + '">' +
+      vals.map(function (v, i) { const w = T.weeks[i]; return '<i style="height:' + (v / max * 100).toFixed(0) + '%"' + tipAttr('Week of ' + shortDate(w.start), kindInfo(k).name + ' ' + fmtMins(v) + ' a day', w.n + (w.n === 1 ? ' day' : ' days') + ' logged') + '></i>'; }).join('') + '</div></div>';
   }).join('') + how('Each bar is one week (Monday to Sunday): minutes per logged day. Arrows compare the last 3 weeks with the 4 before.'));
 }
 
@@ -813,22 +789,22 @@ function pixelsGridHTML() {
   const days = buildDays(start, addDays(end, 1));
   const nightsAll = buildNights();
   days.forEach(function (d) { if (d.valid || d.today) d.score = dayScore(d, nightsAll); });
-  let html = '<div class="pixels">';
+  let html = '<div class="pixels" data-scrub="xy">';
   days.forEach(function (d) {
-    let color = 'var(--surface-2)', title = ctDate(d.start) + ': not logged';
+    let color = 'var(--surface-2)', title = 'Not logged';
     if (d.coverage >= VALID_COVER) {
       if (pixelsMode === 'score') {
         const s = d.score || 0;
         color = 'color-mix(in srgb, var(--c-ct) ' + Math.round(15 + s * 0.85) + '%, var(--surface))';
-        title = ctDate(d.start) + ': Day score ' + s;
+        title = 'Day score ' + s + ' of 100';
       } else {
         let best = null, bm = 0;
         KIND_IDS.forEach(function (k) { if (k !== 'sleep' && d.mins[k] > bm) { best = k; bm = d.mins[k]; } });
         color = best ? kindInfo(best).color : color;
-        title = ctDate(d.start) + ': mostly ' + (best ? kindInfo(best).name : '–');
+        title = 'Mostly ' + (best ? kindInfo(best).name.toLowerCase() + ' (' + fmtMins(bm) + ')' : '–');
       }
     }
-    html += '<i style="background:' + color + '" title="' + title + '"></i>';
+    html += '<i style="background:' + color + '"' + tipAttr(ctDate(d.start), title, d.coverage >= VALID_COVER ? 'Productive ' + fmtMins(d.mins.productive) + ' · wasted ' + fmtMins(d.mins.waste) : '') + '></i>';
   });
   return html + '</div>';
 }
@@ -964,7 +940,7 @@ function statsCompare(R, L, range) {
     row('Not logged', R.n ? R.avg.unlogged : null, RB.n ? RB.avg.unlogged : null, 'min', false);
   function bar(S) {
     const ks = KIND_IDS.concat(['unlogged']).filter(function (k) { return S.avg[k] >= 1; });
-    return '<div class="kbar">' + ks.map(function (k) { return '<span style="flex:' + S.avg[k].toFixed(1) + ';background:' + kindInfo(k).color + '" title="' + kindInfo(k).name + ' ' + fmtMins(S.avg[k]) + '"></span>'; }).join('') + '</div>';
+    return '<div class="kbar" data-scrub="x">' + ks.map(function (k) { return '<span style="flex:' + S.avg[k].toFixed(1) + ';background:' + kindInfo(k).color + '"' + tipAttr(kindInfo(k).name, fmtMins(S.avg[k]) + ' a day') + '></span>'; }).join('') + '</div>';
   }
   return card('Compare with', '<div class="daterow">' + opts.map(function (o) {
       return '<button class="pick' + (pick === o[0] ? ' on' : '') + '" data-action="ctcmp" data-c="' + o[0] + '">' + esc(o[1]) + '</button>';

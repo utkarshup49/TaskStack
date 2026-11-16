@@ -18,7 +18,7 @@ const FILES = [
   './js/colortracker.js',
   './js/kinds.js',
   './js/ctstats.js',
-  './js/ctview.js',
+  './js/ctview.js', './js/ctcharts.js',
   './js/ctlog.js', './js/ctexport.js',
   './js/notes.js', './js/plan.js',
   './js/profile.js', './js/telegram.js', './js/navbar.js',
