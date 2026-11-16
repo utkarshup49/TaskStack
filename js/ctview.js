@@ -378,6 +378,7 @@ function statsOverview(R, L, range) {
     tile('Day value', R.valueAvg === null ? '–' : (R.valueAvg >= 0 ? '+' : '') + R.valueAvg.toFixed(1), 'points a day',
       'Each hour counts as its activity\'s value (−2 to +2, set per activity; 👍/👎 on a block nudges it by 1). Productive and Workout are +2, Time waste −2 by default.') +
   '</div>';
+  if (L >= 1) h += ringsCardHTML();
   // insights
   if (L >= 3) {
     const ins = todaysInsights(R, 3);
@@ -397,6 +398,7 @@ function statsOverview(R, L, range) {
           (diff !== null && k !== 'unlogged' ? arrow(diff, k !== 'waste') : '') + '</li>';
       }).join('') + '</ul>' + how('Averages over ' + R.n + ' logged days (days at least half painted; today is left out until it\'s over). Arrows compare with the ' + range.label.toLowerCase() + ' before.'));
   }
+  if (L >= 1) h += dailyStackHTML(R);
   // 68: comparisons
   if (L >= 7) h += comparisonsHTML();
   else h += locked(7, L, 'This week vs last week vs your best');
