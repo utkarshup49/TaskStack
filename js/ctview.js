@@ -439,6 +439,7 @@ function statsSleep(R, L) {
   let h = '<div class="st-hero"><b>' + fmtMins(S.avg) + '</b><span>average sleep a night · ' + S.count + ' nights</span>' +
     '<p>' + (S.avg >= need ? 'Covers your ' + fmtMins(need) + ' need.' : fmtMins(need - S.avg) + ' under your ' + fmtMins(need) + ' need.') + '</p></div>';
   h += card('Each night <small>(bedtime to wake-up)</small>', sleepScheduleChart(S.nights.slice(-30)) + how('Each bar runs from when you fell asleep to when you woke up. Dashed lines: your usual bedtime and wake-up. Nights belong to the day you woke up. Tap a bar (or slide across) for the exact times.'));
+  if (S.nights.length >= 2) h += card('How long you slept', sleepBarsHTML(S.nights.slice(-30)) + how('Time asleep each night against your sleep need (the dashed line). The dark line is the average of the 7 nights up to that one.'));
   h += '<details class="st-more" open><summary>How long</summary><div class="st-tiles">' +
     tile('Longest', fmtMins(S.longest.asleep), ctDate(S.longest.end)) +
     tile('Shortest', fmtMins(S.shortest.asleep), ctDate(S.shortest.end)) +
@@ -460,7 +461,7 @@ function statsSleep(R, L) {
       'How far the middle of your sleep moves between free days (your days off in Settings) and other days. 2 hours or more is often flagged in research.') : '') +
     (L >= 30 ? tile('Chronotype', S.chronotype || '–', S.chronoMid ? 'mid-sleep ' + fmtClockMins(S.chronoMid) : '', 'From the middle of your sleep on free days: before 3:30 am early bird, 3:30–5:30 am in between, later night owl. A rough guide, not a test.') : '') +
   '</div>' + (L < 7 ? locked(7, L, 'Regularity score and social jetlag') : '') + (L >= 7 && L < 30 ? locked(30, L, 'Chronotype') : '') +
-    weekdayWeekendHTML(S) + bedDriftChart(S.nights.slice(-30)) + '</details>';
+    weekdayWeekendHTML(S) + sleepWeekdayHTML(S.nights) + bedDriftChart(S.nights.slice(-30)) + '</details>';
   h += '<details class="st-more" open><summary>Sleep debt</summary>' +
     '<div class="stepper"><span>Your sleep need</span><button class="icon-btn sm" data-action="ctneed" data-d="-0.25" aria-label="Less">−</button><b>' + fmtMins(need) + '</b><button class="icon-btn sm" data-action="ctneed" data-d="0.25" aria-label="More">+</button></div>' +
     (S.restedNeed ? '<p class="small">From your "how rested" taps, you feel good after about <b>' + fmtMins(S.restedNeed) + '</b>' + (S.restedBed ? ' and a bedtime around ' + fmtClockMins(S.restedBed) : '') + '. <button class="linkbtn" data-action="ctneedset" data-m="' + Math.round(S.restedNeed) + '">Use it</button></p>' : '') +
