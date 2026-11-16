@@ -529,6 +529,8 @@ function dowBars(R, key, kind) {
 function statsProductive(R, L) {
   const P = R.prod;
   let h = '<div class="st-hero"><b>' + fmtMins(R.avg.productive) + '</b><span>productive a day · ' + Math.round(R.avg.productive / (R.awakeAvg || 1) * 100) + '% of your waking time</span></div>';
+  h += kindTrendHTML(R, 'productive', { title: 'Productive time, day by day', goal: ctGoalMins('productive', 'min', 240) });
+  h += monthRaceHTML();
   if (L >= 7) {
     h += card('Golden hours', (R.heatProd.best ? '<p>You get the most done <b>' + hourName(R.heatProd.best.from) + '–' + hourName(R.heatProd.best.to) + '</b>.</p>' : '') +
       hourBars(R.heatProd.byHour, 'productive') + (L >= 14 ? heatmapHTML(R.heatProd, 'productive') : locked(14, L, 'Hour × weekday heatmap')) +
@@ -572,6 +574,7 @@ function statsWaste(R, L) {
   const W = R.waste;
   let h = '<div class="st-hero waste"><b>' + fmtMins(R.avg.waste) + '</b><span>wasted a day · ' + fmtMins(W.perWeek) + ' a week</span>' +
     (L >= 90 ? '<p>At this pace: <b>' + Math.round(W.perYearDays) + ' full days a year</b>.</p>' : '') + '</div>';
+  h += kindTrendHTML(R, 'waste', { title: 'Wasted time, day by day', goal: ctGoalMins('waste', 'max', 60), max: true });
   if (L >= 7) h += card('Danger hours', (R.heatWaste.best ? '<p>Most time slips away <b>' + hourName(R.heatWaste.best.from) + '–' + hourName(R.heatWaste.best.to) + '</b>.</p>' : '<p>Not enough wasted time to find a pattern. 👏</p>') +
     hourBars(R.heatWaste.byHour, 'waste') + (L >= 14 ? heatmapHTML(R.heatWaste, 'waste') : locked(14, L, 'Hour × weekday heatmap')));
   else h += locked(7, L, 'Danger hours');
