@@ -427,6 +427,17 @@ function renderCtSummary() {
       (locked ? '<span class="x" aria-label="Locked">' + LOCK_SVG + '</span>' : '<button class="x" data-action="ctdel" data-id="' + s.id + '" aria-label="Delete this block">×</button>') + '</li>';
   }).join('') : '<li class="small">Painted blocks show up here with exact times.</li>';
 }
+// "Tue 17 Nov", or "Tue 17 – Wed 18 Nov" for a long day you stayed up through (more than 26 h awake).
+function ctDayTitle(d) {
+  if (d.clock || !d.wake) return ctDate(d.label);
+  const last = (d.end || now()) - MIN;
+  if (last - d.wake <= 26 * HOUR || midnight(last) === midnight(d.wake)) return ctDate(d.label);
+  const a = new Date(d.wake), b = new Date(last);
+  function part(x, withMonth) {
+    return x.toLocaleDateString([], { weekday: 'short' }) + ' ' + x.getDate() + (withMonth ? ' ' + x.toLocaleDateString([], { month: 'short' }) : '');
+  }
+  return part(a, a.getMonth() !== b.getMonth()) + ' – ' + part(b, true);
+}
 function renderColor() {
   ctDay = ctCurrentDay();
   const d = ctDay;
@@ -435,7 +446,7 @@ function renderColor() {
     b.classList.toggle('on', b.dataset.v === state.ui.ctView);
     b.setAttribute('aria-pressed', b.dataset.v === state.ui.ctView);
   });
-  $('ctTitle').textContent = ctDate(d.label);
+  $('ctTitle').textContent = ctDayTitle(d);
   if (d.clock) $('ctSub').textContent = 'Midnight to midnight';
   else {
     const end = d.end || t;
