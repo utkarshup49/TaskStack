@@ -169,6 +169,11 @@ Click handlers are registered as `actions.<name> = function (el, e) {...}` and t
 - Calendar: no pinch / Ctrl+scroll zoom, no haptic() calls anywhere in calendar.js / calplus.js. Paging needs one long sideways
   swipe (40% of the width, at least 130px, not from the screen edge, not slanted).
 
+## Sleep-to-sleep days (ColorTracker)
+- A day runs from one main sleep's start to the next. Up to 48 h AWAKE (counted from waking up, `LONG_AWAKE`) stays ONE day,
+  even across two dates (Utkarsh's rule, v0.20). Only past 48 h is the stretch cut at each midnight and marked estimated.
+  A day with more than 26 h awake shows both dates in its title (`ctDayTitle`). Tests: v20.py.
+
 ## Charts (ColorTracker stats)
 - Every chart element that shows a value carries `data-tip` (build it with `tipAttr(title, line, line)`), never `title=`. Bar-like charts get
   `data-scrub="x"` on their container so a finger can slide across; grids get `data-scrub="xy"`. New charts should use `chartHTML()`.

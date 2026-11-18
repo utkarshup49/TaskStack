@@ -9,8 +9,9 @@
      delete), install tips, keyboard shortcuts, what's new
    ========================================================= */
 
-const APP_VERSION = '0.19';
+const APP_VERSION = '0.20';
 const WHATS_NEW = [
+  'ColorTracker: staying up all night no longer splits your day. Up to 48 hours without sleep stays one day (titled with both dates); only after 48 hours is it cut at midnight.',
   'ColorTracker: tap the date to jump to any day. The month shows which days you painted.',
   'Every chart now answers back: tap it, slide a finger across it, or hover with the mouse to read the exact numbers (a sleep bar shows when you went to bed and woke up).',
   'New charts: day rings, each-day breakdown, Day score trend, sleep length vs your need, your usual night by weekday, productive and waste trends with goal lines, this month vs last month, and a workout log.',
