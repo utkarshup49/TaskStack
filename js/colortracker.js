@@ -17,7 +17,7 @@ function napLimit() { return (state.settings.napHours || 3.5) * HOUR; }
 const NAP_GAP = 14 * HOUR;         // a short sleep this close to a big one is a nap that belongs to that day
 const MIN_DAY_SLEEP = HOUR;        // shortest sleep that can still start a day when no big sleep is near
 const SLEEP_MERGE_GAP = HOUR;      // two sleeps closer than this count as one
-const LONG_DAY = 36 * HOUR;        // a day longer than this probably means a sleep wasn't logged
+const LONG_AWAKE = 48 * HOUR;      // up to 48 h without sleep stays one day; longer probably means a sleep wasn't logged
 const CT_SPARE_COLORS = ['#7c3aed', '#0ea5e9', '#f97316', '#14b8a6', '#a16207', '#be185d', '#4f46e5', '#65a30d'];
 const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 const UNLOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.8-1.2"/></svg>';
@@ -165,11 +165,13 @@ function sleepDays() {
       days.push({ start: s.start, end: i + 1 < sleeps.length ? sleeps[i + 1].start : null, wake: s.end, estimated: false });
     });
   }
-  // A very long day usually means a sleep wasn't logged: split it at midnight and mark it estimated.
+  // Up to 48 hours awake (counted from waking up) stays ONE day, even if it runs over two dates:
+  // wake 4 AM on the 17th, sleep 4 PM on the 18th = one day. Longer than that usually means a sleep
+  // wasn't logged, so the day is cut at each midnight and marked estimated.
   const result = [];
   days.forEach(function (d) {
     const end = d.end || Math.max(t, d.start);
-    if (end - d.start <= LONG_DAY) { result.push(d); return; }
+    if (end - (d.wake || d.start) <= LONG_AWAKE) { result.push(d); return; }
     let pieceStart = d.start, first = true;
     let cut = firstMidnightFrom(d.start + 18 * HOUR);
     while (cut < end - 6 * HOUR) {
@@ -444,8 +446,8 @@ function renderColor() {
   $('ctToday').disabled = ctAnchor === null;
   let warn = '';
   if (!liveRanges().length) warn = 'Start with last night: pick Sleep, tap Pen, then drag from when you fell asleep to when you woke up.';
-  else if (!d.clock && !d.end && t - d.start > 30 * HOUR) warn = 'No sleep logged since ' + ctDayTime(d.start) + '. Paint your sleep and a new day will start there.';
-  else if (!d.clock && d.estimated) warn = 'No sleep is logged around here, so this day is cut at midnight. Paint the sleep to fix it.';
+  else if (!d.clock && !d.end && t - (d.wake || d.start) > 30 * HOUR) warn = 'Up for ' + fmtDur(t - (d.wake || d.start)) + ' since ' + ctDayTime(d.wake || d.start) + '. This stays one day until 48 hours without sleep, then it\'s cut at midnight. Paint your sleep and a new day starts there.';
+  else if (!d.clock && d.estimated) warn = 'No sleep is logged for more than 48 hours around here, so this stretch is cut at midnight. Paint the sleep to fix it.';
   $('ctWarn').textContent = warn;
   $('ctWarn').hidden = !warn;
   renderTools();
